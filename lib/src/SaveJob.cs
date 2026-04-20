@@ -1,5 +1,4 @@
 using System;
-using System;
 using System.Linq;
 
 namespace Save
@@ -15,26 +14,45 @@ namespace Save
     {
         protected string SourceFile;
         protected string DestinationFile;
-        protected int FileSize;
+        protected long FileSize;
         protected Priority Priority;
 
-        protected SaveJob(string name, string source, string destination)
+        protected SaveJob(string source, string destination)
         {
             SourceFile = source;
             DestinationFile = destination;
         }
 
-        public abstract void Execute();
+        public long Execute()
+        {
+            long expectedBytes = GetTotalBytesToCopy();
+            long copiedBytes = CopyFiles();
+
+            if (copiedBytes != expectedBytes)
+            {
+                throw new Exception($"Erreur de sauvegarde : {expectedBytes} octets attendus, mais {copiedBytes} octets copiés.");
+            }
+
+            return copiedBytes;
+        }
+
+        protected abstract long GetTotalBytesToCopy();
+        protected abstract long CopyFiles();
     }
 
     public class CompleteSaveJob : SaveJob
     {
-        public CompleteSaveJob(string name, string source, string destination) 
-            : base(name, source, destination)
+        public CompleteSaveJob(string source, string destination) 
+            : base(source, destination)
         {
         }
 
-        public override void Execute()
+        protected override long GetTotalBytesToCopy()
+        {
+            throw new NotImplementedException("Calcul de la taille totale à implémenter.");
+        }
+
+        protected override long CopyFiles()
         {
             throw new NotImplementedException("Implémentation de la sauvegarde complète à migrer ici.");
         }
@@ -42,12 +60,17 @@ namespace Save
 
     public class DifferentialSaveJob : SaveJob
     {
-        public DifferentialSaveJob(string name, string source, string destination) 
-            : base(name, source, destination)
+        public DifferentialSaveJob(string source, string destination) 
+            : base(source, destination)
         {
         }
 
-        public override void Execute()
+        protected override long GetTotalBytesToCopy()
+        {
+            throw new NotImplementedException("Calcul de la taille totale à implémenter.");
+        }
+
+        protected override long CopyFiles()
         {
             throw new NotImplementedException("Implémentation de la sauvegarde différentielle à migrer ici.");
         }
