@@ -1,15 +1,19 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 
 namespace EasyLog
 {
-    public class Logger
+    public sealed class Logger
     {
+        private static Logger _instance;
+        private static readonly object _lock = new object();
+
         private readonly string logDirectory;
 
-        public Logger()
+        // Constructeur privé
+        private Logger()
         {
             logDirectory = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -20,35 +24,54 @@ namespace EasyLog
             Directory.CreateDirectory(logDirectory);
         }
 
-        public void WriteLog(LogEntry entry)
+        // Accès global thread‑safe
+        public static Logger Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        if (_instance == null)
+                        {
+                            _instance = new Logger();
+                        }
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        public void WriteLog(LogInfo logInfo)
         {
             string filePath = Path.Combine(
                 logDirectory,
                 DateTime.Now.ToString("yyyy-MM-dd") + ".json"
             );
 
-            List<LogEntry> logs;
+            List<LogInfo> logs;
 
             if (File.Exists(filePath))
             {
                 string existingJson = File.ReadAllText(filePath);
-                logs = JsonSerializer.Deserialize<List<LogEntry>>(existingJson)
-                       ?? new List<LogEntry>();
+                logs = JsonSerializer.Deserialize<List<LogInfo>>(existingJson)
+                       ?? new List<LogInfo>();
             }
             else
             {
-                logs = new List<LogEntry>();
+                logs = new List<LogInfo>();
             }
 
-            logs.Add(entry);
+            logs.Add(logInfo);
 
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = true
-            };
-
-            string json = JsonSerializer.Serialize(logs, options);
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(
+                filePath,
+                JsonSerializer.Serialize(logs, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                })
+            );
         }
     }
 }
