@@ -1,14 +1,11 @@
 namespace EasySaveLibrary.Save
 {
-    public class SaveJob
+    public abstract class SaveJob
     {
-        private readonly Saver _saver;
+        protected Saver _saver;
 
-        public SaveJob(string name, string source, string destination, SaveType type)
+        protected SaveJob(string name, string source, string destination)
         {
-            _saver = type == SaveType.Complete
-                ? new CompleteSaver(name, source, destination)
-                : new DifferentialSaver(name, source, destination);
         }
 
         public void Execute()
@@ -16,6 +13,24 @@ namespace EasySaveLibrary.Save
             var files = _saver.GetFilesToCopy();
             long totalSize = files.Sum(f => f.Length);
             _saver.Start();
+        }
+    }
+
+    public class CompleteSaveJob : SaveJob
+    {
+        public CompleteSaveJob(string name, string source, string destination) 
+            : base(name, source, destination)
+        {
+            _saver = new CompleteSaver(name, source, destination);
+        }
+    }
+
+    public class DifferentialSaveJob : SaveJob
+    {
+        public DifferentialSaveJob(string name, string source, string destination) 
+            : base(name, source, destination)
+        {
+            _saver = new DifferentialSaver(name, source, destination);
         }
     }
 }
