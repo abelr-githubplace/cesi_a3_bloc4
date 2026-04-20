@@ -3,28 +3,46 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace EasySaveLibrary.Save
+namespace Save
 {
+    public class SaveProgress
+    {
+    }
+
     public abstract class Saver
     {
         public string Name { get; set; }
-        public string Source { get; set; }
-        public string Destination { get; set; }
-        public SaveType Type { get; protected set; }
+        public string SourcePath { get; set; }
+        public string DestinationPath { get; set; }
 
-        protected Saver(string name, string source, string destination)
+        protected int TotalFilesSize { get; set; }
+        protected SaveProgress SaveProgress { get; set; }
+
+        protected Saver(string name, string sourcePath, string destinationPath)
         {
             Name = name;
-            Source = source;
-            Destination = destination;
+            SourcePath = sourcePath;
+            DestinationPath = destinationPath;
+            SaveProgress = new SaveProgress();
         }
 
-        public abstract void Start();
-        public abstract List<FileInfo> GetFilesToCopy();
+        public abstract void StartSave();
 
-        protected void CopyFile(FileInfo file, string targetPath)
+        public float GetProgress()
         {
-            string destFile = Path.Combine(targetPath, Path.GetRelativePath(Source, file.FullName));
+            return 0f;
+        }
+
+        protected virtual List<string> GetChangedFiles()
+        {
+            return new List<string>();
+        }
+
+        protected void CopyFile(string sourceFilePath, string targetPath)
+        {
+            if (!File.Exists(sourceFilePath)) return;
+
+            string destFile = Path.Combine(targetPath, Path.GetRelativePath(SourcePath, sourceFilePath));
             string destDir = Path.GetDirectoryName(destFile);
 
             if (!Directory.Exists(destDir))
@@ -32,8 +50,7 @@ namespace EasySaveLibrary.Save
                 Directory.CreateDirectory(destDir);
             }
 
-            // Ici, on appellerait le logger et le StateManager avant/après la copie
-            file.CopyTo(destFile, true);
+            File.Copy(sourceFilePath, destFile, true);
         }
     }
 
@@ -42,21 +59,20 @@ namespace EasySaveLibrary.Save
         public CompleteSaver(string name, string source, string destination) 
             : base(name, source, destination) 
         {
-            Type = SaveType.Complete;
         }
 
-        public override List<FileInfo> GetFilesToCopy()
+        protected override List<string> GetChangedFiles()
         {
-            var dir = new DirectoryInfo(Source);
-            return dir.GetFiles("*", SearchOption.AllDirectories).ToList();
+            var dir = new DirectoryInfo(SourcePath);
+            return dir.GetFiles("*", SearchOption.AllDirectories).Select(f => f.FullName).ToList();
         }
 
-        public override void Start()
+        public override void StartSave()
         {
-            var files = GetFilesToCopy();
+            var files = GetChangedFiles();
             foreach (var file in files)
             {
-                CopyFile(file, Destination);
+                CopyFile(file, DestinationPath);
             }
         }
     }
@@ -66,28 +82,27 @@ namespace EasySaveLibrary.Save
         public DifferentialSaver(string name, string source, string destination) 
             : base(name, source, destination) 
         {
-            Type = SaveType.Differential;
         }
 
-        public override List<FileInfo> GetFilesToCopy()
+        protected override List<string> GetChangedFiles()
         {
-            var sourceDir = new DirectoryInfo(Source);
+            var sourceDir = new DirectoryInfo(SourcePath);
             var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
-            
+
             return files.Where(f => {
-                string relativePath = Path.GetRelativePath(Source, f.FullName);
-                string destFilePath = Path.Combine(Destination, relativePath);   
+                string relativePath = Path.GetRelativePath(SourcePath, f.FullName);
+                string destFilePath = Path.Combine(DestinationPath, relativePath);   
                 if (!File.Exists(destFilePath)) return true;
                 return f.LastWriteTime > File.GetLastWriteTime(destFilePath);
-            }).ToList();
+            }).Select(f => f.FullName).ToList();
         }
 
-        public override void Start()
+        public override void StartSave()
         {
-            var files = GetFilesToCopy();
+            var files = GetChangedFiles();
             foreach (var file in files)
             {
-                CopyFile(file, Destination);
+                CopyFile(file, DestinationPath);
             }
         }
     }

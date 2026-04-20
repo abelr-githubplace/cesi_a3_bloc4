@@ -1,5 +1,5 @@
 using Xunit;
-using EasySaveLibrary.Save;
+using Save;
 using System.IO;
 
 namespace EasySaveLibrary.Tests
@@ -30,9 +30,9 @@ namespace EasySaveLibrary.Tests
 
             var saver = new DifferentialSaver("Test", _testSource, _testDest);
 
-            var toCopy = saver.GetFilesToCopy();
-            Assert.Single(toCopy);
-            Assert.Equal(fileName, toCopy[0].Name);
+            saver.StartSave();
+
+            Assert.True(File.Exists(Path.Combine(_testDest, fileName)));
         }
     }
 }

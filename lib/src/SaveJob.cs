@@ -1,19 +1,30 @@
-namespace EasySaveLibrary.Save
+using System;
+using System;
+using System.Linq;
+
+namespace Save
 {
+    public enum Priority
+    {
+        High,
+        Medium,
+        Low
+    }
+
     public abstract class SaveJob
     {
-        protected Saver _saver;
+        protected string SourceFile;
+        protected string DestinationFile;
+        protected int FileSize;
+        protected Priority Priority;
 
         protected SaveJob(string name, string source, string destination)
         {
+            SourceFile = source;
+            DestinationFile = destination;
         }
 
-        public void Execute()
-        {
-            var files = _saver.GetFilesToCopy();
-            long totalSize = files.Sum(f => f.Length);
-            _saver.Start();
-        }
+        public abstract void Execute();
     }
 
     public class CompleteSaveJob : SaveJob
@@ -21,7 +32,11 @@ namespace EasySaveLibrary.Save
         public CompleteSaveJob(string name, string source, string destination) 
             : base(name, source, destination)
         {
-            _saver = new CompleteSaver(name, source, destination);
+        }
+
+        public override void Execute()
+        {
+            throw new NotImplementedException("Implémentation de la sauvegarde complète à migrer ici.");
         }
     }
 
@@ -30,7 +45,11 @@ namespace EasySaveLibrary.Save
         public DifferentialSaveJob(string name, string source, string destination) 
             : base(name, source, destination)
         {
-            _saver = new DifferentialSaver(name, source, destination);
+        }
+
+        public override void Execute()
+        {
+            throw new NotImplementedException("Implémentation de la sauvegarde différentielle à migrer ici.");
         }
     }
 }
