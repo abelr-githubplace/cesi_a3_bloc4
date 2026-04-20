@@ -1,0 +1,6 @@
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\bin\Debug\ClassLibrary.dll
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\bin\Debug\ClassLibrary.pdb
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\obj\Debug\EasySaveLib.csproj.AssemblyReference.cache
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\obj\Debug\EasySaveLib.csproj.CoreCompileInputs.cache
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\obj\Debug\ClassLibrary.dll
+C:\Users\tsuba\source\repos\abelr-githubplace\cesi_a3_bloc4\lib\obj\Debug\ClassLibrary.pdb
