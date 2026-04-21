@@ -9,103 +9,36 @@ namespace Save
     {
     }
 
-    public abstract class Saver
+    public class Saver
     {
-        public string Name { get; set; }
-        public string SourcePath { get; set; }
-        public string DestinationPath { get; set; }
+        private List<SaveJob> _jobs;
 
-        protected int TotalFilesSize { get; set; }
-        protected SaveProgress SaveProgress { get; set; }
-
-        protected Saver(string name, string sourcePath, string destinationPath)
+        public Saver()
         {
-            Name = name;
-            SourcePath = sourcePath;
-            DestinationPath = destinationPath;
-            SaveProgress = new SaveProgress();
+            _jobs = new List<SaveJob>();
         }
 
-        public abstract void StartSave();
-
-        public float GetProgress()
+        public void AddJob(SaveJob job)
         {
-            return 0f;
+            _jobs.Add(job);
         }
 
-        protected virtual List<string> GetChangedFiles()
+        public void RemoveJob(SaveJob job)
         {
-            return new List<string>();
+            _jobs.Remove(job);
         }
 
-        protected void CopyFile(string sourceFilePath, string targetPath)
+        public void ExecuteAll()
         {
-            if (!File.Exists(sourceFilePath)) return;
-
-            string destFile = Path.Combine(targetPath, Path.GetRelativePath(SourcePath, sourceFilePath));
-            string destDir = Path.GetDirectoryName(destFile);
-
-            if (!Directory.Exists(destDir))
+            foreach (var job in _jobs)
             {
-                Directory.CreateDirectory(destDir);
-            }
-
-            File.Copy(sourceFilePath, destFile, true);
-        }
-    }
-
-    public class CompleteSaver : Saver
-    {
-        public CompleteSaver(string name, string source, string destination) 
-            : base(name, source, destination) 
-        {
-        }
-
-        protected override List<string> GetChangedFiles()
-        {
-            var dir = new DirectoryInfo(SourcePath);
-            return dir.GetFiles("*", SearchOption.AllDirectories).Select(f => f.FullName).ToList();
-        }
-
-        public override void StartSave()
-        {
-            var files = GetChangedFiles();
-            foreach (var file in files)
-            {
-                CopyFile(file, DestinationPath);
+                job.Execute();
             }
         }
-    }
 
-    public class DifferentialSaver : Saver
-    {
-        public DifferentialSaver(string name, string source, string destination) 
-            : base(name, source, destination) 
+        public IReadOnlyList<SaveJob> GetJobs()
         {
-        }
-
-        protected override List<string> GetChangedFiles()
-        {
-            var sourceDir = new DirectoryInfo(SourcePath);
-            var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
-
-            return files.Where(f => {
-                string relativePath = Path.GetRelativePath(SourcePath, f.FullName);
-                string destFilePath = Path.Combine(DestinationPath, relativePath);   
-                if (!File.Exists(destFilePath)) return true;
-                return f.LastWriteTime > File.GetLastWriteTime(destFilePath);
-            }).Select(f => f.FullName).ToList();
-        }
-
-        public override void StartSave()
-        {
-            var files = GetChangedFiles();
-            foreach (var file in files)
-            {
-                CopyFile(file, DestinationPath);
-            }
+            return _jobs.AsReadOnly();
         }
     }
-
-    public enum SaveType { Complete, Differential }
 }

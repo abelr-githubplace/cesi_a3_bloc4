@@ -18,21 +18,24 @@ namespace EasySaveLibrary.Tests
         }
 
         [Fact]
-        public void DifferentialSaver_ShouldOnlySelectNewerFiles()
+        public void CompleteSaveJob_ShouldCopyAllFiles()
         {
             string fileName = "test.txt";
             string sourceFile = Path.Combine(_testSource, fileName);
             string destFile = Path.Combine(_testDest, fileName);
 
             File.WriteAllText(sourceFile, "Version 2");
-            File.WriteAllText(destFile, "Version 1");
-            File.SetLastWriteTime(destFile, System.DateTime.Now.AddDays(-1));
 
-            var saver = new DifferentialSaver("Test", _testSource, _testDest);
+            var job = new CompleteSaveJob("TestJob", _testSource, _testDest);
 
-            saver.StartSave();
+            var toCopy = job.GetFilesToCopy();
+            Assert.Single(toCopy);
+            Assert.Equal(sourceFile, toCopy.First());
 
-            Assert.True(File.Exists(Path.Combine(_testDest, fileName)));
+            job.Execute();
+
+            Assert.True(File.Exists(destFile));
+            Assert.Equal("Version 2", File.ReadAllText(destFile));
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.IO;
+using System.Collections.Generic;
 
 namespace Save
 {
@@ -12,21 +14,25 @@ namespace Save
 
     public abstract class SaveJob
     {
-        protected string SourceFile;
-        protected string DestinationFile;
-        protected long FileSize;
+        public string Name { get; private set; }
+        public string SourcePath { get; private set; }
+        public string DestinationPath { get; private set; }
+        protected ulong FileSize;
         protected Priority Priority;
+        public SaveProgress Progress { get; protected set; }
 
-        protected SaveJob(string source, string destination)
+        protected SaveJob(string name, string source, string destination)
         {
-            SourceFile = source;
-            DestinationFile = destination;
+            Name = name;
+            SourcePath = source;
+            DestinationPath = destination;
+            Progress = new SaveProgress();
         }
 
-        public long Execute()
+        public ulong Execute()
         {
-            long expectedBytes = GetTotalBytesToCopy();
-            long copiedBytes = CopyFiles();
+            ulong expectedBytes = GetTotalBytesToCopy();
+            ulong copiedBytes = CopyFiles();
 
             if (copiedBytes != expectedBytes)
             {
@@ -36,43 +42,100 @@ namespace Save
             return copiedBytes;
         }
 
-        protected abstract long GetTotalBytesToCopy();
-        protected abstract long CopyFiles();
+        protected ulong GetTotalBytesToCopy()
+        {
+            ulong totalSize = 0;
+            var files = GetFilesToCopy();
+
+            if (files != null)
+            {
+                foreach (var file in files)
+                {
+                    var fileInfo = new FileInfo(file);
+                    if (fileInfo.Exists)
+                    {
+                        totalSize += (ulong)fileInfo.Length;
+                    }
+                }
+            }
+
+            return totalSize;
+        }
+
+        public abstract IEnumerable<string> GetFilesToCopy();
+        protected abstract ulong CopyFiles();
+
+        protected ulong CopyFile(string sourceFilePath, string targetPath)
+        {
+            if (!File.Exists(sourceFilePath)) return 0;
+
+            string destFile = Path.Combine(targetPath, Path.GetRelativePath(SourcePath, sourceFilePath));
+            string destDir = Path.GetDirectoryName(destFile);
+
+            if (!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+            File.Copy(sourceFilePath, destFile, true);
+            return (ulong)new FileInfo(destFile).Length;
+        }
     }
 
     public class CompleteSaveJob : SaveJob
     {
-        public CompleteSaveJob(string source, string destination) 
-            : base(source, destination)
+        public CompleteSaveJob(string name, string source, string destination)
+            : base(name, source, destination)
         {
         }
 
-        protected override long GetTotalBytesToCopy()
+        public override IEnumerable<string> GetFilesToCopy()
         {
-            throw new NotImplementedException("Calcul de la taille totale à implémenter.");
+            var dir = new DirectoryInfo(SourcePath);
+            return dir.GetFiles("*", SearchOption.AllDirectories).Select(f => f.FullName).ToList();
         }
 
-        protected override long CopyFiles()
+        protected override ulong CopyFiles()
         {
-            throw new NotImplementedException("Implémentation de la sauvegarde complète à migrer ici.");
+            ulong copied = 0;
+            var files = GetFilesToCopy();
+            foreach (var file in files)
+            {
+                copied += CopyFile(file, DestinationPath);
+            }
+            return copied;
         }
     }
 
     public class DifferentialSaveJob : SaveJob
     {
-        public DifferentialSaveJob(string source, string destination) 
-            : base(source, destination)
+        public DifferentialSaveJob(string name, string source, string destination)
+            : base(name, source, destination)
         {
         }
 
-        protected override long GetTotalBytesToCopy()
+        public override IEnumerable<string> GetFilesToCopy()
         {
-            throw new NotImplementedException("Calcul de la taille totale à implémenter.");
+            var sourceDir = new DirectoryInfo(SourcePath);
+            var files = sourceDir.GetFiles("*", SearchOption.AllDirectories);
+
+            return files.Where(f => {
+                string relativePath = Path.GetRelativePath(SourcePath, f.FullName);
+                string destFilePath = Path.Combine(DestinationPath, relativePath);   
+                if (!File.Exists(destFilePath)) return true;
+                return f.LastWriteTime > File.GetLastWriteTime(destFilePath);
+            }).Select(f => f.FullName).ToList();
         }
 
-        protected override long CopyFiles()
+        protected override ulong CopyFiles()
         {
-            throw new NotImplementedException("Implémentation de la sauvegarde différentielle à migrer ici.");
+            ulong copied = 0;
+            var files = GetFilesToCopy();
+            foreach (var file in files)
+            {
+                copied += CopyFile(file, DestinationPath);
+            }
+            return copied;
         }
     }
 }
