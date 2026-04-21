@@ -42,11 +42,7 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="src\Saver.cs" />
-    <Compile Include="tests\TestSaver.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include=".vs\EasySaveLib.slnx\v18\" />
+    <Folder Include="src\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>

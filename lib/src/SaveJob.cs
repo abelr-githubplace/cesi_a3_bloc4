@@ -19,6 +19,8 @@ namespace Save
         public string DestinationPath { get; private set; }
         protected ulong FileSize;
         protected Priority Priority;
+        protected ulong TotalBytesToCopy;
+        protected ulong CopiedBytes;
         public SaveProgress Progress { get; protected set; }
 
         protected SaveJob(string name, string source, string destination)
@@ -29,17 +31,25 @@ namespace Save
             Progress = new SaveProgress();
         }
 
+        public float GetProgress()
+        {
+            return Progress.GetProgress();
+        }
+
         public ulong Execute()
         {
-            ulong expectedBytes = GetTotalBytesToCopy();
-            ulong copiedBytes = CopyFiles();
+            TotalBytesToCopy = GetTotalBytesToCopy();
+            CopiedBytes = 0;
+            Progress.SetProgress(0f);
 
-            if (copiedBytes != expectedBytes)
+            ulong copiedSize = CopyFiles();
+
+            if (copiedSize != TotalBytesToCopy)
             {
-                throw new Exception($"Erreur de sauvegarde : {expectedBytes} octets attendus, mais {copiedBytes} octets copiés.");
+                throw new Exception($"Erreur de sauvegarde : {TotalBytesToCopy} octets attendus, mais {copiedSize} octets copiés.");
             }
 
-            return copiedBytes;
+            return copiedSize;
         }
 
         protected ulong GetTotalBytesToCopy()
@@ -78,7 +88,13 @@ namespace Save
             }
 
             File.Copy(sourceFilePath, destFile, true);
-            return (ulong)new FileInfo(destFile).Length;
+            ulong copiedSize = (ulong)new FileInfo(destFile).Length;
+
+            CopiedBytes += copiedSize;
+            float percent = TotalBytesToCopy == 0 ? 100f : ((float)CopiedBytes / TotalBytesToCopy) * 100f;
+            Progress.SetProgress(percent);
+
+            return copiedSize;
         }
     }
 
