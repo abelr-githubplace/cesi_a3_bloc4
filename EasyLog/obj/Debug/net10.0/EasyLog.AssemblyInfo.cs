@@ -11,12 +11,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("LoggerTest")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("EasyLog")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3c6f06f40c37b5a14754fdca08244cf3850abb42")]
-[assembly: System.Reflection.AssemblyProductAttribute("LoggerTest")]
-[assembly: System.Reflection.AssemblyTitleAttribute("LoggerTest")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+036c8182667a96b56d765aa83a93415c31199d59")]
+[assembly: System.Reflection.AssemblyProductAttribute("EasyLog")]
+[assembly: System.Reflection.AssemblyTitleAttribute("EasyLog")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 
 // Généré par la classe MSBuild WriteCodeFragment.
