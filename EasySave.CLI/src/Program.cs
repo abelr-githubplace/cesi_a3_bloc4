@@ -136,7 +136,7 @@ namespace EasySave.CLI
                     Thread.Sleep(100);
                 }
             }
-            Console.WriteLine("\nDone.");
+            Console.WriteLine($"\n{Messages.Done}");
             Console.ReadKey();
         }
     }
