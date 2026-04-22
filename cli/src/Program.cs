@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using EasySave.lang;
-using Save; // Namespace de votre bibliothèque EasySaveLibrary
 
 namespace EasySave.CLI
 {
