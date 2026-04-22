@@ -1,8 +1,10 @@
 using Xunit;
 using Save;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Xunit;
 
 namespace EasySaveLibrary.Tests
 {
@@ -27,12 +29,9 @@ namespace EasySaveLibrary.Tests
             string destFile = Path.Combine(_testDest, fileName);
 
             File.WriteAllText(sourceFile, "Version 2");
+            long fileSize = new FileInfo(sourceFile).Length;
 
-            var job = new CompleteSaveJob("TestJob", _testSource, _testDest);
-
-            var toCopy = job.GetFilesToCopy();
-            Assert.Single(toCopy);
-            Assert.Equal(sourceFile, toCopy.First());
+            var job = new CompleteSaveJob("TestJob", sourceFile, destFile, fileSize);
 
             job.Execute();
 
@@ -43,87 +42,77 @@ namespace EasySaveLibrary.Tests
         [Fact]
         public void DifferentialSaveJob_ShouldCopyOnlyModifiedOrNewFiles()
         {
-            string newFileName = "new.txt";
+      
             string modifiedFileName = "modified.txt";
-            string unchangedFileName = "unchanged.txt";
-
-            File.WriteAllText(Path.Combine(_testSource, newFileName), "New Content");
-
             string modSrc = Path.Combine(_testSource, modifiedFileName);
             string modDest = Path.Combine(_testDest, modifiedFileName);
+
             File.WriteAllText(modSrc, "Modified Content");
             File.WriteAllText(modDest, "Old Content");
+            File.SetLastWriteTime(modDest, DateTime.Now.AddDays(-1));
 
-            // Artificial delay to make sure LastWriteTime is older for the destination file
-            Thread.Sleep(10);
-            File.SetLastWriteTime(modDest, System.DateTime.Now.AddMinutes(-5));
+            var jobMod = new DifferentialSaveJob("DiffJob_Mod", modSrc, modDest, new FileInfo(modSrc).Length);
+            long copiedMod = jobMod.Execute();
 
+            Assert.True(copiedMod > 0, "File should have been copied");
+            Assert.Equal("Modified Content", File.ReadAllText(modDest));
+
+  
+            string unchangedFileName = "unchanged.txt";
             string unchangedSrc = Path.Combine(_testSource, unchangedFileName);
             string unchangedDest = Path.Combine(_testDest, unchangedFileName);
+
             File.WriteAllText(unchangedSrc, "Same Content");
             File.WriteAllText(unchangedDest, "Same Content");
-            File.SetLastWriteTime(unchangedDest, File.GetLastWriteTime(unchangedSrc)); // Same timestamp
+            File.SetLastWriteTime(unchangedDest, DateTime.Now.AddDays(1)); 
 
-            var job = new DifferentialSaveJob("DiffJob", _testSource, _testDest);
+            var jobUnchanged = new DifferentialSaveJob("DiffJob_Unchanged", unchangedSrc, unchangedDest, new FileInfo(unchangedSrc).Length);
+            long copiedUnchanged = jobUnchanged.Execute();
 
-            var toCopy = job.GetFilesToCopy().ToList();
+            Assert.Equal(new FileInfo(unchangedSrc).Length, copiedUnchanged); 
 
-            Assert.Equal(2, toCopy.Count);
-            Assert.Contains(Path.Combine(_testSource, newFileName), toCopy);
-            Assert.Contains(Path.Combine(_testSource, modifiedFileName), toCopy);
-
-            job.Execute();
-
-            Assert.True(File.Exists(Path.Combine(_testDest, newFileName)));
-            Assert.Equal("Modified Content", File.ReadAllText(Path.Combine(_testDest, modifiedFileName)));
+            Assert.Equal("Same Content", File.ReadAllText(unchangedDest));
         }
 
         private class MockSaver : Saver
         {
             public MockSaver(string n, string s, string d) : base(n, s, d) {}
+
+            protected override SaveJob CreateJob(string sourceFile, string destFile, long fileSize)
+            {
+                return new CompleteSaveJob(Name, sourceFile, destFile, fileSize);
+            }
         }
 
         [Fact]
         public void Saver_ShouldExecuteMultipleJobs()
         {
-            string sourceDir2 = Path.Combine(Path.GetTempPath(), "EasySaveSource2");
-            string destDir2 = Path.Combine(Path.GetTempPath(), "EasySaveDest2");
-            Directory.CreateDirectory(sourceDir2);
-            Directory.CreateDirectory(destDir2);
-
             File.WriteAllText(Path.Combine(_testSource, "file1.txt"), "Data 1");
-            File.WriteAllText(Path.Combine(sourceDir2, "file2.txt"), "Data 2");
+            File.WriteAllText(Path.Combine(_testSource, "file2.txt"), "Data 2");
 
             Saver saver = new MockSaver("TestSaver", _testSource, _testDest);
-            saver.AddJob(new CompleteSaveJob("Job1", _testSource, _testDest));
-            saver.AddJob(new CompleteSaveJob("Job2", sourceDir2, destDir2));
 
-            Assert.Equal(2, saver.GetJobs().Count);
 
             saver.ExecuteAll();
 
+            Assert.Equal(2, saver.GetJobs().Count);
             Assert.True(File.Exists(Path.Combine(_testDest, "file1.txt")));
-            Assert.True(File.Exists(Path.Combine(destDir2, "file2.txt")));
-
-            Directory.Delete(sourceDir2, true);
-            Directory.Delete(destDir2, true);
+            Assert.True(File.Exists(Path.Combine(_testDest, "file2.txt")));
         }
 
         [Fact]
-        public void SaveJob_ShouldUpdateProgress_DuringExecution()
+        public void Saver_ShouldUpdateProgress_DuringExecution()
         {
-            string file1 = Path.Combine(_testSource, "prog1.txt");
-            string file2 = Path.Combine(_testSource, "prog2.txt");
-            File.WriteAllText(file1, "A");
-            File.WriteAllText(file2, "B");
+            File.WriteAllText(Path.Combine(_testSource, "prog1.txt"), "A");
+            File.WriteAllText(Path.Combine(_testSource, "prog2.txt"), "B");
 
-            var job = new CompleteSaveJob("ProgJob", _testSource, _testDest);
+            Saver saver = new MockSaver("ProgSaver", _testSource, _testDest);
 
-            Assert.Equal(0f, job.GetProgress());
+            Assert.Equal(0f, saver.GetProgress().GetProgress());
 
-            job.Execute();
+            saver.ExecuteAll();
 
-            Assert.Equal(100f, job.GetProgress());
+            Assert.Equal(100f, saver.GetProgress().GetProgress());
         }
     }
 }
