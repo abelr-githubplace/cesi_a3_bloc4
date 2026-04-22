@@ -19,8 +19,8 @@ namespace Save
         public string DestinationPath { get; private set; }
         protected ulong FileSize;
         protected Priority Priority;
-        protected ulong TotalBytesToCopy;
-        protected ulong CopiedBytes;
+        protected long TotalBytesToCopy;
+        protected long CopiedBytes;
         public SaveProgress Progress { get; protected set; }
 
         protected SaveJob(string name, string source, string destination)
@@ -36,7 +36,7 @@ namespace Save
             return Progress.GetProgress();
         }
 
-        public ulong Execute()
+        public long Execute()
         {
             TotalBytesToCopy = GetTotalBytesToCopy();
             CopiedBytes = 0;
@@ -73,9 +73,9 @@ namespace Save
         }
 
         public abstract IEnumerable<string> GetFilesToCopy();
-        protected abstract ulong CopyFiles();
+        protected abstract long CopyFiles();
 
-        protected ulong CopyFile(string sourceFilePath, string targetPath)
+        protected long CopyFile(string sourceFilePath, string targetPath)
         {
             if (!File.Exists(sourceFilePath)) return 0;
 
@@ -88,7 +88,7 @@ namespace Save
             }
 
             File.Copy(sourceFilePath, destFile, true);
-            ulong copiedSize = (ulong)new FileInfo(destFile).Length;
+            long copiedSize = new FileInfo(destFile).Length;
 
             CopiedBytes += copiedSize;
             float percent = TotalBytesToCopy == 0 ? 100f : ((float)CopiedBytes / TotalBytesToCopy) * 100f;
@@ -143,9 +143,9 @@ namespace Save
             }).Select(f => f.FullName).ToList();
         }
 
-        protected override ulong CopyFiles()
+        protected override long CopyFiles()
         {
-            ulong copied = 0;
+            long copied = 0;
             var files = GetFilesToCopy();
             foreach (var file in files)
             {

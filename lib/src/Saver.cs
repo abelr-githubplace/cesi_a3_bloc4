@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,15 +6,10 @@ using System.Linq;
 
 namespace Save
 {
-    public interface ISubscriber
-    {
-        void Update();
-    }
-
     public class Progress
     {
         private List<ISubscriber> _subscribers;
-        protected float _progress;
+        private float _progress;
 
         public Progress()
         {
@@ -31,7 +27,10 @@ namespace Save
 
         public void Unsubscribe(ISubscriber subscriber)
         {
-            _subscribers.Remove(subscriber);
+            if (_subscribers.Contains(subscriber))
+            {
+                _subscribers.Remove(subscriber);
+            }
         }
 
         public void Notify()
@@ -54,15 +53,72 @@ namespace Save
         }
     }
 
-    public class Saver
+    public abstract class Saver
     {
-        private List<SaveJob> _jobs;
-        private SaveJob _currentJob;
+        protected List<SaveJob> _jobs;
 
-        public Saver()
+        public Progress CurrentProgress { get; protected set; }
+
+        public string Name { get; protected set; }
+        public string SourcePath { get; protected set; }
+        public string DestinationPath { get; protected set; }
+        public long TotalSize { get; protected set; }
+        
+
+
+        public Dictionary<string, long> FilesWithSizes { get; protected set; }
+
+        protected Saver(string name, string sourcePath, string destinationPath, Progress progress)
         {
+            Name = name;
+            SourcePath = sourcePath;
+            DestinationPath = destinationPath;
+            CurrentProgress = progress;
+
             _jobs = new List<SaveJob>();
+            FilesWithSizes = new Dictionary<string, long>();
+            TotalSize = 0;
+
+            if (File.Exists(SourcePath) || Directory.Exists(SourcePath))
+            {
+                var files = GetAllFilesFullName(SourcePath).ToList();
+                TotalSize = ComputeSaveSize(files);
+
+                foreach (string file in files)
+                {
+                    FilesWithSizes[file] = new FileInfo(file).Length;
+                }
+            }
         }
+
+        private bool IsFile(string path)
+        {
+            FileAttributes attr = File.GetAttributes(path);
+            if (!attr.HasFlag(FileAttributes.Directory)) return true;
+            return false;
+        }
+
+        private IEnumerable<string> GetAllFilesFullName(string path)
+        {
+            if (IsFile(path))
+            {
+                var list = new List<string>();
+                list.Add(path);
+                return list;
+            }
+            return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
+        }
+
+        private Int64 ComputeSaveSize(List<string> files)
+        {
+            Int64 size = 0;
+            foreach (var file in files) 
+            {
+                size += new FileInfo(file).Length;
+            }
+            return size;
+        }
+
 
         public void AddJob(SaveJob job)
         {
@@ -78,10 +134,8 @@ namespace Save
         {
             foreach (var job in _jobs)
             {
-                _currentJob = job;
                 job.Execute();
             }
-            _currentJob = null;
         }
 
         public IReadOnlyList<SaveJob> GetJobs()
@@ -89,9 +143,9 @@ namespace Save
             return _jobs.AsReadOnly();
         }
 
-        public float GetProgress()
+        public Progress GetProgress()
         {
-            return _currentJob?.GetProgress() ?? 0f;
+            return CurrentProgress;
         }
     }
 }
