@@ -200,6 +200,9 @@ ARGUMENTS:
   <data name="Save" xml:space="preserve">
     <value>Sauvegarde</value>
   </data>
+  <data name="Saving" xml:space="preserve">
+    <value>Sauvegarde en cours</value>
+  </data>
   <data name="Welcome" xml:space="preserve">
     <value>Bienvenue</value>
   </data>
