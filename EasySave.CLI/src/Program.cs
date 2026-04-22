@@ -36,13 +36,8 @@ namespace EasySave.CLI
             bool exit = false;
             while (!exit)
             {
-                Console.Clear();
-                Console.WriteLine(Messages.MenuTitle);
+                Console.WriteLine($"\n[{Messages.MenuTitle}]");
                 Console.WriteLine(Messages.MenuSave);
-                Console.WriteLine(Messages.MenuDelete);
-                Console.WriteLine(Messages.MenuPause);
-                Console.WriteLine(Messages.MenuResume);
-                Console.WriteLine(Messages.MenuRelease);
                 Console.WriteLine(Messages.MenuOption);
                 Console.WriteLine(Messages.MenuExit);
 
@@ -50,8 +45,8 @@ namespace EasySave.CLI
                 switch (key.KeyChar)
                 {
                     case '1': RunSaveWorkflow(); break;
-                    case '6': ShowOptionMenu(); break;
-                    case '7': exit = true; break;
+                    case '2': ShowOptionMenu(); break;
+                    case 'Q': exit = true; break;
                 }
             }
         }
@@ -76,7 +71,7 @@ namespace EasySave.CLI
             while (!back)
             {
                 Console.Clear();
-                Console.WriteLine(Messages.OptionTitle);
+                Console.WriteLine($"\n[{Messages.OptionTitle}]");
                 Console.WriteLine(Messages.OptLang);
                 Console.WriteLine(Messages.OptColor);
                 Console.WriteLine(Messages.OptBack);
@@ -88,15 +83,14 @@ namespace EasySave.CLI
                 {
                     case '1': ChangeLanguage(); break;
                     case '2': ChangeConsoleColor(); break;
-                    case '3': back = true; break;
+                    case 'R': back = true; break;
                 }
             }
         }
 
         static void ChangeLanguage()
         {
-            Console.Clear();
-            Console.WriteLine("1. English | 2. Français");
+            Console.WriteLine("\n 1. English | 2. Français");
             var choice = Console.ReadLine();
             string culture = (choice == "2") ? "fr-FR" : "en-US";
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
@@ -104,8 +98,7 @@ namespace EasySave.CLI
 
         static void ChangeConsoleColor()
         {
-            Console.Clear();
-            Console.WriteLine(Messages.Color);
+            Console.WriteLine($"\n[{Messages.Color}]");
             var choice = Console.ReadKey(true);
             switch (choice.KeyChar)
             {

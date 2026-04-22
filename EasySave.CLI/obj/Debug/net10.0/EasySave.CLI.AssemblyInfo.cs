@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e6179d7669ed553b4397ab000d27856b5b98b707")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+00e4540d1b5a8bd9aee0768e690f24f93908da41")]
 [assembly: System.Reflection.AssemblyProductAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

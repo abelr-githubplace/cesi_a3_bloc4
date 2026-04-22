@@ -146,7 +146,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à Exit.
+        ///   Recherche une chaîne localisée semblable à Q. Exit/Quit.
         /// </summary>
         public static string MenuExit {
             get {
@@ -155,7 +155,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à 6. Option.
+        ///   Recherche une chaîne localisée semblable à 2. Option.
         /// </summary>
         public static string MenuOption {
             get {
@@ -218,7 +218,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Recherche une chaîne localisée semblable à 3. Back to main menu.
+        ///   Recherche une chaîne localisée semblable à R. Back to main menu.
         /// </summary>
         public static string OptBack {
             get {

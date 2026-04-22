@@ -155,10 +155,10 @@ ARGUMENTS:
     <value>2. Delete</value>
   </data>
   <data name="MenuExit" xml:space="preserve">
-    <value>Exit</value>
+    <value>Q. Exit/Quit</value>
   </data>
   <data name="MenuOption" xml:space="preserve">
-    <value>6. Option</value>
+    <value>2. Option</value>
   </data>
   <data name="MenuPause" xml:space="preserve">
     <value>3. Pause</value>
@@ -179,7 +179,7 @@ ARGUMENTS:
     <value>No command arguments detected.</value>
   </data>
   <data name="OptBack" xml:space="preserve">
-    <value>3. Back to main menu</value>
+    <value>R. Back to main menu</value>
   </data>
   <data name="OptColor" xml:space="preserve">
     <value>2. Change color</value>

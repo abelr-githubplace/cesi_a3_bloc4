@@ -156,10 +156,10 @@ ARGUMENTS:
     <value>2. Effacer une sauvegarde</value>
   </data>
   <data name="MenuExit" xml:space="preserve">
-    <value>Sortir/retour</value>
+    <value>Q. Sortir/Quitter</value>
   </data>
   <data name="MenuOption" xml:space="preserve">
-    <value>6. Paramettre</value>
+    <value>2. Paramettre</value>
   </data>
   <data name="MenuPause" xml:space="preserve">
     <value>3. Mettre sur pause</value>
@@ -180,7 +180,7 @@ ARGUMENTS:
     <value>Aucun argument détecté.</value>
   </data>
   <data name="OptBack" xml:space="preserve">
-    <value>3. Retour au menu principal</value>
+    <value>R. Retour au menu principal</value>
   </data>
   <data name="OptColor" xml:space="preserve">
     <value>2. Changer la couleur</value>
