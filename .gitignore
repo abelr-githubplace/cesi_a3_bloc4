@@ -1,2 +1,6 @@
 .idea/
 .vs/
+
+cli/bin
+lib/bin
+EasyLog/bin

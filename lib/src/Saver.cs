@@ -1,11 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using SaveManager;
+using StateManager;
+using Job;
+using Observer;
 
-namespace Save
+namespace Saver
 {
-    public class Progress 
+    public class Progress : IPublisher
     {
         private List<ISubscriber> _subscribers;
         private float _progress;
@@ -18,26 +18,17 @@ namespace Save
 
         public void Subscribe(ISubscriber subscriber)
         {
-            if (!_subscribers.Contains(subscriber))
-            {
-                _subscribers.Add(subscriber);
-            }
+            if (!_subscribers.Contains(subscriber)) _subscribers.Add(subscriber);
         }
 
         public void Unsubscribe(ISubscriber subscriber)
         {
-            if (_subscribers.Contains(subscriber))
-            {
-                _subscribers.Remove(subscriber);
-            }
+            if (_subscribers.Contains(subscriber)) _subscribers.Remove(subscriber);
         }
 
         public void Notify()
         {
-            foreach (var subscriber in _subscribers)
-            {
-                subscriber.Update();
-            }
+            foreach (var subscriber in _subscribers) subscriber.Update();
         }
 
         public float GetProgress()
@@ -52,56 +43,70 @@ namespace Save
         }
     }
 
-    public abstract class Saver
+    public class Saver
     {
-        protected List<SaveJob> _jobs;
+        public string Name { get; }
+        public string SourcePath { get; }
+        public string DestinationPath { get; }
+        public long TotalSize { get; }
+        public Dictionary<string, long> FilesWithSizes { get; }
+        public Progress Progress { get; }
 
-        public Progress CurrentProgress { get; protected set; }
+        protected List<SaveJob> Jobs;
+        private Config _config;
 
-        public string Name { get; protected set; }
-        public string SourcePath { get; protected set; }
-        public string DestinationPath { get; protected set; }
-        public long TotalSize { get; protected set; }
-
-        public Dictionary<string, long> FilesWithSizes { get; protected set; }
-
-        protected Saver(SaveInfo save)
+        public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config)
         {
             Name = save.SaveName;
             SourcePath = save.SourcePath;
             DestinationPath = save.DestinationPath;
-            CurrentProgress = new Progress();
+            Progress = progress;
+            _config = config;
 
-            _jobs = new List<SaveJob>();
+            Jobs = new List<SaveJob>();
             FilesWithSizes = new Dictionary<string, long>();
-            TotalSize = 0;
 
+            long totalSize = 0;
             if (File.Exists(SourcePath) || Directory.Exists(SourcePath))
             {
-                var files = GetAllFilesFullName(SourcePath).ToList();
-
-                foreach (string file in files)
+                foreach (string file in GetAllFilesFullName(SourcePath))
                 {
-                    long fileSize = GetFileSize(file);
+                    // Populate File to FileSize hashmap
+                    long fileSize = new FileInfo(file).Length;
                     FilesWithSizes[file] = fileSize;
-                    TotalSize += fileSize;
+
+                    // Create Jobs
+                    string relativePath = Path.GetRelativePath(SourcePath, file);
+                    string destFile = Path.Combine(DestinationPath, relativePath);
+                    var job = CreateJob(file, destFile, fileSize, saveType);
+                    if (job == null) /* Error : should be handled */;
+                    Jobs.Add(job);
+                    
+                    totalSize += fileSize;
                 }
+            }
+            TotalSize = totalSize;
+        }
+
+        private SaveJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
+        {
+            var default_priority = Priority.Medium;
+            switch (saveType)
+            {
+                case SaveType.Complete: return new Job.CompleteSaveJob(sourceFile, destFile, fileSize, default_priority);
+                case SaveType.Differential: return new Job.DifferentialSaveJob(sourceFile, destFile, fileSize, default_priority);
+                default: return null;
             }
         }
 
-        private long GetFileSize(string path)
-        {
-            return new FileInfo(path).Length;
-        }
-
-        private bool IsFile(string path)
+        private static bool IsFile(string path)
         {
             FileAttributes attr = File.GetAttributes(path);
             if (!attr.HasFlag(FileAttributes.Directory)) return true;
             return false;
         }
 
-        private IEnumerable<string> GetAllFilesFullName(string path)
+        private static IEnumerable<string> GetAllFilesFullName(string path)
         {
             if (IsFile(path))
             {
@@ -112,106 +117,53 @@ namespace Save
             return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories);
         }
 
-        public void AddJob(SaveJob job)
-        {
-            _jobs.Add(job);
-        }
-
-        public void RemoveJob(SaveJob job)
-        {
-            _jobs.Remove(job);
-        }
-
-        protected abstract SaveJob CreateJob(string sourceFile, string destFile, long fileSize);
-
-        public void ExecuteAll()
+        public void Start()
         {
             long copiedTotalBytes = 0;
-            if (_jobs.Count == 0)
-            {
-                foreach (var kvp in FilesWithSizes)
-                {
-                    string sourceFile = kvp.Key;
-                    long fileSize = kvp.Value;
-                    string relativePath = Path.GetRelativePath(SourcePath, sourceFile);
-                    string destFile = Path.Combine(DestinationPath, relativePath);
-                    AddJob(CreateJob(sourceFile, destFile, fileSize));
-                }
-            }
 
-            foreach (var job in _jobs)
+            for (int i = 0; i < Jobs.Count; i++)
             {
+                var job = Jobs[i];
+
                 var beginTime = DateTime.Now;
                 long copiedSize = job.Execute();
                 var endTime = DateTime.Now;
-                Logger.Log(new LogInfo { DateTime = DateTime.Now, SaveName = Name, SourceFile = job.SourceFile, DestinationFile = job.DestinationFile, FileSize = job.FileSize, TransferTime = (endTime - beginTime).Milliseconds });
 
-                if (copiedSize != job.FileSize)
-                {
-
-                    TotalSize += (copiedSize - job.FileSize);
-                }
-
+                if (copiedSize != job.FileSize) /* Error : does nothing for now, should be handled later on */;
                 copiedTotalBytes += copiedSize;
 
-                float percent = TotalSize == 0 ? 100f : ((float)copiedTotalBytes / TotalSize) * 100f;
+                float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)copiedTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
+                Progress.SetProgress(percent);
 
-                if (percent > 100f) percent = 100f;
-                if (percent < 0f) percent = 0f;
-
-                CurrentProgress.SetProgress(percent);
+                _config.Logger.Log(
+                    new EasyLog.LogInfo {
+                        DateTime = DateTime.Now,
+                        SaveName = Name,
+                        SourceFile = job.SourceFile,
+                        DestinationFile = job.DestinationFile,
+                        FileSize = job.FileSize,
+                        TransferTime = (endTime - beginTime).Milliseconds
+                    }
+                );
+                _config.StateManager.Save(
+                    new SaveState {
+                        Name = this.Name,
+                        SourcePath = this.SourcePath,
+                        DestinationPath = this.DestinationPath,
+                        LastActionTime = endTime,
+                        Status = Status.Active,
+                        ActiveStateInfo = new ActiveStateInfo {
+                            TotalFiles = this.FilesWithSizes.Count,
+                            TotalSize = this.TotalSize,
+                            FilesRemaining = Jobs.Count - i,
+                            SizeRemaining = this.TotalSize - copiedTotalBytes,
+                            Progress = this.Progress.GetProgress(),
+                            CurrentSourceFile = job.SourceFile,
+                            CurrentTargetFile = job.DestinationFile
+                        }
+                    }
+                );
             }
-        }
-
-        public IReadOnlyList<SaveJob> GetJobs()
-        {
-            return _jobs.AsReadOnly();
-        }
-
-        public Progress GetProgress() Name, SourceFile = job.SourceFile, DestinationFile = job.DestinationFile, FileSize = job.FileSize, TransferTime = DateTime.Now
-    });
-
-                if (copiedSize != job.FileSize)
-                {
-                    throw new System.Exception($"Erreur de sauvegarde : {job.FileSize} octets attendus, mais {copiedSize} octets copiés.");
-                }
-
-copiedTotalBytes += copiedSize;
-
-float percent = TotalSize == 0 ? 100f : ((float)copiedTotalBytes / TotalSize) * 100f;
-CurrentProgress.SetProgress(percent);
-            }
-        }
-
-        public IReadOnlyList<SaveJob> GetJobs()
-{
-            return CurrentProgress;
-        }
-    }
-
-    public class CompleteSaver : Saver
-    {
-        public CompleteSaver(string name, string sourcePath, string destinationPath) 
-            : base(name, sourcePath, destinationPath)
-        {
-        }
-
-        protected override SaveJob CreateJob(string sourceFile, string destFile, long fileSize)
-        {
-            return new CompleteSaveJob(Name, sourceFile, destFile, fileSize);
-        }
-    }
-
-    public class DifferentialSaver : Saver
-    {
-        public DifferentialSaver(string name, string sourcePath, string destinationPath) 
-            : base(name, sourcePath, destinationPath)
-        {
-        }
-
-        protected override SaveJob CreateJob(string sourceFile, string destFile, long fileSize)
-        {
-            return new DifferentialSaveJob(Name, sourceFile, destFile, fileSize);
         }
     }
 }

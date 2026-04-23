@@ -1,52 +1,47 @@
-﻿using System;
-using System.IO;
-using System.Threading;
-using System.Collections.Generic;
-using State;
+﻿using Saver;
 
-namespace Save
+namespace SaveManager
 {
 	public enum Action { Save }
 	public enum SaveType { Complete, Differential }
 
+	public record Config
+	{
+		public required EasyLog.Logger Logger { get; init; }
+        public required StateManager.StateManager StateManager { get; init; }
+    }
+
 	public record Command
 	{
-		public Action SaveAction { get; init; }
-		public SaveInfo[] Saves { get; init; }
+		public required Action SaveAction { get; init; }
+		public required SaveInfo[] Saves { get; init; }
 		public SaveType? SaveType { get; init; }
 	}
 
 	public record SaveInfo
 	{
-		public string SaveName { get; init; }
-		public string SourcePath { get; init; }
-		public string DestinationPath { get; init; }
+		public required string SaveName { get; init; }
+		public required string SourcePath { get; init; }
+		public required string DestinationPath { get; init; }
 	}
 
 	public class SaveManager
 	{
-		public static void Execute(Command command, List<Progress> progresses)
+		public static bool Execute(Command command, Progress[] progresses, Config config)
 		{
 			switch (command.SaveAction)
 			{
-				case Action.Save: Save(command.Saves, command.SaveType, progresses); break;
-				default: return;
+				case Action.Save: return Save(command.Saves, command.SaveType, progresses, config);
+				default: return false;
 			}
 		}
 
-		private static Saver? InitSaver(SaveInfo save, SaveType type)
+        private static bool Save(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
 		{
-			switch (type)
-			{
-				case SaveType.Complete: return CompleteSaver(save);
-                case SaveType.Differential: return DifferentialSaver(save);
-				default: return null;
-            }
-		}
-
-        public static void Save(List<SaveInfo> saves, SaveType saveType, List<Progress> progresses)
-		{
-			foreach (var save in saves) InitSaver(save.SourcePath, save.DestinationPath, saveType).StartSave();
+			if (saves.Length != progresses.Length) return false;
+            for (int i = 0; i < saves.Count(); i++)
+				new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config).Start();
+			return true;
 		}
     }
 }

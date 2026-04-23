@@ -3,7 +3,17 @@ using System.IO;
 
 namespace EasyLog
 {
-    public sealed class Logger
+    public record LogInfo
+    {
+        public required DateTime DateTime { get; init; }
+        public required string SaveName { get; init; }
+        public required string SourceFile { get; init; }
+        public required string DestinationFile { get; init; }
+        public required long FileSize { get; init; }
+        public required int TransferTime { get; init; } // ms
+    }
+
+    public class Logger
     {
         private static Logger s_instance;
         private static readonly object s_lock = new object();

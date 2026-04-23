@@ -117,78 +117,38 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Color" xml:space="preserve">
-    <value>1. Cyan | 2. Green | 3. Yellow | 4. Reset</value>
-  </data>
-  <data name="Done" xml:space="preserve">
-    <value>Done presse any key</value>
+  <data name="SaveSuccess" xml:space="preserve">
+    <value>Backup save finished successfully.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Error: No job IDs. Use --help</value>
   </data>
-  <data name="EscKey" xml:space="preserve">
-    <value>[ESC] Back to menu</value>
+  <data name="SaveStart" xml:space="preserve">
+    <value>Start of backup save</value>
   </data>
-  <data name="ExecutingJob" xml:space="preserve">
-    <value>Executing backup job</value>
+  <data name="LanguageMenuTitle" xml:space="preserve">
+    <value>Language menu</value>
   </data>
-  <data name="Explanation" xml:space="preserve">
-    <value>(e.g. 1-3, 1;3 or 1)</value>
+  <data name="MainMenuExit" xml:space="preserve">
+    <value>Exit</value>
   </data>
-  <data name="help" xml:space="preserve">
-    <value>OPTIONS:
-  -s, --save      Save (default)
-      --delete    Delete
-      --pause     Pause
-      --continue  Continue
-      --free      Free space
-  -h, --help      Help
-  -v, --version   Version
-       --lang         Change language
-
-ARGUMENTS:
-  N               One save (1-5)
-  N-M             Range
-  N;M             List</value>
+  <data name="MainMenuOptions" xml:space="preserve">
+    <value>Options</value>
   </data>
-  <data name="MenuDelete" xml:space="preserve">
-    <value>2. Delete</value>
+  <data name="MainMenuSave" xml:space="preserve">
+    <value>Perform a backup save</value>
   </data>
-  <data name="MenuExit" xml:space="preserve">
-    <value>Q. Exit/Quit</value>
-  </data>
-  <data name="MenuOption" xml:space="preserve">
-    <value>2. Option</value>
-  </data>
-  <data name="MenuPause" xml:space="preserve">
-    <value>3. Pause</value>
-  </data>
-  <data name="MenuRelease" xml:space="preserve">
-    <value>5. Release</value>
-  </data>
-  <data name="MenuResume" xml:space="preserve">
-    <value>4. Resume</value>
-  </data>
-  <data name="MenuSave" xml:space="preserve">
-    <value>1. Save</value>
-  </data>
-  <data name="MenuTitle" xml:space="preserve">
-    <value>--MAIN MENU--</value>
+  <data name="MainMenuTitle" xml:space="preserve">
+    <value>Main menu</value>
   </data>
   <data name="NoArgsWarning" xml:space="preserve">
     <value>No command arguments detected.</value>
   </data>
-  <data name="OptBack" xml:space="preserve">
-    <value>R. Back to main menu</value>
+  <data name="OptionMenuLanguage" xml:space="preserve">
+    <value>Languages</value>
   </data>
-  <data name="OptColor" xml:space="preserve">
-    <value>2. Change color</value>
-  </data>
-  <data name="OptionTitle" xml:space="preserve">
-    <value>--- OPTIONS ---</value>
-  </data>
-  <data name="OptLang" xml:space="preserve">
-    <value>1. Change language</value>
+  <data name="OptionMenuTitle" xml:space="preserve">
+    <value>Option menu</value>
   </data>
   <data name="PressToExit" xml:space="preserve">
     <value>Press any key to exit...</value>
@@ -196,13 +156,43 @@ ARGUMENTS:
   <data name="PromptSelection" xml:space="preserve">
     <value>Which save(s) do you want to run?</value>
   </data>
+  <data name="ReturnToPreviousMenu" xml:space="preserve">
+    <value>Return to previous menu</value>
+  </data>
   <data name="Save" xml:space="preserve">
-    <value>Save</value>
+    <value>Save in progress...</value>
+  </data>
+  <data name="SaveMenuDetails" xml:space="preserve">
+    <value>Type "1" for save spot one, "1;3" for save spots one and three or "1-3" for save spots one to three.</value>
+  </data>
+  <data name="SaveMenuTitle" xml:space="preserve">
+    <value>On which save(s) would you like to perform the action ?</value>
+  </data>
+  <data name="SaveTypeComplete" xml:space="preserve">
+    <value>Complete backup save</value>
+  </data>
+  <data name="SaveTypeDifferential" xml:space="preserve">
+    <value>Differential backup save</value>
+  </data>
+  <data name="SaveTypeMenuTitle" xml:space="preserve">
+    <value>Which type of backup save would you like to perform ?</value>
   </data>
   <data name="Saving" xml:space="preserve">
     <value>Saving</value>
   </data>
   <data name="Welcome" xml:space="preserve">
     <value>Welcome</value>
+  </data>
+  <data name="SaveMenuAskSaveName" xml:space="preserve">
+    <value>How would you like to name this backup save?</value>
+  </data>
+  <data name="SaveMenuAskSaveSrc" xml:space="preserve">
+    <value>What would you like to save?</value>
+  </data>
+  <data name="SaveMenuAskSaveDst" xml:space="preserve">
+    <value>Where would you like to put the backup save?</value>
+  </data>
+  <data name="SaveFailed" xml:space="preserve">
+    <value>Backup save failed.</value>
   </data>
 </root>

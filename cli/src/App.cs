@@ -1,96 +1,144 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Threading;
+﻿using System.Globalization;
 using EasySave.lang;
+using SaveManager;
 
-namespace EasySave.CLI
+namespace EasySaveConsole
 {
-    public enum SaveType { Complete, Differential }
-
     public class App
     {
-        public Command MainMenu()
-        {
-            bool exit = false;
-            while (!exit)
-            {
-                Console.WriteLine($"\n[{Messages.MenuTitle}]");
-                Console.WriteLine(Messages.MenuSave);
-                Console.WriteLine(Messages.MenuOption);
-                Console.WriteLine(Messages.MenuExit);
-
-                var key = Console.ReadKey(true);
-                switch (key.KeyChar)
-                {
-                    case '1':
-                        List<string> idsStr = SaveMenu();
-                        List<int> ids = new List<int>();
-                        foreach (var idStr in idsStr)
-                        {
-                            if (int.TryParse(idStr, out int id)) ids.Add(id);
-                        }
-                        return new Command { Action = ProgramAction.SaveAction, JobIds = ids };
-                    case '2':
-                        OptionMenu();
-                        break;
-                    case 'Q':
-                    case 'q':
-                        exit = true;
-                        break;
-                }
-            }
-            return new Command { Action = ProgramAction.InteractiveMode };
-        }
-
-        private List<string> SaveMenu()
+        public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves)
         {
             Console.Clear();
-            Console.WriteLine(Messages.PromptSelection);
-            Console.WriteLine(Messages.Explanation);
+            Console.WriteLine($"[{Messages.MainMenuTitle}]\n" +
+                "\n" +
+                $"<1> {Messages.MainMenuSave}\n" +
+                "\n" +
+                $"<O> {Messages.MainMenuOptions}\n" +
+                $"<Esc> {Messages.MainMenuExit}");
 
-            string input = Console.ReadLine();
-            if (string.IsNullOrWhiteSpace(input)) return new List<string>();
-
-            var parsedIdsStr = new List<string>();
-            var parsedInts = Parser.ParseArguments(input);
-            foreach (var i in parsedInts) parsedIdsStr.Add(i.ToString());
-
-            return parsedIdsStr;
-        }
-
-        private SaveType SaveTypeMenu()
-        {
-            return SaveType.Complete;
-        }
-
-        private void OptionMenu()
-        {
-            bool back = false;
-            while (!back)
+            while (true)
             {
-                Console.Clear();
-                Console.WriteLine($"\n[{Messages.OptionTitle}]");
-                Console.WriteLine(Messages.OptLang);
-                Console.WriteLine(Messages.OptBack);
-
                 var key = Console.ReadKey(true);
-                if (key.Key == ConsoleKey.Escape) break;
-
-                switch (key.KeyChar)
+                switch (key.Key)
                 {
-                    case '1': LanguageMenu(); break;
-                    case 'R': case 'r': back = true; break;
+                    case ConsoleKey.D1:
+                        SaveInfo[] saves = SaveMenu(previous_saves);
+                        return new ProgramCommand
+                        {
+                            Action = ProgramAction.SaveAction,
+                            Command = new Command { SaveAction = SaveManager.Action.Save, Saves = saves, SaveType = SaveTypeMenu() }
+                        };
+                    case ConsoleKey.O: OptionMenu(); break;
+                    case ConsoleKey.Escape: return new ProgramCommand { Action = ProgramAction.Exit };
+                    default: break;
                 }
             }
         }
 
-        private void LanguageMenu()
+        public static SaveInfo[] SaveInfosContext(List<int> saveIds, List<SaveInfo> saveInfos)
         {
-            Console.WriteLine("\n 1. English | 2. Français");
-            var choice = Console.ReadLine();
-            string culture = (choice == "2") ? "fr-FR" : "en-US";
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(culture);
+            var parsedSaveInfos = new List<SaveInfo>();
+            foreach (int i in saveIds)
+            {
+                SaveInfo? saveInfo = null;
+                if (i >= saveInfos.Count())
+                {
+                    string? name = null;
+                    string? src = null;
+                    string? dst = null;
+                    Console.Write($"\n{Messages.SaveMenuAskSaveName}\n> ");
+                    while (string.IsNullOrWhiteSpace(name)) name = Console.ReadLine();
+                    Console.Write($"\n{Messages.SaveMenuAskSaveSrc}\n> ");
+                    while (string.IsNullOrWhiteSpace(src)) src = Console.ReadLine();
+                    Console.Write($"\n{Messages.SaveMenuAskSaveDst}\n> ");
+                    while (string.IsNullOrWhiteSpace(dst)) dst = Console.ReadLine();
+                    saveInfo = new SaveInfo { SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
+                    saveInfos.Add(saveInfo);
+                }
+                else saveInfo = saveInfos[i];
+                parsedSaveInfos.Add(saveInfo);
+            }
+            return parsedSaveInfos.ToArray();
+        }
+
+        private static SaveInfo[] SaveMenu(List<SaveInfo> saveInfos)
+        {
+            Console.Clear();
+            Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
+            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i}> {saveInfos[i].SaveName}");
+            Console.WriteLine();
+
+            string? input = null;
+            while (string.IsNullOrWhiteSpace(input)) input = Console.ReadLine();
+            var saveIds = Parser.ParseArguments(input);
+            return SaveInfosContext(saveIds , saveInfos);
+        }
+
+        private static SaveType? SaveTypeMenu()
+        {
+            Console.Clear();
+            Console.WriteLine($"[{Messages.SaveTypeMenuTitle}]\n" +
+                "\n" +
+                $"<1> {Messages.SaveTypeComplete}\n" +
+                $"<2> {Messages.SaveTypeDifferential}\n" +
+                "\n" +
+                $"<Esc> {Messages.ReturnToPreviousMenu}");
+
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+                switch (key.Key)
+                {
+                    case ConsoleKey.D1: return SaveManager.SaveType.Complete;
+                    case ConsoleKey.D2: return SaveManager.SaveType.Differential;
+                    case ConsoleKey.Escape: return null;
+                    default: break;
+                }
+            }
+        }
+
+        private static void OptionMenu()
+        {
+            Console.Clear();
+            Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
+                "\n" +
+                $"<1> {Messages.OptionMenuLanguage}\n" +
+                "\n" +
+                $"<Esc> {Messages.ReturnToPreviousMenu}");
+
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+                switch (key.Key)
+                {
+                    case ConsoleKey.D1: LanguageMenu(); break;
+                    case ConsoleKey.Escape: return;
+                    default: break;
+                }
+            }
+        }
+
+        private static void LanguageMenu()
+        {
+            Console.Clear();
+            Console.WriteLine($"[{Messages.LanguageMenuTitle}]\n" +
+                "\n" +
+                "<1> English (US)\n" +
+                "<2> Français\n" +
+                "\n" +
+                $"<Esc> {Messages.ReturnToPreviousMenu}");
+
+            while (true)
+            {
+                var choice = Console.ReadKey();
+                switch (choice.Key)
+                {
+                    case ConsoleKey.D1: Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US"); break;
+                    case ConsoleKey.D2: Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-FR"); break;
+                    case ConsoleKey.Escape: return;
+                    default: break;
+                }
+            }
         }
     }
 }

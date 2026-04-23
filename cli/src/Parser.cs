@@ -1,88 +1,63 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace EasySave.CLI
+﻿namespace EasySaveConsole
 {
-    public enum ProgramAction
-    {
-        SaveAction,
-        ConfigChange,
-        InteractiveMode,
-        Version,
-        Help
-    }
-
-    public class Command
-    {
-        public ProgramAction Action { get; set; } = ProgramAction.InteractiveMode;
-        public List<int> JobIds { get; set; } = new List<int>();
-    }
-
     public class Parser
     {
-        public static Command Parse(string[] args)
-        {
-            var command = new Command();
+        public record ParsedCommand(ProgramAction Action, List<int>? SaveIds);
 
-            if (args == null || args.Length == 0)
-            {
-                command.Action = ProgramAction.InteractiveMode;
-                return command;
-            }
+        public static ParsedCommand Parse(string[] args)
+        {
+            if (args == null || args.Length == 0) return new ParsedCommand(ProgramAction.InteractiveMode, null);
+
+            ProgramAction action = ProgramAction.SaveAction; // No option with arguments is a save
+            List<int>? saveIds = null;
 
             foreach (string arg in args)
             {
-                if (arg.StartsWith("-") || arg.StartsWith("--"))
-                {
-                    command.Action = ParseOption(arg);
-                }
-                else
-                {
-                    command.JobIds.AddRange(ParseArguments(arg));
-                }
+                if (arg.StartsWith("-")) action = ParseOption(arg);
+                else saveIds = ParseArguments(arg);
             }
-            return command;
+            return new ParsedCommand(action, saveIds);
+        }
+
+        private static List<int> ParseRange(string range)
+        {
+            var str_ids = range.Split('-');
+            List<int> ids = new List<int>();
+            if (str_ids.Length == 2 && int.TryParse(str_ids[0], out int start) && int.TryParse(str_ids[1], out int end))
+            {
+                for (int i = Math.Min(start, end); i <= Math.Max(start, end); i++) ids.Add(i);
+            }
+            return ids;
+        }
+
+        private static List<int> ParseSequence(string sequence)
+        {
+            var str_ids = sequence.Split(';');
+            List<int> ids = new List<int>();
+            foreach (var str_id in str_ids)
+            {
+                if (int.TryParse(str_id, out int id)) ids.Add(id);
+            }
+            return ids;
         }
 
         public static List<int> ParseArguments(string arguments)
         {
-            var ids = new List<int>();
             string input = arguments.Trim();
 
-            try
-            {
-                if (input.Contains(";"))
-                {
-                    var segments = input.Split(';');
-                    foreach (var segment in segments)
-                        ids.AddRange(ParseArguments(segment));
-                }
-                else if (input.Contains("-"))
-                {
-                    var parts = input.Split('-');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int start) && int.TryParse(parts[1], out int end))
-                    {
-                        for (int i = Math.Min(start, end); i <= Math.Max(start, end); i++)
-                            ids.Add(i);
-                    }
-                }
-                else if (int.TryParse(input, out int id))
-                {
-                    ids.Add(id);
-                }
-            }
-            catch { }
+            if (input.Contains(";")) return ParseSequence(input);
+            if (input.Contains("-")) return ParseRange(input);
 
-            return ids.Distinct().ToList();
+            var ids = new List<int>();
+            if (int.TryParse(input, out int id)) ids.Add(id);
+            return ids;
         }
 
         private static ProgramAction ParseOption(string option)
         {
-            switch (option.ToLower())
+            switch (option)
             {
-                case "-s": case "--save": return ProgramAction.SaveAction;
-                case "-c": case "--config": return ProgramAction.ConfigChange;
+                case "--save": return ProgramAction.SaveAction;
                 case "-h": case "--help": return ProgramAction.Help;
                 case "-v": case "--version": return ProgramAction.Version;
                 default: return ProgramAction.InteractiveMode;

@@ -1,15 +1,8 @@
-using System;
-using System.IO;
-using Logger;
+using System.Security.Cryptography;
 
-namespace Save
+namespace Job
 {
-    public enum Priority
-    {
-        High,
-        Medium,
-        Low
-    }
+    public enum Priority { High, Medium, Low }
 
     public abstract class SaveJob
     {
@@ -18,66 +11,105 @@ namespace Save
         public long FileSize { get; private set; }
         public Priority Priority { get; private set; }
 
-        protected SaveJob(string sourceFile, string destinationFile, long fileSize)
+        protected SaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
         {
             SourceFile = sourceFile;
             DestinationFile = destinationFile;
             FileSize = fileSize;
-            Priority = Priority.Medium; 
+            Priority = priority;
         }
 
-        public long Execute()
-        {
-            return CopyFiles();
-        }
-
-        protected virtual long CopyFiles()
+        protected long CopyFile()
         {
             if (!File.Exists(SourceFile)) return 0;
 
-            string destDir = Path.GetDirectoryName(DestinationFile);
-
-            if (destDir != null && !Directory.Exists(destDir))
-            {
-                Directory.CreateDirectory(destDir);
-            }
+            // Create parent directory
+            string? destDir = Path.GetDirectoryName(DestinationFile);
+            if (destDir == null) return 0;
+            if (destDir != null && !Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
 
             File.Copy(SourceFile, DestinationFile, true);
             return new FileInfo(DestinationFile).Length;
         }
+
+        public abstract long Execute();
     }
 
     public class CompleteSaveJob : SaveJob
     {
-        public CompleteSaveJob(string sourceFile, string destinationFile, long fileSize)
-            : base(sourceFile, destinationFile, fileSize)
-        {
-        }
+        public CompleteSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
 
-        protected override long CopyFiles()
+        public override long Execute()
         {
-            return base.CopyFiles();
+            return CopyFile();
         }
     }
 
     public class DifferentialSaveJob : SaveJob
     {
-        public DifferentialSaveJob(string sourceFile, string destinationFile, long fileSize)
-            : base(sourceFile, destinationFile, fileSize)
+        private const int _diff = 0x44494646; // "DIFF"
+
+        public DifferentialSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
+
+        private static string ComputeSha256(string filePath)
         {
+            using (var sha256 = SHA256.Create())
+            using (var stream = File.OpenRead(filePath))
+            {
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
         }
 
-        protected override long CopyFiles()
+        public static void GenerateDelta(string sourceFile, string destinationFile, string diffFile)
         {
-            if (File.Exists(DestinationFile))
-            {
-                if (File.GetLastWriteTime(SourceFile) <= File.GetLastWriteTime(DestinationFile))
-                {
-                    return FileSize;
-                }
-            }
+            byte[] oldBytes = File.ReadAllBytes(destinationFile);
+            byte[] newBytes = File.ReadAllBytes(sourceFile);
 
-            return base.CopyFiles();
+            using (var diffStream = File.Create(diffFile))
+            using (var writer = new BinaryWriter(diffStream))
+            {
+                writer.Write(_diff);
+                writer.Write(oldBytes.Length);
+
+                int offset = 0;
+                int blockCount = 0;
+                writer.Write(blockCount); // Reserve space
+
+                while (offset < oldBytes.Length)
+                {
+                    int blockStart = offset;
+                    while (offset < oldBytes.Length && oldBytes[offset] == newBytes[offset]) offset++;
+
+                    if (offset > blockStart)
+                    {
+                        int blockLength = offset - blockStart;
+                        writer.Write(blockStart);
+                        writer.Write(blockLength);
+                        writer.Write(newBytes, blockStart, blockLength);
+                        blockCount++;
+                    }
+                }
+
+                // This is writing twice, should be optimized
+                writer.Seek(0, SeekOrigin.Begin);
+                writer.Write(_diff);
+                writer.Write(oldBytes.Length);
+                writer.Write(blockCount);
+            }
+        }
+
+        public override long Execute()
+        {
+            if (!File.Exists(DestinationFile)) return CopyFile(); // Fallback method
+
+            string sourceHash = ComputeSha256(SourceFile);
+            string destHash = ComputeSha256(DestinationFile);
+
+            if (sourceHash == destHash) return FileSize;
+
+            GenerateDelta(SourceFile, DestinationFile, DestinationFile + ".diff");
+            return FileSize;
         }
     }
 }

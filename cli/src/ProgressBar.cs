@@ -1,42 +1,32 @@
-﻿using System;
-using System.Diagnostics;
-using Save;
-
-namespace EasySave.CLI
+﻿namespace EasySaveConsole
 {
-    public class ProgressBar : ISubscriber
+    public class ProgressBar : Observer.ISubscriber
     {
-        private float _progress;
-        private Progress _observedProgress;
+        private string _saveName;
+        private Saver.Progress _progress;
 
-        public ProgressBar(Progress progress)
+        public ProgressBar(string saveName, Saver.Progress progress)
         {
-            _observedProgress = progress;
-            _progress = 0f;
+            _progress = progress;
+            _saveName = saveName;
+            _progress = progress;
+
+            progress.Subscribe(this);
         }
 
         public void Update()
         {
-            float rawProgress = _observedProgress.GetProgress();
-            _progress = Math.Max(0, Math.Min(rawProgress, 100));
-            DrawProgressBar();
-        }
-
-        private void DrawProgressBar()
-        {
+            float progress = _progress.GetProgress();
             int totalBlocks = 20;
-            int filledBlocks = (int)((_progress / 100) * totalBlocks);
+            int filledBlocks = (int)((progress / 100) * totalBlocks);
             int emptyBlocks = totalBlocks - filledBlocks;
 
             string filled = new string('█', filledBlocks);
             string empty = new string('░', emptyBlocks);
 
-            Console.Write($"\r [{filled}{empty}] {_progress:0.0}%  ");
+            Console.Write($"\r {_saveName} [{filled}{empty}] {progress:0.0}%  ");
 
-            if (_progress >= 100f)
-            {
-                Console.WriteLine();
-            }
+            if (progress >= 100f) Console.WriteLine();
         }
     }
 }

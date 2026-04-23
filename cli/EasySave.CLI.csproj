@@ -25,7 +25,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Ressources\" />
+    <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="EasySaveLibrary">
+      <HintPath>../lib/bin/Release/net10.0/EasySaveLibrary.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+    <ItemGroup>
+    <Reference Include="EasyLog">
+      <HintPath>../EasyLog/bin/Release/net10.0/EasyLog.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

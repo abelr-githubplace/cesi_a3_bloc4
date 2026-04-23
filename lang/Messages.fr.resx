@@ -117,79 +117,38 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Color" xml:space="preserve">
-    <value>1. Cyan | 2. Vert | 3. Jaune | 4. réinitialiser</value>
-  </data>
-  <data name="Done" xml:space="preserve">
-    <value>Fait, appuyer sur n'import quelle touche</value>
+  <data name="SaveSuccess" xml:space="preserve">
+    <value>Sauvegarde effectuée avec succès.</value>
   </data>
   <data name="Error" xml:space="preserve">
     <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
   </data>
-  <data name="EscKey" xml:space="preserve">
-    <value>[ECHAP] Retour au menu</value>
+  <data name="SaveStart" xml:space="preserve">
+    <value>Lancement de la sauvegarde</value>
   </data>
-  <data name="ExecutingJob" xml:space="preserve">
-    <value>Lancement de la sauvegarde n°</value>
+  <data name="LanguageMenuTitle" xml:space="preserve">
+    <value>Menu des langues</value>
   </data>
-  <data name="Explanation" xml:space="preserve">
-    <value>(ex: 1-3, 1;3 ou 1)</value>
+  <data name="MainMenuExit" xml:space="preserve">
+    <value>Quitter</value>
   </data>
-  <data name="help" xml:space="preserve">
-    <value>OPTIONS:
-  -s, --save        Sauvegarde (default)
-      --delete      Supprimer
-      --pause       Pause
-      --continue   Continuer
-      --free           Liberer un espace
-  -h, --help         Aide
-  -v, --version     Version
-       --lang          Changer la langue
-
-
-ARGUMENTS:
-  N               Une sauvegarde (1-5)
-  N-M           Gamme
-  N;M             Liste</value>
+  <data name="MainMenuOptions" xml:space="preserve">
+    <value>Options</value>
   </data>
-  <data name="MenuDelete" xml:space="preserve">
-    <value>2. Effacer une sauvegarde</value>
+  <data name="MainMenuSave" xml:space="preserve">
+    <value>Effectuer une sauvegarde</value>
   </data>
-  <data name="MenuExit" xml:space="preserve">
-    <value>Q. Sortir/Quitter</value>
-  </data>
-  <data name="MenuOption" xml:space="preserve">
-    <value>2. Paramettre</value>
-  </data>
-  <data name="MenuPause" xml:space="preserve">
-    <value>3. Mettre sur pause</value>
-  </data>
-  <data name="MenuRelease" xml:space="preserve">
-    <value>5. Libérer une sauvegarde</value>
-  </data>
-  <data name="MenuResume" xml:space="preserve">
-    <value>4. Reprendre une sauvegarde</value>
-  </data>
-  <data name="MenuSave" xml:space="preserve">
-    <value>1. Sauvegarder</value>
-  </data>
-  <data name="MenuTitle" xml:space="preserve">
-    <value>--MENU PRINCIPAL--</value>
+  <data name="MainMenuTitle" xml:space="preserve">
+    <value>Menu principal</value>
   </data>
   <data name="NoArgsWarning" xml:space="preserve">
     <value>Aucun argument détecté.</value>
   </data>
-  <data name="OptBack" xml:space="preserve">
-    <value>R. Retour au menu principal</value>
+  <data name="OptionMenuLanguage" xml:space="preserve">
+    <value>Langues</value>
   </data>
-  <data name="OptColor" xml:space="preserve">
-    <value>2. Changer la couleur</value>
-  </data>
-  <data name="OptionTitle" xml:space="preserve">
-    <value>--- OPTIONS ---</value>
-  </data>
-  <data name="OptLang" xml:space="preserve">
-    <value>1. Changer la langue</value>
+  <data name="OptionMenuTitle" xml:space="preserve">
+    <value>Menu des options</value>
   </data>
   <data name="PressToExit" xml:space="preserve">
     <value>Appuyez sur une touche pour quitter...</value>
@@ -197,13 +156,43 @@ ARGUMENTS:
   <data name="PromptSelection" xml:space="preserve">
     <value>Quelle(s) sauvegarde(s) voulez-vous exécuter ?</value>
   </data>
+  <data name="ReturnToPreviousMenu" xml:space="preserve">
+    <value>Retourner au menu précédent</value>
+  </data>
   <data name="Save" xml:space="preserve">
-    <value>Sauvegarde</value>
+    <value>Sauvegarde en cours...</value>
+  </data>
+  <data name="SaveMenuDetails" xml:space="preserve">
+    <value>Tapper "1" pour l'emplacement de sauvegarde un,  "1;3" pour les emplacements un et trois ou "1-3" pour les emplacements de un à trois.</value>
+  </data>
+  <data name="SaveMenuTitle" xml:space="preserve">
+    <value>Sur quelle(s) sauvegarde voulez vous faire cette action ?</value>
+  </data>
+  <data name="SaveTypeComplete" xml:space="preserve">
+    <value>Sauvegarde complète</value>
+  </data>
+  <data name="SaveTypeDifferential" xml:space="preserve">
+    <value>Sauvegarde différentielle</value>
+  </data>
+  <data name="SaveTypeMenuTitle" xml:space="preserve">
+    <value>Quel type de sauvegarde voulez vous faire ?</value>
   </data>
   <data name="Saving" xml:space="preserve">
     <value>Sauvegarde en cours</value>
   </data>
   <data name="Welcome" xml:space="preserve">
     <value>Bienvenue</value>
+  </data>
+  <data name="SaveMenuAskSaveName" xml:space="preserve">
+    <value>Comment souhaitez vous nommer cette sauvegarde ?</value>
+  </data>
+  <data name="SaveMenuAskSaveSrc" xml:space="preserve">
+    <value>Que souhaitez vous sauvegarder ?</value>
+  </data>
+  <data name="SaveMenuAskSaveDst" xml:space="preserve">
+    <value>Où souhaitez vous placer la sauvegarde ?</value>
+  </data>
+  <data name="SaveFailed" xml:space="preserve">
+    <value>La sauvegarde n'a pas pu être effectuée.</value>
   </data>
 </root>
