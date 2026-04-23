@@ -45,6 +45,7 @@ namespace Saver
 
     public class Saver
     {
+        public uint Id { get; set; }
         public string Name { get; }
         public string SourcePath { get; }
         public string DestinationPath { get; }
@@ -57,6 +58,7 @@ namespace Saver
 
         public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config)
         {
+            Id = save.SaveId;
             Name = save.SaveName;
             SourcePath = save.SourcePath;
             DestinationPath = save.DestinationPath;
@@ -76,7 +78,7 @@ namespace Saver
                     FilesWithSizes[file] = fileSize;
 
                     // Create Jobs
-                    string relativePath = Path.GetRelativePath(SourcePath, file);
+                    string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
                     var job = CreateJob(file, destFile, fileSize, saveType);
                     if (job == null) /* Error : should be handled */;
@@ -120,6 +122,7 @@ namespace Saver
         public void Start()
         {
             long copiedTotalBytes = 0;
+            var endTime = DateTime.Now;
 
             for (int i = 0; i < Jobs.Count; i++)
             {
@@ -127,7 +130,7 @@ namespace Saver
 
                 var beginTime = DateTime.Now;
                 long copiedSize = job.Execute();
-                var endTime = DateTime.Now;
+                endTime = DateTime.Now;
 
                 if (copiedSize != job.FileSize) /* Error : does nothing for now, should be handled later on */;
                 copiedTotalBytes += copiedSize;
@@ -147,6 +150,7 @@ namespace Saver
                 );
                 _config.StateManager.Save(
                     new SaveState {
+                        Id = this.Id,
                         Name = this.Name,
                         SourcePath = this.SourcePath,
                         DestinationPath = this.DestinationPath,
@@ -164,6 +168,19 @@ namespace Saver
                     }
                 );
             }
+
+            _config.StateManager.Save(
+                    new SaveState
+                    {
+                        Id = this.Id,
+                        Name = this.Name,
+                        SourcePath = this.SourcePath,
+                        DestinationPath = this.DestinationPath,
+                        LastActionTime = endTime,
+                        Status = Status.Inactive,
+                        ActiveStateInfo = null,
+                    }
+                );
         }
     }
 }

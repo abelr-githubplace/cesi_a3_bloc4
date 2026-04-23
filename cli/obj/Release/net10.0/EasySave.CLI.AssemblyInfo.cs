@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+06e3da0fb5ce7a2fa058c356e123f4a3daf2da6b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6900a9361c0483fbf749a2ed5747d1b66e14f287")]
 [assembly: System.Reflection.AssemblyProductAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EasySave.CLI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

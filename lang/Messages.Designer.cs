@@ -187,6 +187,15 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Information about backup save.
+        /// </summary>
+        public static string SaveInfosMenuTitle {
+            get {
+                return ResourceManager.GetString("SaveInfosMenuTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Where would you like to put the backup save?.
         /// </summary>
         public static string SaveMenuAskSaveDst {

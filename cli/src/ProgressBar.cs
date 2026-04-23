@@ -9,7 +9,6 @@
         {
             _progress = progress;
             _saveName = saveName;
-            _progress = progress;
 
             progress.Subscribe(this);
         }

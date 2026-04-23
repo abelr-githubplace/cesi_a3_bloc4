@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using EasySave.lang;
 using EasyLog;
-using SaveManager;
+using Observer;
 
 namespace EasySaveConsole
 {
@@ -18,12 +18,13 @@ namespace EasySaveConsole
     public record ProgramCommand
     {
         public required ProgramAction Action { get; init; }
-        public Command? Command { get; init; }
+        public SaveManager.Command? Command { get; init; }
     }
 
 
     class Program
     {
+        private const string _default_lang = "en-US";
         private const string _version = "EasySave v1.0.0";
         private const string _help = "Usage: EasySave.exe [OPTIONS] [ARGUMENTS]\n" +
             "\n" +
@@ -39,28 +40,31 @@ namespace EasySaveConsole
 
         public static void Main(string[] args)
         {
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
 
             var logger = Logger.Get("./save.log");
             var stateManager = StateManager.StateManager.Get("./state.json");
             var config = new SaveManager.Config { Logger = logger, StateManager = stateManager };
 
-            List<SaveInfo> saveInfos = stateManager.GetSaves();
+            List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
             Parser.ParsedCommand input_command = Parser.Parse(args);
 
             ProgramCommand command = new ProgramCommand { Action = input_command.Action };
             if (input_command.Action == ProgramAction.SaveAction && input_command.SaveIds != null) {
-                SaveInfo[] saves = App.SaveInfosContext(input_command.SaveIds, saveInfos);
+                SaveManager.SaveInfo[] saves = App.SaveInfosContext(input_command.SaveIds, saveInfos);
                 command = new ProgramCommand
                 {
                     Action = ProgramAction.SaveAction,
-                    Command = new Command { SaveAction = SaveManager.Action.Save, Saves = saves, SaveType = SaveType.Complete }
+                    Command = new SaveManager.Command {
+                        SaveAction = SaveManager.Action.Save,
+                        Saves = saves,
+                        SaveType = SaveManager.SaveType.Complete
+                    }
                 };
             }
 
             if (command.Action == ProgramAction.InteractiveMode) command = App.MainMenu(saveInfos);
-
             switch (command.Action)
             {
                 case ProgramAction.Help: Console.WriteLine(_help); break;
@@ -69,22 +73,23 @@ namespace EasySaveConsole
             }
         }
 
-        static void Execute(Command command, Config config)
+        static void Execute(SaveManager.Command command, SaveManager.Config config)
         {
-            Console.WriteLine($"\n--- {Messages.Saving} ---");
+            Console.WriteLine($"\n--- {Messages.Saving} ---\n");
 
             var progresses = new List<Saver.Progress>();
             var bars = new List<ProgressBar>();
 
-            for (int i = 0; i< command.Saves.Count(); i++)
+            for (int i = 0; i < command.Saves.Length; i++)
             {
                 Saver.Progress progress = new Saver.Progress();
                 var bar = new ProgressBar(command.Saves[i].SaveName, progress);
+                progresses.Add(progress);
+                bars.Add(bar);
             }
-
             bool success = SaveManager.SaveManager.Execute(command, progresses.ToArray(), config);
 
-            var end_message = success ? $"{Messages.SaveFailed}" : $"{Messages.SaveSuccess}";
+            var end_message = success ? $"{Messages.SaveSuccess}" : $"{Messages.SaveFailed}";
             Console.WriteLine($"\n--- {end_message} ---");
             Console.ReadKey();
         }

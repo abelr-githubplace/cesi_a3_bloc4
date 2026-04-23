@@ -20,6 +20,7 @@ namespace SaveManager
 
 	public record SaveInfo
 	{
+		public required uint SaveId { get; init; }
 		public required string SaveName { get; init; }
 		public required string SourcePath { get; init; }
 		public required string DestinationPath { get; init; }
@@ -38,9 +39,11 @@ namespace SaveManager
 
         private static bool Save(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
 		{
-			if (saves.Length != progresses.Length) return false;
-            for (int i = 0; i < saves.Count(); i++)
-				new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config).Start();
+            if (saves.Length != progresses.Length) return false;
+			var savers = new List<Saver.Saver>();
+			for (int i = 0; i < saves.Length; i++)
+				savers.Add(new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config));
+			foreach (var saver in savers) saver.Start();
 			return true;
 		}
     }

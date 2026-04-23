@@ -120,9 +120,6 @@
   <data name="SaveSuccess" xml:space="preserve">
     <value>Backup save finished successfully.</value>
   </data>
-  <data name="Error" xml:space="preserve">
-    <value>Error: No job IDs. Use --help</value>
-  </data>
   <data name="SaveStart" xml:space="preserve">
     <value>Start of backup save</value>
   </data>
@@ -194,5 +191,11 @@
   </data>
   <data name="SaveFailed" xml:space="preserve">
     <value>Backup save failed.</value>
+  </data>
+  <data name="SaveInfosMenuTitle" xml:space="preserve">
+    <value>Information about backup save</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error: No job IDs. Use --help</value>
   </data>
 </root>

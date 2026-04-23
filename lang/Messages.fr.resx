@@ -120,9 +120,6 @@
   <data name="SaveSuccess" xml:space="preserve">
     <value>Sauvegarde effectuée avec succès.</value>
   </data>
-  <data name="Error" xml:space="preserve">
-    <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
-  </data>
   <data name="SaveStart" xml:space="preserve">
     <value>Lancement de la sauvegarde</value>
   </data>
@@ -194,5 +191,11 @@
   </data>
   <data name="SaveFailed" xml:space="preserve">
     <value>La sauvegarde n'a pas pu être effectuée.</value>
+  </data>
+  <data name="SaveInfosMenuTitle" xml:space="preserve">
+    <value>Informations sur la sauvegarde</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
   </data>
 </root>

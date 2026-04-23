@@ -18,6 +18,7 @@ namespace StateManager
 
     public record SaveState
     {
+        public required uint Id { get; init; }
         public required string Name { get; init; }
         public required string SourcePath { get; init; }
         public required string DestinationPath { get; init; }
@@ -43,7 +44,10 @@ namespace StateManager
             {
                 string json = File.ReadAllText(outputFile);
                 if (string.IsNullOrEmpty(json)) _states = new List<SaveState>();
-                else _states = JsonSerializer.Deserialize<List<SaveState>>(json) ?? new List<SaveState>();
+                else _states = JsonSerializer.Deserialize<List<SaveState>>(
+                    json,
+                    new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } }
+                ) ?? new List<SaveState>();
             }
             else
             {
@@ -72,7 +76,12 @@ namespace StateManager
             var saveInfos = new List<SaveManager.SaveInfo>();
             foreach (var state in _states)
             {
-                saveInfos.Add(new SaveManager.SaveInfo { SaveName = state.Name, SourcePath = state.SourcePath, DestinationPath = state.DestinationPath });
+                saveInfos.Add(new SaveManager.SaveInfo {
+                    SaveId = state.Id,
+                    SaveName = state.Name,
+                    SourcePath = state.SourcePath,
+                    DestinationPath = state.DestinationPath
+                });
             }
             return saveInfos;
         }
@@ -84,15 +93,18 @@ namespace StateManager
             Write();
         }
 
-        private void Write()
+        private async void Write()
         {
-            File.WriteAllText(
-                _outputFile,
-                JsonSerializer.Serialize(
-                    _states,
-                    new JsonSerializerOptions { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull }
-                )
+            var json = JsonSerializer.Serialize(
+                _states,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                    Converters = { new JsonStringEnumConverter() },
+                }
             );
+            using (StreamWriter file = new StreamWriter(_outputFile)) await file.WriteAsync(json);
         }
     }
 }
