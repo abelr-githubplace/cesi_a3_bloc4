@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EasySaveLibrary")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6900a9361c0483fbf749a2ed5747d1b66e14f287")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6f1f95d16f266976d6017b6f5f23acb2461999e6")]
 [assembly: System.Reflection.AssemblyProductAttribute("EasySaveLibrary")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EasySaveLibrary")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

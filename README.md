@@ -144,4 +144,63 @@ Une vigilance particulière sera portée sur :
 
 ## Livrable 2
 
+EasySave 1.0 a été distribuée chez de nombreux clients.
+
+Suite à une enquête client, la direction a décidé de créer une version 2.0 dont les améliorations sont les suivantes :
+
+1. Interface Graphique
+    
+    Abandon du mode Console. L'application doit désormais être graphique et se baser sur WPF ou un Framework de votre choix ( exemple Avalonia)
+
+2. Nombre de travaux illimités
+    
+    Le nombre de travaux de sauvegarde est désormais illimité.
+
+3. Cryptage via le logiciel CryptoSoft
+    
+    Le logiciel devra être capable de crypter les fichiers en utilisant le logiciel CryptoSoft (réalisé durant le prosit 4). Seuls les fichiers dont les extensions ont été définies par l'utilisateur dans les paramètres généraux devront être cryptés.
+
+4. Evolution du fichier Log Journalier
+    
+    Le fichier Log journalier doit contenir une information supplémentaire
+    
+    Temps nécessaire au cryptage du fichier (en ms)
+
+    - $0$ : pas de cryptage
+    - $>0$ : temps de cryptage (en ms)
+    - $<0$ : code erreur
+
+5. Logiciel Métier
+    
+    Si la présence d'un logiciel métier est détectée, le logiciel doit interdire le lancement d'un travail de sauvegarde. Dans le cas de travaux séquentiels, le logiciel doit terminer la sauvegarde du fichier en cours .
+
+    L'utilisateur pourra définir le logiciel métier dans les paramètres généraux du logiciel. (Remarque : l'application calculatrice peut substituer le logiciel métier lors des démonstrations)
+
+    L'arrêt doit être consigné dans le fichier log
+
+_Remarques :_
+
+- Des clients souhaitent avoir, pour chaque travail de Sauvegarde, une interface permettant d'agir sur celui-ci via trois fonctions (Play, Pause, Stop).
+- Le service commercial a demandé à ce que cette fonction d'interface ne soit pas prise en compte dans la version 2.0. Cependant cette fonction sera dans le cahier des charges de la version 3.0.
+- Vous trouverez ci-dessous le tableau de comparaison des versions.
+- En plus de ce livrable 2.0,
+- L'un des plus importants clients de ProSoft souhaite avoir les fichiers Log au format XML.
+- Qui plus est, le client ne souhaite pas installer la future version 2.0.
+- Suite à cette remontée, la direction exige de votre équipe de sortir dès que possible une version 1.1 qui permettent à l'utilisateur de choisir le format du fichier log (XML ou JSON).
+- Bien entendu, cette nouvelle fonctionnalité doit aussi être implémentée dans la version 2.0
+- La version 1.1 doit sortir au plus tard en même temps que la version 2.0 (Livrable 3)
+
+| Fonction                                                   | Version 1.0          | Version 1.1          | Version 2.0                                               |
+|:--                                                         | :--                  | :--                  | :--                                                       |
+| Interface Graphique                                        | Console              | Console              | Graphique                                                 |
+| Multi-langues                                              | Anglais et Français  | Anglais et Français  | Anglais et Français                                       |
+| Travaux de sauvegarde                                      | Limité à 5           | Limité à 5           | Illimité                                                  |
+| Fichier Log journalier                                     | Oui                  | Oui                  | Oui (Information supplémentaire sur le temps de cryptage) |
+| Utilisation d'une DLL pour le fichier log                  | Oui                  | Oui                  | Oui                                                       |
+| Fichier Etat                                               | Oui                  | Oui                  | Oui                                                       |
+| Type de fonctionnement Sauvegarde                          | Mono ou séquentielle | Mono ou séquentielle | Mono ou Séquentielle                                      |
+| Arrêt si détection du logiciel métier                      | Non                  | Non                  | Oui                                                       |
+| Ligne de commande                                          | Oui                  | Oui                  | identique version 1.0                                     |
+| Utilisation du logiciel de cryptage externe « CryptoSoft » | Non                  | Non                  | Oui                                                       |
+
 ## Livrable 3
