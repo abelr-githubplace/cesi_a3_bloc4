@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Text.Json;
 using System.IO;
-
 namespace EasyLog
 {
     public enum LogFormat {
@@ -38,7 +38,16 @@ namespace EasyLog
         }
 
         private string JSONFormat() {
-            return "";
+            var jsonObject = new
+            {
+                Date = logInfo.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
+                Name = logInfo.SaveName,
+                Source = logInfo.SourceFile,
+                Target = logInfo.DestinationFile,
+                SizeKB = logInfo.FileSize,
+                TransferTimeMS = logInfo.TransferTime
+            };
+            return JsonSerializer.Serialize(jsonObject);
         }
 
         public string Format(LogFormat format) {
