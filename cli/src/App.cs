@@ -1,14 +1,17 @@
-﻿using EasySave.lang;
+﻿using EasyLog;
+using EasySave.lang;
 using SaveManager;
 using System.ComponentModel.Design;
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
+using System.Security.AccessControl;
 
 namespace EasySaveConsole
 {
     public class App
     {
+        public static LogFormat SelectedLogFormat = LogFormat.Text;
         public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves)
         {
             while (true)
@@ -49,7 +52,7 @@ namespace EasySaveConsole
             foreach (uint i in saveIds)
             {
                 Console.Clear();
-                Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {i+1}]\n");
+                Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {i + 1}]\n");
 
                 SaveInfo? saveInfo = null;
                 if (i >= saveInfos.Count())
@@ -66,7 +69,7 @@ namespace EasySaveConsole
                     saveInfo = new SaveInfo { SaveId = i, SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
                     saveInfos.Add(saveInfo);
                 }
-                else saveInfo = saveInfos[(int) i];
+                else saveInfo = saveInfos[(int)i];
                 parsedSaveInfos.Add(saveInfo);
             }
             return parsedSaveInfos.ToArray();
@@ -76,13 +79,13 @@ namespace EasySaveConsole
         {
             Console.Clear();
             Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
-            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i+1}> {saveInfos[i].SaveName}");
+            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
             Console.WriteLine();
 
             string? input = null;
             while (string.IsNullOrWhiteSpace(input)) input = Console.ReadLine();
             var saveIds = Parser.ParseArguments(input);
-            return SaveInfosContext(saveIds , saveInfos);
+            return SaveInfosContext(saveIds, saveInfos);
         }
 
         private static SaveType? SaveTypeMenu()
@@ -120,22 +123,36 @@ namespace EasySaveConsole
                 Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.OptionMenuLanguage}\n" +
+                    $"<2> {Messages.LogFormatMenuTitle}\n" +
                     "\n" +
                     $"<Esc> {Messages.ReturnToPreviousMenu}");
 
                 bool reload = false;
                 while (!reload)
                 {
-                    var key = Console.ReadKey();
+                    var key = Console.ReadKey(true);
                     switch (key.Key)
                     {
-                        case ConsoleKey.D1: LanguageMenu(); reload = true; break;
-                        case ConsoleKey.Escape: return;
-                        default: break;
+                        case ConsoleKey.D1:
+                            LanguageMenu();
+                            reload = true;
+                            break;
+
+                        case ConsoleKey.D2:
+                            LogFormatMenu();
+                            reload = true;
+                            break;
+
+                        case ConsoleKey.Escape:
+                            return;
+
+                        default:
+                            break;
                     }
                 }
             }
         }
+
 
         private static string SelectedLang(string lang)
         {
@@ -166,6 +183,49 @@ namespace EasySaveConsole
                         default: break;
                     }
                 }
+            }
+        }
+        private static void LogFormatMenu()
+        {
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine($"[{Messages.LogFormatMenuTitle}]\n");
+
+                Console.WriteLine("<1> " + Messages.LogFormatText);
+                Console.WriteLine("<2> " + Messages.LogFormatXml);
+                Console.WriteLine("<3> " + Messages.LogFormatJson);
+                Console.WriteLine($"\n<Esc> {Messages.ReturnToPreviousMenu}");
+
+                bool reload = false;
+                while (!reload)
+                {
+                    var key = Console.ReadKey(true);
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.D1:
+                            SelectedLogFormat = LogFormat.Text;
+                            reload = true;
+                            break;
+
+                        case ConsoleKey.D2:
+                            SelectedLogFormat = LogFormat.Xml;
+                            reload = true;
+                            break;
+
+                        case ConsoleKey.D3:
+                            SelectedLogFormat = LogFormat.Json;
+                            reload = true;
+                            break;
+
+                        case ConsoleKey.Escape:
+                            return;
+                    }
+                }
+
+                Console.WriteLine($"\n{Messages.LogFormatSelected}: {SelectedLogFormat}");
+                Thread.Sleep(1000);
+                return;
             }
         }
     }

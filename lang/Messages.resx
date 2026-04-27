@@ -198,4 +198,19 @@
   <data name="Error" xml:space="preserve">
     <value>Error: No job IDs. Use --help</value>
   </data>
+  <data name="LogFormatMenuTitle" xml:space="preserve">
+    <value>Log format menu</value>
+  </data>
+  <data name="LogFormatText" xml:space="preserve">
+    <value>Text (default)</value>
+  </data>
+  <data name="LogFormatXml" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="LogFormatJson" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="LogFormatSelected" xml:space="preserve">
+    <value>Selected log format</value>
+  </data>
 </root>
