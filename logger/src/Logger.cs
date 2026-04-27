@@ -1,77 +1,58 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 
 namespace EasyLog
 {
-    public sealed class Logger
+    public record LogInfo
     {
-        private static Logger _instance;
-        private static readonly object _lock = new object();
+        public required DateTime DateTime { get; init; }
+        public required string SaveName { get; init; }
+        public required string SourceFile { get; init; }
+        public required string DestinationFile { get; init; }
+        public required long FileSize { get; init; }
+        public required int TransferTime { get; init; } // ms
+    }
 
-        private readonly string logDirectory;
+    public class Logger
+    {
+        private static Logger s_instance;
+        private static readonly object s_lock = new object();
 
-        // Constructeur privé
-        private Logger()
+        private readonly string _outputFile;
+
+        private Logger(string outputFile)
         {
-            logDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "EasySave",
-                "Logs"
-            );
-
-            Directory.CreateDirectory(logDirectory);
+            _outputFile = outputFile;
         }
 
-        // Accès global thread‑safe
-        public static Logger Instance
+        public static Logger Get(string outputFile)
         {
-            get
+            if (s_instance == null)
             {
-                if (_instance == null)
+                lock (s_lock)
                 {
-                    lock (_lock)
+                    if (s_instance == null)
                     {
-                        if (_instance == null)
-                        {
-                            _instance = new Logger();
-                        }
+                        s_instance = new Logger(outputFile);
                     }
                 }
-                return _instance;
             }
+            return s_instance;
         }
 
-        public void WriteLog(LogInfo logInfo)
+        public void Log(LogInfo logInfo)
         {
-            string filePath = Path.Combine(
-                logDirectory,
-                DateTime.Now.ToString("yyyy-MM-dd") + ".json"
-            );
-
-            List<LogInfo> logs;
-
-            if (File.Exists(filePath))
+            using (StreamWriter writer = new StreamWriter(_outputFile, true))
             {
-                string existingJson = File.ReadAllText(filePath);
-                logs = JsonSerializer.Deserialize<List<LogInfo>>(existingJson)
-                       ?? new List<LogInfo>();
-            }
-            else
-            {
-                logs = new List<LogInfo>();
-            }
+                string line =
+                    $"[{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}] " +
+                    $"{logInfo.SaveName} > SAVE from " +
+                    $"[{logInfo.SourceFile}] to " +
+                    $"[{logInfo.DestinationFile}] " +
+                    $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms";
 
-            logs.Add(logInfo);
-
-            File.WriteAllText(
-                filePath,
-                JsonSerializer.Serialize(logs, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                })
-            );
+                writer.WriteLine(line);
+            }
         }
     }
 }

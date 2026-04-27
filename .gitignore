@@ -1,6 +1,27 @@
+# Editor
 .idea/
 .vs/
 
+# Remote
+remote/bin
+remote/obj
+
+# Server
+server/bin
+server/obj
+
+# GUI
+gui/bin
+gui/obj
+
+# CLI
 cli/bin
+cli/obj
+
+# Library
 lib/bin
-EasyLog/bin
+lib/obj
+
+# Logger
+logger/bin
+logger/obj
