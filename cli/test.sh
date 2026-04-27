@@ -1,13 +1,18 @@
-#! /bin/env sh
+#! /bin/env bash
 
 TMP=backups/tmp
 
-ANSI_RED='\x1b[31m'
-ANSI_GREEN='\x1b[32m'
-ANSI_RESET='\x1b[00m'
+ANSI_RESET=$(tput setaf 15)
+ANSI_RED=$(tput setaf 1)
+ANSI_GREEN=$(tput setaf 2)
 
 test() {
-    if [ "$2" -eq "$3" ]; then echo -e "$1 | $ANSI_GREEN[OK]$ANSI_RESET"; else echo -e "$1 | $ANSI_RED-|KO|-$ANSI_RESET"; fi
+  echo -n "$ANSI_RESET"
+  if [ "$2" -eq "$3" ];
+    then echo -n "=> $ANSI_GREEN[OK]$ANSI_RESET";
+    else echo -n "=> $ANSI_RED-|KO|-$ANSI_RESET";
+  fi
+  echo " | $1"
 }
 
 ## VERSION
