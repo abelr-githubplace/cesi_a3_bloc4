@@ -90,11 +90,7 @@ namespace EasySaveConsole
         {
             Clear();
             Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
-
-            for (int i = 0; i < saveInfos.Count; i++)
-            {
-                Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
-            }
+            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
             Console.WriteLine();
 
             string? input = null;
