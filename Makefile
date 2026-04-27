@@ -123,15 +123,14 @@ clean-cli:
 
 # Tests
 
-test: clean all test-logger test-lib test-cli test-gui test-server test-remote
+test: clean test-logger test-lib test-cli test-gui test-server test-remote
 
 test-logger: logger
 
 test-lib: lib
 
 test-cli: cli
-	@cd cli/
-	test.sh
+	@cli/test.sh
 
 test-gui: gui
 
