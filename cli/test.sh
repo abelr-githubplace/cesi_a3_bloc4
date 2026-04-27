@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 TMP=backups/tmp
 
@@ -204,16 +204,16 @@ assert_dirs_match "diff: dst1 still equals src1" "$SRC1" "$DST1"
 
 
 echo
-echo "=== Differential save: modified file produces .diff sidecar ==="
+echo "=== Differential save: modified file gets recopied ==="
 echo "alpha-modified" > "$SRC1/file1.txt"
 run_cli -t differential 1
 content="$(cat "$DST1/file1.txt")"
-if [ "$content" = "alpha" ]; then
-    pass "diff: dest file kept its previous content"
+if [ "$content" = "alpha-modified" ]; then
+    pass "diff: modified file content was updated in dest"
 else
-    fail "diff: dest was overwritten instead of producing a delta" "got: $content"
+    fail "diff: dest still has stale content" "got: $content"
 fi
-assert_file_nonempty "diff: .diff sidecar was created" "$DST1/file1.txt.diff"
+assert_dirs_match "diff: dst1 fully resynced with src1" "$SRC1" "$DST1"
 
 
 echo

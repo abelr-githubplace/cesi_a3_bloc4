@@ -273,8 +273,7 @@ namespace Job
 
             if (sourceHash == destHash) return FileSize;
 
-            GenerateDelta(SourceFile, DestinationFile, DestinationFile + ".diff");
-            return FileSize;
+            return CopyFile();
         }
     }
 }
