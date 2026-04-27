@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\logger\EasyLog.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="EasyLog">
       <HintPath>../EasyLog/bin/Release/net10.0/EasyLog.dll</HintPath>
     </Reference>
