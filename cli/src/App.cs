@@ -46,13 +46,19 @@ namespace EasySaveConsole
         public static SaveInfo[] SaveInfosContext(List<int> saveIds, List<SaveInfo> saveInfos)
         {
             var parsedSaveInfos = new List<SaveInfo>();
-            foreach (uint i in saveIds)
+
+            foreach (int id in saveIds)
             {
+                if (id <= 0) continue;
+
+                int index = id - 1;
+
                 Console.Clear();
-                Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {i+1}]\n");
+                Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {id}]\n");
 
                 SaveInfo? saveInfo = null;
-                if (i >= saveInfos.Count())
+
+                if (index >= saveInfos.Count)
                 {
                     string? name = null;
                     string? src = null;
@@ -63,10 +69,15 @@ namespace EasySaveConsole
                     while (string.IsNullOrWhiteSpace(src)) src = Console.ReadLine();
                     Console.Write($"\n{Messages.SaveMenuAskSaveDst}\n> ");
                     while (string.IsNullOrWhiteSpace(dst)) dst = Console.ReadLine();
-                    saveInfo = new SaveInfo { SaveId = i, SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
+
+                    saveInfo = new SaveInfo { SaveId = (uint)id, SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
                     saveInfos.Add(saveInfo);
                 }
-                else saveInfo = saveInfos[(int) i];
+                else
+                {
+                    saveInfo = saveInfos[index];
+                }
+
                 parsedSaveInfos.Add(saveInfo);
             }
             return parsedSaveInfos.ToArray();
@@ -76,13 +87,17 @@ namespace EasySaveConsole
         {
             Console.Clear();
             Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
-            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i+1}> {saveInfos[i].SaveName}");
+
+            for (int i = 0; i < saveInfos.Count; i++)
+            {
+                Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
+            }
             Console.WriteLine();
 
             string? input = null;
             while (string.IsNullOrWhiteSpace(input)) input = Console.ReadLine();
             var saveIds = Parser.ParseArguments(input);
-            return SaveInfosContext(saveIds , saveInfos);
+            return SaveInfosContext(saveIds, saveInfos);
         }
 
         private static SaveType? SaveTypeMenu()
