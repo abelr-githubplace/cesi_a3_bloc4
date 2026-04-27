@@ -6,6 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+<PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\PrimeService\**" />
+    <EmbeddedResource Remove="tests\PrimeService\**" />
+    <None Remove="tests\PrimeService\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\lang\Messages.Designer.cs" Link="Ressources\Messages.Designer.cs">

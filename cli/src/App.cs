@@ -52,8 +52,7 @@ namespace EasySaveConsole
                 if (id <= 0) continue;
 
                 int index = id - 1;
-
-                Console.Clear();
+                try { Console.Clear(); } catch (System.IO.IOException) { }
                 Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {id}]\n");
 
                 SaveInfo? saveInfo = null;
