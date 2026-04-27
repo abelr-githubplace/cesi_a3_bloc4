@@ -1,71 +1,140 @@
 DEBUG= --configuration Debug
 RELEASE= --configuration Release
+TARGET_OS= --os win
 
-all: cli gui server remote
+DEBUG_LOGGER_PATH=./logger/bin/Debug/net10.0/win-x64/EasyLog.dll
+DEBUG_LIBRARY_PATH=./lib/bin/Debug/net10.0/win-x64/EasySaveLibrary.dll
+DEBUG_CLI_PATH=./cli/bin/Debug/net10.0/win-x64/EasySave.CLI.exe
+DEBUG_GUI_PATH=./gui/bin/Debug/net10.0/win-x64/EasySave.GUI.exe
+DEBUG_SERVER_PATH=./server/bin/Debug/net10.0/win-x64/EasySave.Server.exe
+DEBUG_REMOTE_PATH=./remote/bin/Debug/net10.0/win-x64/EasySave.Remote.exe
 
-all-release: cli-release gui-release server-release remote-release
+LOGGER_PATH=./logger/bin/Release/net10.0/win-x64/EasyLog.dll
+LIBRARY_PATH=./lib/bin/Release/net10.0/win-x64/EasySaveLibrary.dll
+CLI_PATH=./cli/bin/Release/net10.0/win-x64/EasySave.CLI.exe
+GUI_PATH=./gui/bin/Release/net10.0/win-x64/EasySave.GUI.exe
+SERVER_PATH=./server/bin/Release/net10.0/win-x64/EasySave.Server.exe
+REMOTE_PATH=./remote/bin/Release/net10.0/win-x64/EasySave.Remote.exe
 
-logger:
-	@cd logger/
-	@dotnet build ${DEBUG} EasyLog.csproj
+all: ${DEBUG_CLI_PATH} ${DEBUG_GUI_PATH}
 
-logger-release:
-	@cd logger/
-	@dotnet build ${RELEASE} EasyLog.csproj
-	
-lib: logger
-	@cd lib/
-	@dotnet build ${DEBUG} EasySaveLibrary.csproj
+all-release: ${CLI_PATH} ${GUI_PATH}
+
+# Logger
+
+logger: ${DEBUG_LOGGER_PATH}
+
+logger-release: ${LOGGER_PATH}
+
+${DEBUG_LOGGER_PATH}:
+	@-cd logger/ && dotnet build ${DEBUG} ${TARGET_OS} EasyLog.csproj
+
+${LOGGER_PATH}:
+	@-cd logger/ && dotnet build ${RELEASE} ${TARGET_OS} EasyLog.csproj
+
+# Library
+
+lib: ${DEBUG_LIBRARY_PATH}
+
+lib-release: ${LIBRARY_PATH}
+
+${DEBUG_LIBRARY_PATH}:
+	@-cd lib/ && dotnet build ${DEBUG} ${TARGET_OS} EasySaveLibrary.csproj
 		
-lib-release: logger-release
-	@cd lib/
-	@dotnet build ${RELEASE} EasySaveLibrary.csproj
+${LIBRARY_PATH}:
+	@-cd lib/ && dotnet build ${RELEASE} ${TARGET_OS} EasySaveLibrary.csproj
 
-cli: logger lib
-	@cd cli/
-	@dotnet build ${DEBUG} EasySave.CLI.csproj
+# Command Line Interface
+
+cli: ${DEBUG_CLI_PATH}
+
+cli-release: ${CLI_PATH}
+
+${DEBUG_CLI_PATH}:
+	@-cd cli/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.CLI.csproj
 		
-cli-release: logger-release lib-release
-	@cd cli/
-	@dotnet build ${RELEASE} EasySave.CLI.csproj
+${CLI_PATH}:
+	@-cd cli/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.CLI.csproj
 
-gui: logger lib
-	@cd gui/
-	@dotnet build ${DEBUG} EasySave.GUI.csproj
+run-cli: ${CLI_PATH}
+	@-${CLI_PATH}
+
+# Graphic User Interface
+
+gui: ${DEBUG_GUI_PATH}
+
+gui-release: ${GUI_PATH}
+
+${DEBUG_GUI_PATH}:
+	@cd gui/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.GUI.csproj
 		
-gui-release: logger-release lib-release
-	@cd gui/
-	@dotnet build ${RELEASE} EasySave.GUI.csproj
+${GUI_PATH}:
+	@cd gui/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.GUI.csproj
 
-server: logger lib
-	@cd server/
-	@dotnet build ${DEBUG} EasySave.Server.csproj
+run-gui: ${GUI_PATH}
+	@-${GUI_PATH}
+
+# Server
+
+server: ${DEBUG_SERVER_PATH}
+
+server-release: ${SERVER_PATH}
+
+${DEBUG_SERVER_PATH}:
+	@cd server/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Server.csproj
 		
-server-release: logger-release lib-release
-	@cd server/
-	@dotnet build ${RELEASE} EasySave.Server.csproj
+${SERVER_PATH}:
+	@cd server/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Server.csproj
 
-remote: logger lib
-	@cd remote/
-	@dotnet build ${DEBUG} EasySave.Remote.csproj
+run-server: ${SERVER_PATH}
+	@-${SERVER_PATH}
+
+# Remote
+
+remote: ${DEBUG_REMOTE_PATH}
+
+remote-release: ${REMOTE_PATH}
+
+${DEBUG_REMOTE_PATH}:
+	@cd remote/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Remote.csproj
 		
-remote-release: logger-release lib-release
-	@cd remote/
-	@dotnet build ${RELEASE} EasySave.Remote.csproj
+${REMOTE_PATH}:
+	@cd remote/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Remote.csproj
 
-.PHONY: clean
+run-remote: ${REMOTE_PATH}
+	@-${REMOTE_PATH}
 
-clean:
+# !! PHONIES !!
+
+.PHONY: clean clean-bin clean-test test test-logger test-lib test-cli test-gui test-server test-remote
+
+# Clean
+
+clean: clean-bin clean-test clean-cli
+
+clean-bin:
 	@rm -rf logger/bin lib/bin cli/bin gui/bin server/bin remote/bin
+
+clean-test:
 	@rm -rf backups/*
+
+clean-cli:
+	@rm -f state.json save.log
+
+# Tests
 
 test: clean all test-logger test-lib test-cli test-gui test-server test-remote
 
-test-logger:
-test-lib:
-test-cli:
+test-logger: logger
+
+test-lib: lib
+
+test-cli: cli
 	@cd cli/
 	test.sh
-test-gui:
-test-server:
-test-remote:
+
+test-gui: gui
+
+test-server: server
+
+test-remote: remote
