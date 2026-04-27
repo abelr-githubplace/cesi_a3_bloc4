@@ -7,6 +7,7 @@ namespace SaveManager
 
 	public record Config
 	{
+		public required EasyLog.LogFormat LogFormat { get; init; }
 		public required EasyLog.Logger Logger { get; init; }
         public required StateManager.StateManager StateManager { get; init; }
     }

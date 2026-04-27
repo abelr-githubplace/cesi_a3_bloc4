@@ -88,6 +88,51 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to JSON.
+        /// </summary>
+        public static string LogFormatJson {
+            get {
+                return ResourceManager.GetString("LogFormatJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log format menu.
+        /// </summary>
+        public static string LogFormatMenuTitle {
+            get {
+                return ResourceManager.GetString("LogFormatMenuTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected log format.
+        /// </summary>
+        public static string LogFormatSelected {
+            get {
+                return ResourceManager.GetString("LogFormatSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        public static string LogFormatText {
+            get {
+                return ResourceManager.GetString("LogFormatText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to XML.
+        /// </summary>
+        public static string LogFormatXml {
+            get {
+                return ResourceManager.GetString("LogFormatXml", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exit.
         /// </summary>
         public static string MainMenuExit {
@@ -138,6 +183,15 @@ namespace EasySave.lang {
         public static string OptionMenuLanguage {
             get {
                 return ResourceManager.GetString("OptionMenuLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log format.
+        /// </summary>
+        public static string OptionMenuLogFormat {
+            get {
+                return ResourceManager.GetString("OptionMenuLogFormat", resourceCulture);
             }
         }
         

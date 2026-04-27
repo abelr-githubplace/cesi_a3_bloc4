@@ -1,7 +1,6 @@
 ﻿using System.Globalization;
 using EasySave.lang;
 using EasyLog;
-using Observer;
 
 namespace EasySaveConsole
 {
@@ -44,30 +43,28 @@ namespace EasySaveConsole
 
             var logger = Logger.Get("./save.log");
             var stateManager = StateManager.StateManager.Get("./state.json");
-            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager };
+            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager, LogFormat = LogFormat.JSON };
 
             List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
             Parser.ParsedCommand input_command = Parser.Parse(args);
 
-            // Interactive mode: loop on the main menu until the user explicitly exits (Esc)
             if (input_command.Action == ProgramAction.InteractiveMode)
             {
                 while (true)
                 {
-                    ProgramCommand command = App.MainMenu(saveInfos);
+                    (SaveManager.Config new_config, ProgramCommand command) = App.MainMenu(config, saveInfos);
                     if (command.Action == ProgramAction.Exit) break;
                     switch (command.Action)
                     {
                         case ProgramAction.Help: Console.WriteLine(_help); break;
                         case ProgramAction.Version: Console.WriteLine(_version); break;
-                        case ProgramAction.SaveAction: Execute(command.Command, config); break;
+                        case ProgramAction.SaveAction: Execute(command.Command, new_config); break;
                     }
                 }
                 return;
             }
 
-            // Non-interactive mode (CLI args): run once and exit
             ProgramCommand argCommand = new ProgramCommand { Action = input_command.Action };
             if (input_command.Action == ProgramAction.SaveAction && input_command.SaveIds != null)
             {

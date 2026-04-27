@@ -147,7 +147,7 @@ namespace Saver
                         FileSize = job.FileSize,
                         TransferTime = (endTime - beginTime).Milliseconds,
                         EncryptionTime = 0
-                    }.Format(EasyLog.LogFormat.XML)
+                    }.Format(_config.LogFormat)
                 );
                 var activeState = new ActiveStateInfo {
                     TotalFiles = this.FilesWithSizes.Count,

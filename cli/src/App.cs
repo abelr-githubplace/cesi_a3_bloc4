@@ -1,20 +1,19 @@
-﻿using EasySave.lang;
+﻿using EasyLog;
+using EasySave.lang;
 using SaveManager;
-using System.ComponentModel.Design;
 using System.Globalization;
-using System.Reflection;
-using System.Resources;
 
 namespace EasySaveConsole
 {
     public class App
     {
         private static void Clear() {
-            try { Console.Clear(); } catch (System.IO.IOException) { }
+            try { Console.Clear(); } catch (IOException) { }
         }
 
-        public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves)
+        public static (Config, ProgramCommand) MainMenu(Config config, List<SaveInfo> previous_saves)
         {
+            var new_config = config;
             while (true)
             {
                 Clear();
@@ -34,13 +33,13 @@ namespace EasySaveConsole
                         case ConsoleKey.D1:
                             SaveInfo[] saves = SaveMenu(previous_saves);
                             Clear();
-                            return new ProgramCommand
+                            return (new_config, new ProgramCommand
                             {
                                 Action = ProgramAction.SaveAction,
                                 Command = new Command { SaveAction = SaveManager.Action.Save, Saves = saves, SaveType = SaveTypeMenu() }
-                            };
-                        case ConsoleKey.O: OptionMenu(); reload = true; break;
-                        case ConsoleKey.Escape: return new ProgramCommand { Action = ProgramAction.Exit };
+                            });
+                        case ConsoleKey.O: new_config = OptionMenu(new_config); reload = true; break;
+                        case ConsoleKey.Escape: return (new_config, new ProgramCommand { Action = ProgramAction.Exit });
                         default: break;
                     }
                 }
@@ -133,25 +132,28 @@ namespace EasySaveConsole
             }
         }
 
-        private static void OptionMenu()
+        private static Config OptionMenu(Config config)
         {
+            var new_config = config;
             while (true)
             {
                 Clear();
                 Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.OptionMenuLanguage}\n" +
+                    $"<2> {Messages.OptionMenuLogFormat}\n" +
                     "\n" +
                     $"<Esc> {Messages.ReturnToPreviousMenu}");
 
                 bool reload = false;
                 while (!reload)
                 {
-                    var key = Console.ReadKey();
+                    var key = Console.ReadKey(true);
                     switch (key.Key)
                     {
                         case ConsoleKey.D1: LanguageMenu(); reload = true; break;
-                        case ConsoleKey.Escape: return;
+                        case ConsoleKey.D2: new_config = LogFormatMenu(new_config); reload = true; break;
+                        case ConsoleKey.Escape: return new_config;
                         default: break;
                     }
                 }
@@ -184,6 +186,46 @@ namespace EasySaveConsole
                         case ConsoleKey.D2: Thread.CurrentThread.CurrentUICulture = new CultureInfo(langs[1]); reload = true; break;
                         case ConsoleKey.D3: Thread.CurrentThread.CurrentUICulture = new CultureInfo(langs[2]); reload = true; break;
                         case ConsoleKey.Escape: return;
+                        default: break;
+                    }
+                }
+            }
+        }
+
+        private static string SelectedLogFormat(Config config, string format)
+        {
+            if (
+                (format == "JSON" && config.LogFormat == LogFormat.JSON) ||
+                (format == "XML" && config.LogFormat == LogFormat.XML) ||
+                (format == "Text" && config.LogFormat == LogFormat.Text)
+               )
+            {
+                return $"_{format}_";
+            }
+            else return format;
+        }
+
+        private static Config LogFormatMenu(Config config)
+        {
+            var new_config = config;
+            LogFormat[] formats = { LogFormat.JSON , LogFormat.XML, LogFormat.Text };
+            while (true)
+            {
+                Console.Clear();
+                Console.WriteLine($"[{Messages.LogFormatMenuTitle}]\n\n");
+                for (int i = 0; i < formats.Length; i++) Console.WriteLine($"<{i + 1}> {SelectedLogFormat(new_config, formats[i].ToString())}");
+                Console.WriteLine($"\n<Esc> {Messages.ReturnToPreviousMenu}");
+
+                bool reload = false;
+                while (!reload)
+                {
+                    var key = Console.ReadKey(true);
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.D1: new_config = config with { LogFormat = formats[0] }; reload = true; break;
+                        case ConsoleKey.D2: new_config = config with { LogFormat = formats[1] }; reload = true; break;
+                        case ConsoleKey.D3: new_config = config with { LogFormat = formats[2] }; reload = true; break;
+                        case ConsoleKey.Escape: return new_config;
                         default: break;
                     }
                 }

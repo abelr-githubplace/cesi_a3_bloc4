@@ -201,4 +201,22 @@
   <data name="InvalidSaveIndex" xml:space="preserve">
     <value>Invalid number: please enter a number between 1 and 5</value>
   </data>
+  <data name="LogFormatMenuTitle" xml:space="preserve">
+    <value>Log format menu</value>
+  </data>
+  <data name="LogFormatText" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="LogFormatXml" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="LogFormatJson" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="LogFormatSelected" xml:space="preserve">
+    <value>Selected log format</value>
+  </data>
+  <data name="OptionMenuLogFormat" xml:space="preserve">
+    <value>Log format</value>
+  </data>
 </root>
