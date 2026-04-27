@@ -66,10 +66,10 @@ gui: ${DEBUG_GUI_PATH}
 gui-release: ${GUI_PATH}
 
 ${DEBUG_GUI_PATH}:
-	@cd gui/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.GUI.csproj
+	@-cd gui/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.GUI.csproj
 		
 ${GUI_PATH}:
-	@cd gui/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.GUI.csproj
+	@-cd gui/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.GUI.csproj
 
 run-gui: ${GUI_PATH}
 	@-${GUI_PATH}
@@ -81,10 +81,10 @@ server: ${DEBUG_SERVER_PATH}
 server-release: ${SERVER_PATH}
 
 ${DEBUG_SERVER_PATH}:
-	@cd server/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Server.csproj
+	@-cd server/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Server.csproj
 		
 ${SERVER_PATH}:
-	@cd server/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Server.csproj
+	@-cd server/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Server.csproj
 
 run-server: ${SERVER_PATH}
 	@-${SERVER_PATH}
@@ -96,10 +96,10 @@ remote: ${DEBUG_REMOTE_PATH}
 remote-release: ${REMOTE_PATH}
 
 ${DEBUG_REMOTE_PATH}:
-	@cd remote/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Remote.csproj
+	@-cd remote/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Remote.csproj
 		
 ${REMOTE_PATH}:
-	@cd remote/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Remote.csproj
+	@-cd remote/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Remote.csproj
 
 run-remote: ${REMOTE_PATH}
 	@-${REMOTE_PATH}
@@ -113,10 +113,11 @@ run-remote: ${REMOTE_PATH}
 clean: clean-bin clean-test clean-cli
 
 clean-bin:
-	@rm -rf logger/bin lib/bin cli/bin gui/bin server/bin remote/bin
+	@-rm -rf logger/bin lib/bin cli/bin gui/bin server/bin remote/bin
 
 clean-test:
-	@rm -rf backups/*
+	@-rm -rf backups/*
+	@-rm -rf cli/tests/bin
 
 clean-cli:
 	@rm -f state.json save.log
@@ -130,7 +131,8 @@ test-logger: logger
 test-lib: lib
 
 test-cli: cli
-	@cli/test.sh
+	@-cd cli/tests/ && dotnet test
+	@-cli/test.sh
 
 test-gui: gui
 

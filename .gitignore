@@ -5,23 +5,35 @@
 # Remote
 remote/bin
 remote/obj
+remote/tests/bin
+remote/tests/obj
 
 # Server
 server/bin
 server/obj
+server/tests/bin
+server/tests/obj
 
 # GUI
 gui/bin
 gui/obj
+gui/tests/bin
+gui/tests/obj
 
 # CLI
 cli/bin
 cli/obj
+cli/tests/bin
+cli/tests/obj
 
 # Library
 lib/bin
 lib/obj
+lib/tests/bin
+lib/tests/obj
 
 # Logger
 logger/bin
 logger/obj
+logger/tests/bin
+logger/tests/obj

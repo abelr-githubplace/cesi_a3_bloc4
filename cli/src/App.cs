@@ -9,11 +9,15 @@ namespace EasySaveConsole
 {
     public class App
     {
+        private static void Clear() {
+            try { Console.Clear(); } catch (System.IO.IOException) { }
+        }
+
         public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves)
         {
             while (true)
             {
-                Console.Clear();
+                Clear();
                 Console.WriteLine($"[{Messages.MainMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.MainMenuSave}\n" +
@@ -29,7 +33,7 @@ namespace EasySaveConsole
                     {
                         case ConsoleKey.D1:
                             SaveInfo[] saves = SaveMenu(previous_saves);
-                            Console.Clear();
+                            Clear();
                             return new ProgramCommand
                             {
                                 Action = ProgramAction.SaveAction,
@@ -52,7 +56,7 @@ namespace EasySaveConsole
                 if (id <= 0) continue;
 
                 int index = id - 1;
-                try { Console.Clear(); } catch (System.IO.IOException) { }
+                Clear();
                 Console.WriteLine($"[{Messages.SaveInfosMenuTitle} {id}]\n");
 
                 SaveInfo? saveInfo = null;
@@ -84,7 +88,7 @@ namespace EasySaveConsole
 
         private static SaveInfo[] SaveMenu(List<SaveInfo> saveInfos)
         {
-            Console.Clear();
+            Clear();
             Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
 
             for (int i = 0; i < saveInfos.Count; i++)
@@ -103,7 +107,7 @@ namespace EasySaveConsole
         {
             while (true)
             {
-                Console.Clear();
+                Clear();
                 Console.WriteLine($"[{Messages.SaveTypeMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.SaveTypeComplete}\n" +
@@ -117,8 +121,8 @@ namespace EasySaveConsole
                     var key = Console.ReadKey();
                     switch (key.Key)
                     {
-                        case ConsoleKey.D1: Console.Clear(); return SaveType.Complete;
-                        case ConsoleKey.D2: Console.Clear(); return SaveType.Differential;
+                        case ConsoleKey.D1: Clear(); return SaveType.Complete;
+                        case ConsoleKey.D2: Clear(); return SaveType.Differential;
                         case ConsoleKey.Escape: return null;
                         default: break;
                     }
@@ -130,7 +134,7 @@ namespace EasySaveConsole
         {
             while (true)
             {
-                Console.Clear();
+                Clear();
                 Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.OptionMenuLanguage}\n" +
@@ -162,7 +166,7 @@ namespace EasySaveConsole
             string[] langs = { "en-US", "en-GB", "fr-FR" };
             while (true)
             {
-                Console.Clear();
+                Clear();
                 Console.WriteLine($"[{Messages.LanguageMenuTitle}]\n\n");
                 for (int i = 0; i < langs.Length; i++) Console.WriteLine($"<{i + 1}> {SelectedLang(langs[i])}");
                 Console.WriteLine($"\n<Esc> {Messages.ReturnToPreviousMenu}");

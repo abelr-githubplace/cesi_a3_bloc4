@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace EasySaveConsole.Tests
 {
     [TestClass]
-    public class AppTests
+    public class TestCLI
     {
         [TestMethod]
         public void SaveInfosContext_ShouldIgnoreZero_And_CorrectlyAlignIndexes()
