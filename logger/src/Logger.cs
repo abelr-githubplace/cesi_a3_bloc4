@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Text.Json;
 using System.IO;
-
 namespace EasyLog
 {
     public record LogInfo
@@ -19,13 +19,15 @@ namespace EasyLog
         private static readonly object s_lock = new object();
 
         private readonly string _outputFile;
+        private readonly LogFormat _format;
 
-        private Logger(string outputFile)
+        private Logger(string outputFile, LogFormat format)
         {
             _outputFile = outputFile;
+            _format = format;
         }
 
-        public static Logger Get(string outputFile)
+        public static Logger Get(string outputFile, LogFormat format = LogFormat.Text)
         {
             if (s_instance == null)
             {
@@ -33,7 +35,7 @@ namespace EasyLog
                 {
                     if (s_instance == null)
                     {
-                        s_instance = new Logger(outputFile);
+                        s_instance = new Logger(outputFile, format);
                     }
                 }
             }
@@ -42,17 +44,55 @@ namespace EasyLog
 
         public void Log(LogInfo logInfo)
         {
-            using (StreamWriter writer = new StreamWriter(_outputFile, true))
+            if (_format == LogFormat.Json)
             {
-                string line =
-                    $"[{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}] " +
-                    $"{logInfo.SaveName} > SAVE from " +
-                    $"[{logInfo.SourceFile}] to " +
-                    $"[{logInfo.DestinationFile}] " +
-                    $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms";
-
-                writer.WriteLine(line);
+                WriteJson(logInfo);
             }
+            else
+            {
+                WriteText(logInfo);
+            }
+        }
+
+        // FORMAT TEXTE (PAR DÉFAUT)
+        private void WriteText(LogInfo logInfo)
+        {
+            using StreamWriter writer = new StreamWriter(_outputFile, true);
+
+            string line =
+                $"[{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}] " +
+                $"{logInfo.SaveName} > SAVE from " +
+                $"[{logInfo.SourceFile}] to " +
+                $"[{logInfo.DestinationFile}] " +
+                $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms";
+
+            writer.WriteLine(line);
+        }
+
+        // FORMAT JSON (UNE SAUVEGARDE = UNE LIGNE)
+        private void WriteJson(LogInfo logInfo)
+        {
+            using StreamWriter writer = new StreamWriter(_outputFile, true);
+
+            var jsonObject = new
+            {
+                Date = logInfo.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
+                Name = logInfo.SaveName,
+                Source = logInfo.SourceFile,
+                Target = logInfo.DestinationFile,
+                SizeKB = logInfo.FileSize,
+                TransferTimeMS = logInfo.TransferTime
+            };
+
+            string jsonLine = JsonSerializer.Serialize(jsonObject);
+
+            writer.WriteLine(jsonLine);
+        }
+
+        // Pas de Close pour le JSON brut
+        public void Close()
+        {
+           
         }
     }
 }
