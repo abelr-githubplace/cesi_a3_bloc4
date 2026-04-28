@@ -11,14 +11,14 @@ RELEASE_BUILD=${BUILD} ${RELEASE} ${WIN_OS}
 DEBUG_LOGGER_PATH=./logger/bin/Debug/net10.0/win-x64/EasyLog.dll
 DEBUG_LIBRARY_PATH=./lib/bin/Debug/net10.0/win-x64/EasySaveLibrary.dll
 DEBUG_CLI_PATH=./cli/bin/Debug/net10.0/win-x64/EasySave.CLI.exe
-DEBUG_GUI_PATH=./gui/bin/Debug/net10.0/win-x64/EasySave.GUI.exe
+DEBUG_GUI_PATH=./gui/bin/Debug/net10.0-windows/win-x64/EasySave.GUI.exe
 DEBUG_SERVER_PATH=./server/bin/Debug/net10.0/win-x64/EasySave.Server.exe
 DEBUG_REMOTE_PATH=./remote/bin/Debug/net10.0/win-x64/EasySave.Remote.exe
 
 LOGGER_PATH=./logger/bin/Release/net10.0/win-x64/EasyLog.dll
 LIBRARY_PATH=./lib/bin/Release/net10.0/win-x64/EasySaveLibrary.dll
 CLI_PATH=./cli/bin/Release/net10.0/win-x64/EasySave.CLI.exe
-GUI_PATH=./gui/bin/Release/net10.0/win-x64/EasySave.GUI.exe
+GUI_PATH=./gui/bin/Release/net10.0-windows/win-x64/EasySave.GUI.exe
 SERVER_PATH=./server/bin/Release/net10.0/win-x64/EasySave.Server.exe
 REMOTE_PATH=./remote/bin/Release/net10.0/win-x64/EasySave.Remote.exe
 

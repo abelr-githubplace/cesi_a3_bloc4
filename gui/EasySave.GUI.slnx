@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../lib/EasySaveLibrary.csproj" />
+  <Project Path="EasySave.GUI.csproj" />
+</Solution>
