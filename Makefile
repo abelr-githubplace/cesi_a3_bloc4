@@ -1,6 +1,12 @@
+BUILD=dotnet build -verbosity q
+TEST=dotnet test -verbosity q
+
 DEBUG= --configuration Debug
 RELEASE= --configuration Release
-TARGET_OS= --os win
+WIN_OS= --os win
+
+DEBUG_BUILD=${BUILD} ${DEBUG} ${WIN_OS}
+RELEASE_BUILD=${BUILD} ${RELEASE} ${WIN_OS}
 
 DEBUG_LOGGER_PATH=./logger/bin/Debug/net10.0/win-x64/EasyLog.dll
 DEBUG_LIBRARY_PATH=./lib/bin/Debug/net10.0/win-x64/EasySaveLibrary.dll
@@ -27,10 +33,10 @@ logger: ${DEBUG_LOGGER_PATH}
 logger-release: ${LOGGER_PATH}
 
 ${DEBUG_LOGGER_PATH}:
-	@-cd logger/ && dotnet build ${DEBUG} ${TARGET_OS} EasyLog.csproj
+	@-cd logger/ && ${DEBUG_BUILD} EasyLog.csproj
 
 ${LOGGER_PATH}:
-	@-cd logger/ && dotnet build ${RELEASE} ${TARGET_OS} EasyLog.csproj
+	@-cd logger/ && ${RELEASE_BUILD} EasyLog.csproj
 
 # Library
 
@@ -39,10 +45,10 @@ lib: ${DEBUG_LIBRARY_PATH}
 lib-release: ${LIBRARY_PATH}
 
 ${DEBUG_LIBRARY_PATH}:
-	@-cd lib/ && dotnet build ${DEBUG} ${TARGET_OS} EasySaveLibrary.csproj
+	@-cd lib/ && ${DEBUG_BUILD} EasySaveLibrary.csproj
 		
 ${LIBRARY_PATH}:
-	@-cd lib/ && dotnet build ${RELEASE} ${TARGET_OS} EasySaveLibrary.csproj
+	@-cd lib/ && ${RELEASE_BUILD} EasySaveLibrary.csproj
 
 # Command Line Interface
 
@@ -51,10 +57,10 @@ cli: ${DEBUG_CLI_PATH}
 cli-release: ${CLI_PATH}
 
 ${DEBUG_CLI_PATH}:
-	@-cd cli/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.CLI.csproj
+	@-cd cli/ && ${DEBUG_BUILD} EasySave.CLI.csproj
 		
 ${CLI_PATH}:
-	@-cd cli/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.CLI.csproj
+	@-cd cli/ && ${RELEASE_BUILD} EasySave.CLI.csproj
 
 run-cli: ${CLI_PATH}
 	@-${CLI_PATH}
@@ -66,10 +72,10 @@ gui: ${DEBUG_GUI_PATH}
 gui-release: ${GUI_PATH}
 
 ${DEBUG_GUI_PATH}:
-	@-cd gui/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.GUI.csproj
+	@-cd gui/ && ${DEBUG_BUILD} EasySave.GUI.csproj
 		
 ${GUI_PATH}:
-	@-cd gui/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.GUI.csproj
+	@-cd gui/ && ${RELEASE_BUILD} EasySave.GUI.csproj
 
 run-gui: ${GUI_PATH}
 	@-${GUI_PATH}
@@ -81,10 +87,10 @@ server: ${DEBUG_SERVER_PATH}
 server-release: ${SERVER_PATH}
 
 ${DEBUG_SERVER_PATH}:
-	@-cd server/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Server.csproj
+	@-cd server/ && ${DEBUG_BUILD} EasySave.Server.csproj
 		
 ${SERVER_PATH}:
-	@-cd server/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Server.csproj
+	@-cd server/ && ${RELEASE_BUILD} EasySave.Server.csproj
 
 run-server: ${SERVER_PATH}
 	@-${SERVER_PATH}
@@ -96,10 +102,10 @@ remote: ${DEBUG_REMOTE_PATH}
 remote-release: ${REMOTE_PATH}
 
 ${DEBUG_REMOTE_PATH}:
-	@-cd remote/ && dotnet build ${DEBUG} ${TARGET_OS} EasySave.Remote.csproj
+	@-cd remote/ && ${DEBUG_BUILD} EasySave.Remote.csproj
 		
 ${REMOTE_PATH}:
-	@-cd remote/ && dotnet build ${RELEASE} ${TARGET_OS} EasySave.Remote.csproj
+	@-cd remote/ && ${RELEASE_BUILD} EasySave.Remote.csproj
 
 run-remote: ${REMOTE_PATH}
 	@-${REMOTE_PATH}
@@ -131,7 +137,7 @@ test-logger: logger
 test-lib: lib
 
 test-cli: cli
-	@-cd cli/tests/ && dotnet test
+	@-cd cli/tests/ && ${TEST}
 	@-cli/test.sh
 
 test-gui: gui
