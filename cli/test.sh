@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
-TMP=backups/tmp
+TMP='backups/tmp'
+EXE='cli/bin/Debug/net10.0/win-x64/EasySave.CLI.exe'
 
 ANSI_RESET=$(tput setaf 15)
 ANSI_RED=$(tput setaf 1)
