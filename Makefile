@@ -132,7 +132,7 @@ test-lib: lib
 
 test-cli: cli
 	@-cd cli/tests/ && dotnet test
-	@-cli/test.sh
+	@-bash cli/test.sh
 
 test-gui: gui
 

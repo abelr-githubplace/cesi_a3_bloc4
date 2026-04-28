@@ -50,26 +50,45 @@ namespace EasySaveConsole
 
             Parser.ParsedCommand input_command = Parser.Parse(args);
 
-            ProgramCommand command = new ProgramCommand { Action = input_command.Action };
-            if (input_command.Action == ProgramAction.SaveAction && input_command.SaveIds != null) {
+            // Interactive mode: loop on the main menu until the user explicitly exits (Esc)
+            if (input_command.Action == ProgramAction.InteractiveMode)
+            {
+                while (true)
+                {
+                    ProgramCommand command = App.MainMenu(saveInfos);
+                    if (command.Action == ProgramAction.Exit) break;
+                    switch (command.Action)
+                    {
+                        case ProgramAction.Help: Console.WriteLine(_help); break;
+                        case ProgramAction.Version: Console.WriteLine(_version); break;
+                        case ProgramAction.SaveAction: Execute(command.Command, config); break;
+                    }
+                }
+                return;
+            }
+
+            // Non-interactive mode (CLI args): run once and exit
+            ProgramCommand argCommand = new ProgramCommand { Action = input_command.Action };
+            if (input_command.Action == ProgramAction.SaveAction && input_command.SaveIds != null)
+            {
                 SaveManager.SaveInfo[] saves = App.SaveInfosContext(input_command.SaveIds, saveInfos);
-                command = new ProgramCommand
+                argCommand = new ProgramCommand
                 {
                     Action = ProgramAction.SaveAction,
-                    Command = new SaveManager.Command {
+                    Command = new SaveManager.Command
+                    {
                         SaveAction = SaveManager.Action.Save,
                         Saves = saves,
-                        SaveType = SaveManager.SaveType.Complete
+                        SaveType = input_command.SaveType
                     }
                 };
             }
 
-            if (command.Action == ProgramAction.InteractiveMode) command = App.MainMenu(saveInfos);
-            switch (command.Action)
+            switch (argCommand.Action)
             {
                 case ProgramAction.Help: Console.WriteLine(_help); break;
                 case ProgramAction.Version: Console.WriteLine(_version); break;
-                case ProgramAction.SaveAction: Execute(command.Command, config); break;
+                case ProgramAction.SaveAction: Execute(argCommand.Command, config); break;
             }
         }
 
@@ -91,7 +110,7 @@ namespace EasySaveConsole
 
             var end_message = success ? $"{Messages.SaveSuccess}" : $"{Messages.SaveFailed}";
             Console.WriteLine($"\n--- {end_message} ---");
-            Console.ReadKey();
+            if (!Console.IsInputRedirected) Console.ReadKey();
         }
     }
 }

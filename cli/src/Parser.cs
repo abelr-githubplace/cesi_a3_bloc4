@@ -2,21 +2,39 @@
 {
     public class Parser
     {
-        public record ParsedCommand(ProgramAction Action, List<int>? SaveIds);
+        public record ParsedCommand(ProgramAction Action, List<int>? SaveIds, SaveManager.SaveType SaveType);
 
         public static ParsedCommand Parse(string[] args)
         {
-            if (args == null || args.Length == 0) return new ParsedCommand(ProgramAction.InteractiveMode, null);
+            if (args == null || args.Length == 0) return new ParsedCommand(ProgramAction.InteractiveMode, null, SaveManager.SaveType.Complete);
 
             ProgramAction action = ProgramAction.SaveAction; // No option with arguments is a save
             List<int>? saveIds = null;
+            SaveManager.SaveType saveType = SaveManager.SaveType.Complete;
 
-            foreach (string arg in args)
+            for (int i = 0; i < args.Length; i++)
             {
-                if (arg.StartsWith("-")) action = ParseOption(arg);
+                string arg = args[i];
+                if (arg == "-t" || arg == "--type")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        saveType = ParseSaveType(args[i + 1]);
+                        i++;
+                    }
+                }
+                else if (arg.StartsWith("--type=")) saveType = ParseSaveType(arg.Substring("--type=".Length));
+                else if (arg.StartsWith("-")) action = ParseOption(arg);
                 else saveIds = ParseArguments(arg);
             }
-            return new ParsedCommand(action, saveIds);
+            return new ParsedCommand(action, saveIds, saveType);
+        }
+
+        private static SaveManager.SaveType ParseSaveType(string value)
+        {
+            string v = value.Trim().ToLowerInvariant();
+            if (v == "differential" || v == "diff" || v == "d") return SaveManager.SaveType.Differential;
+            return SaveManager.SaveType.Complete;
         }
 
         private static List<int> ParseRange(string range)
