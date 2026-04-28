@@ -1,0 +1,79 @@
+﻿<Window x:Class="EasySave.GUI.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:EasySave.GUI.ViewModels"
+        mc:Ignorable="d"
+        Title="EasySave - Logiciel de Sauvegarde" Height="450" Width="800"
+        Background="#F5F5F5">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Gestion des Travaux" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Saves}" SelectedItem="{Binding SelectedSave}" 
+                  AutoGenerateColumns="False" CanUserAddRows="False" Background="White" RowHeight="35"
+                  BorderBrush="#DDDDDD" BorderThickness="1" HeadersVisibility="Column"
+                  SelectionMode="Single" SelectionUnit="FullRow">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Nom" Binding="{Binding SaveName}" Width="*"/>
+                <DataGridTextColumn Header="Source" Binding="{Binding SourcePath}" Width="2*"/>
+                <DataGridTextColumn Header="Destination" Binding="{Binding DestinationPath}" Width="2*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" 
+                    Command="{Binding OpenOptionsCommand}" 
+                    HorizontalAlignment="Left" 
+                    VerticalAlignment="Bottom"
+                    Padding="15,8" Margin="5"
+                    Background="#E0E0E0"
+                    BorderBrush="#888888" BorderThickness="1"
+                    ToolTip="Accéder aux options">
+
+                <TextBlock Text="Paramètres" 
+                           FontWeight="SemiBold" 
+                           Foreground="#333333" 
+                           VerticalAlignment="Center" 
+                           HorizontalAlignment="Center"/>
+
+            </Button>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                <Button Content="Nouvelle Sauvegarde" 
+                        Command="{Binding AddSaveCommand}" 
+                        Padding="15,8" Margin="5"
+                        MinWidth="140"/>
+
+                <Button Content="Lancer la sélection" 
+                        Command="{Binding SaveCommand}" 
+                        Background="#007ACC" Foreground="White" 
+                        Padding="15,8" Margin="5"
+                        MinWidth="140"
+                        FontWeight="SemiBold">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
