@@ -1,13 +1,7 @@
 Menu Option à changer :
-
-lang : liste à choix
-format de log : garder comme liste
-extension à encrypter : faire en sorte que séparer par 
+extension à encrypter : faire en sorte que séparer par "," et que le logiciel puisse les reconnaitre
 logiciel metier à voir ?
-
-
-
-sauvegarde effectuer enregistrer uniquement version txt (version) 1.0.1
-langue bloquer français 
-faire fonctionner le broswer de ressource dans le SaveEdittorWindows
-faire fonctionner le changement de langue
+corriger le fonctionnnement du changement de langue dans le menu option
+boutou play/pause à creer
+bouton delete
+bouton restore

@@ -1,5 +1,6 @@
 ﻿using System.Windows.Input;
 using EasySave.GUI.ViewModels.Base;
+using Microsoft.Win32;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -30,12 +31,35 @@ namespace EasySave.GUI.ViewModels
                 Type = existingJob.Type;
             }
 
-            BrowseSourceCommand = new RelayCommand(o => BrowseFolder(true));
-            BrowseTargetCommand = new RelayCommand(o => BrowseFolder(false));
+            BrowseSourceCommand = new RelayCommand(o => BrowseSourceFile());
+            BrowseTargetCommand = new RelayCommand(o => BrowseTargetFolder());
         }
 
-        private void BrowseFolder(bool isSource)
+        private void BrowseSourceFile()
         {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Sélectionnez le fichier source à sauvegarder",
+                Filter = "Tous les fichiers (*.*)|*.*" 
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                SourcePath = dialog.FileName;
+            }
+        }
+
+        private void BrowseTargetFolder()
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = "Sélectionnez le dossier de destination"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                TargetPath = dialog.FolderName;
+            }
         }
     }
 }

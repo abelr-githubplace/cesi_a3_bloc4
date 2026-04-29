@@ -17,8 +17,14 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Label Grid.Row="0" Grid.Column="0" Content="Format des Logs :"/>
-        <ComboBox Grid.Row="0" Grid.Column="1" SelectedValue="{Binding LogFormat}" SelectedValuePath="Content" Margin="0,0,0,10">
+        <Label Grid.Row="0" Grid.Column="0" Content="Choisir Langue :"/>
+        <ComboBox Grid.Row="0" Grid.Column="1" SelectedValue="{Binding language}" SelectedValuePath="Content" Margin="0,0,0,10">
+            <ComboBoxItem Content="FR"/>
+            <ComboBoxItem Content="EN"/>
+        </ComboBox>
+
+        <Label Grid.Row="1" Grid.Column="0" Content="Format des Logs :"/>
+        <ComboBox Grid.Row="1" Grid.Column="1" SelectedValue="{Binding LogFormat}" SelectedValuePath="Content" Margin="0,0,0,10">
             <ComboBoxItem Content="JSON"/>
             <ComboBoxItem Content="XML"/>
             <ComboBoxItem Content="TXT"/>

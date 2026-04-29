@@ -5,21 +5,17 @@ namespace EasySave.GUI.ViewModels
 {
     public class SaveJob : ViewModel
     {
-        // On conserve le modèle d'origine si besoin
         public SaveInfo Model { get; private set; }
 
         public SaveJob(SaveInfo model)
         {
             Model = model;
 
-            // On initialise nos variables locales avec les données du modèle
-            // Cela contourne le problème des propriétés 'init' de SaveInfo
             _name = model.SaveName;
             _sourcePath = model.SourcePath;
             _targetPath = model.DestinationPath;
         }
 
-        // --- Propriétés modifiables par l'interface graphique ---
 
         private string _name;
         public string Name
@@ -42,7 +38,6 @@ namespace EasySave.GUI.ViewModels
             set { _targetPath = value; OnPropertyChanged(); }
         }
 
-        // --- Propriétés exclusives à l'interface graphique ---
 
         private float _progress;
         public float Progress
