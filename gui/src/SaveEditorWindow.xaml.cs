@@ -19,19 +19,16 @@ namespace EasySave.GUI.Views
             InitializeComponent();
         }
 
-        // Gestion de la fermeture de la fenêtre côté UI pure
-        private void Cancel_Click(object sender, RoutedEventArgs e)
-        {
-            DialogResult = false;
-            Close();
-        }
-
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // Le ViewModel s'occupe de la logique métier via la SaveCommand,
-            // ici on ferme juste la fenêtre de dialogue.
-            DialogResult = true;
-            Close();
+            this.DialogResult = true;
+            this.Close();
+        }
+
+        private void Cancel_Click(object sender, RoutedEventArgs e)
+        {
+            this.DialogResult = false;
+            this.Close();
         }
     }
 }

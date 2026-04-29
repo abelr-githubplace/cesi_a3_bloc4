@@ -1,0 +1,23 @@
+﻿using EasySave.GUI.ViewModels.Base;
+
+namespace EasySave.GUI.ViewModels
+{
+    public class Options : ViewModel
+    {
+        private string _logFormat = "JSON";
+        public string LogFormat { get => _logFormat; set { _logFormat = value; OnPropertyChanged(); } }
+
+        private string _businessSoftwareName;
+        public string BusinessSoftwareName { get => _businessSoftwareName; set { _businessSoftwareName = value; OnPropertyChanged(); } }
+
+        private string _extensionsToEncrypt;
+        public string ExtensionsToEncrypt { get => _extensionsToEncrypt; set { _extensionsToEncrypt = value; OnPropertyChanged(); } }
+
+        public Options()
+        {
+            // TODO: Charger ces valeurs depuis un fichier de config ou le StateManager
+        }
+
+        // Dans une vraie application, on ajouterait une ICommand "SaveConfigCommand"
+    }
+}
