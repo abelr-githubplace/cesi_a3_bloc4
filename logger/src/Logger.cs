@@ -11,6 +11,7 @@ namespace EasyLog
         public required string DestinationFile { get; init; }
         public required long FileSize { get; init; }
         public required int TransferTime { get; init; }
+        public required int CryptoTime { get; init; }
     }
 
     public class Logger
@@ -80,7 +81,9 @@ namespace EasyLog
                 $"<Source>{logInfo.SourceFile}</Source>" +
                 $"<Target>{logInfo.DestinationFile}</Target>" +
                 $"<SizeKB>{logInfo.FileSize}</SizeKB>" +
-                $"<TransferTimeMS>{logInfo.TransferTime}</TransferTimeMS>"
+                $"<TransferTimeMS>{logInfo.TransferTime}</TransferTimeMS>"+
+                $"<CryptoTimeMS>{logInfo.CryptoTime}</CryptoTimeMS>"
+
             );
         }
 
