@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 using SaveManager;
+using EasySave.GUI.Views;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -29,8 +30,21 @@ namespace EasySave.GUI.ViewModels
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
         }
 
-        private void ExecuteSave() { /* Logique CLI */ }
-        private void OpenAddDialog() { /* Ouvrir SaveEditorWindow */ }
-        private void OpenOptions() { /* Logique Options */ }
+        private void ExecuteSave()
+        {
+            /* Logique CLI */
+        }
+
+        private void OpenAddDialog()
+        {
+            /* Ouvrir SaveEditorWindow */
+        }
+
+        private void OpenOptions()
+        {
+            var optionsWindow = new OptionsWindow();
+            optionsWindow.DataContext = new OptionsViewModel();
+            optionsWindow.ShowDialog();
+        }
     }
 }
