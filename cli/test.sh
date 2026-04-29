@@ -103,7 +103,7 @@ pass() {
 
 fail() {
     echo -e "├${ANSI_RED}[FAIL]${ANSI_RESET} ${CLI} $1"
-    if [ -n "${2:-}" ]; then FAILED_MSG+=("\n$2\n${ANSI_YELLOW}$3${ANSI_RESET}\n$4\n${ANSI_YELLOW}$5${ANSI_RESET}\n")
+    if [ -n "${2:-}" ]; then FAILED_MSG+=("$2\n${ANSI_YELLOW}$3${ANSI_RESET}\n$4\n${ANSI_YELLOW}$5${ANSI_RESET}")
     else FAILED_MSG+=(""); fi
     FAIL=$((FAIL + 1))
     FAILED_TESTS+=("${CLI} $1")
@@ -302,7 +302,7 @@ echo -e "╘${ANSI_BOLD}═╡ ${ANSI_GREEN}Passed: $PASS${ANSI_RESET}${ANSI_BOL
 if [ $FAIL -gt 0 ]; then
     echo -e "\n${ANSI_RED}FAILED${ANSI_RESET}\n"
     for (( i=0; i < ${#FAILED_TESTS[@]}; i++)); do
-        echo -e "${FAILED_TESTS[$i]} => ${FAILED_MSG[$i]}"
+        echo -e "=> ${FAILED_TESTS[$i]}\n${FAILED_MSG[$i]}"
     done
     exit 1
 fi
