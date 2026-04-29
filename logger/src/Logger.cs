@@ -3,11 +3,7 @@ using System.Text.Json;
 using System.IO;
 namespace EasyLog
 {
-    public enum LogFormat {
-        Text,
-        JSON,
-        XML,
-    }
+    public enum LogFormat { Text, JSON, XML }
 
     public record LogInfo
     {
@@ -16,8 +12,8 @@ namespace EasyLog
         public required string SourceFile { get; init; }
         public required string DestinationFile { get; init; }
         public required string Action { get; init; }
-        public required long FileSize { get; init; }    // bytes
-        public required int TransferTime { get; init; } // milliseconds
+        public required long FileSize { get; init; }        // bytes
+        public required int TransferTime { get; init; }     // milliseconds
         public required int EncryptionTime { get; init; }   // milliseconds
 
         private string TextFormat() {
@@ -38,16 +34,18 @@ namespace EasyLog
         }
 
         private string JSONFormat() {
-            var jsonObject = new
+            var JsonLog = new
             {
-                Date = logInfo.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
-                Name = logInfo.SaveName,
-                Source = logInfo.SourceFile,
-                Target = logInfo.DestinationFile,
-                SizeKB = logInfo.FileSize,
-                TransferTimeMS = logInfo.TransferTime
+                Date = this.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
+                Name = SaveName,
+                Source = SourceFile,
+                Target = DestinationFile,
+                Action = this.Action,
+                FileSize = this.FileSize,
+                TransferTime = this.TransferTime,
+                EncryptionTime = this.EncryptionTime,
             };
-            return JsonSerializer.Serialize(jsonObject);
+            return JsonSerializer.Serialize(JsonLog);
         }
 
         public string Format(LogFormat format) {
