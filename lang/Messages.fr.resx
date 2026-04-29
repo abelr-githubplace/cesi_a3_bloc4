@@ -198,4 +198,7 @@
   <data name="Error" xml:space="preserve">
     <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
   </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Numéro invalide. Veuillez entrer un nombre entre 1 et 5 &gt;</value>
+  </data>
 </root>

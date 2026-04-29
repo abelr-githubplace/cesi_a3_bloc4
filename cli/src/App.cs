@@ -51,9 +51,16 @@ namespace EasySaveConsole
         {
             var parsedSaveInfos = new List<SaveInfo>();
 
-            foreach (int id in saveIds)
+            foreach (int item in saveIds)
             {
-                if (id <= 0) continue;
+                int id = item;
+
+                while (id < 1 || id > 5)
+                {
+                    Console.Write($"\n[{Messages.Invalid}]\n> ");
+                    string? input = Console.ReadLine();
+                    int.TryParse(input, out id);
+                }
 
                 int index = id - 1;
                 Clear();
@@ -90,11 +97,7 @@ namespace EasySaveConsole
         {
             Clear();
             Console.WriteLine($"[{Messages.SaveMenuTitle}]\n{Messages.SaveMenuDetails}");
-
-            for (int i = 0; i < saveInfos.Count; i++)
-            {
-                Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
-            }
+            for (int i = 0; i < saveInfos.Count(); i++) Console.WriteLine($"<{i + 1}> {saveInfos[i].SaveName}");
             Console.WriteLine();
 
             string? input = null;

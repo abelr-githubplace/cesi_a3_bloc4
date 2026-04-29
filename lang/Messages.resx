@@ -198,4 +198,7 @@
   <data name="Error" xml:space="preserve">
     <value>Error: No job IDs. Use --help</value>
   </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Invalid number. Please enter a number between 1 and 5.</value>
+  </data>
 </root>
