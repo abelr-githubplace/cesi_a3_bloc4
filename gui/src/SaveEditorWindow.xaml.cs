@@ -10,18 +10,16 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace EasySave.GUI.Views
+namespace EasySave.GUI.src
 {
-    public partial class OptionsWindow : Window
+    /// <summary>
+    /// Logique d'interaction pour SaveEditorWindow.xaml
+    /// </summary>
+    public partial class SaveEditorWindow : Window
     {
-        public OptionsWindow()
+        public SaveEditorWindow()
         {
             InitializeComponent();
-        }
-
-        private void CloseWindow_Click(object sender, RoutedEventArgs e)
-        {
-            this.Close();
         }
     }
 }

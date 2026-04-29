@@ -10,14 +10,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace EasySave.GUI.views
+namespace EasySave.GUI.src
 {
     /// <summary>
-    /// Logique d'interaction pour SaveEditorWindow.xaml
+    /// Logique d'interaction pour MainWindow.xaml
     /// </summary>
-    public partial class SaveEditorWindow : Window
+    public partial class MainWindow : Window
     {
-        public SaveEditorWindow()
+        public MainWindow()
         {
             InitializeComponent();
         }
