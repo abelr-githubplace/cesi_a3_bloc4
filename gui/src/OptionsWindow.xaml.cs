@@ -9,17 +9,19 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-
-namespace EasySave.GUI.src
+namespace EasySave.GUI.Views
 {
-    /// <summary>
-    /// Logique d'interaction pour OptionsWindow.xaml
-    /// </summary>
     public partial class OptionsWindow : Window
     {
         public OptionsWindow()
         {
             InitializeComponent();
         }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
+}
 }
