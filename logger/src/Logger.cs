@@ -11,6 +11,7 @@ namespace EasyLog
         public required string DestinationFile { get; init; }
         public required long FileSize { get; init; }
         public required int TransferTime { get; init; } // ms
+        public required int CryptoTime { get; init; } // ms
     }
 
     public class Logger
@@ -49,7 +50,11 @@ namespace EasyLog
                     $"{logInfo.SaveName} > SAVE from " +
                     $"[{logInfo.SourceFile}] to " +
                     $"[{logInfo.DestinationFile}] " +
-                    $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms";
+                    $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms"+
+                    $"| CryptoTime: {logInfo.CryptoTime}ms";
+
+
+                
 
                 writer.WriteLine(line);
             }
