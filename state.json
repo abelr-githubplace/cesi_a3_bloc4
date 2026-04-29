@@ -4,7 +4,15 @@
     "Name": "alexis",
     "SourcePath": "C:\\Users\\ba733\\source\\repos\\new.txt",
     "DestinationPath": "C:\\Users\\ba733\\source\\repos\\cesi_a3_bloc4\\backups",
-    "LastActionTime": "2026-04-29T19:38:19.1902367+02:00",
+    "LastActionTime": "2026-04-29T19:43:28.8026473+02:00",
+    "Status": "Inactive"
+  },
+  {
+    "Id": 2,
+    "Name": "push",
+    "SourcePath": "C:\\Users\\ba733\\source\\repos\\push.txt",
+    "DestinationPath": "C:\\Users\\ba733\\source\\repos\\cesi_a3_bloc4\\backups",
+    "LastActionTime": "2026-04-29T20:31:18.3732499+02:00",
     "Status": "Inactive"
   }
 ]
