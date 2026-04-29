@@ -47,7 +47,7 @@
                     BorderBrush="#888888" BorderThickness="1"
                     ToolTip="Accéder aux options">
 
-                <TextBlock Text="Paramètres" 
+                <TextBlock Text="Parametres" 
                            FontWeight="SemiBold" 
                            Foreground="#333333" 
                            VerticalAlignment="Center" 
