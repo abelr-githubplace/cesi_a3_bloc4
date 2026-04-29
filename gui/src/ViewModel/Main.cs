@@ -25,7 +25,6 @@ namespace EasySave.GUI.ViewModels
             set { _selectedJob = value; OnPropertyChanged(); }
         }
 
-        // Commandes
         public ICommand AddJobCommand { get; }
         public ICommand EditJobCommand { get; }
         public ICommand DeleteJobCommand { get; }
