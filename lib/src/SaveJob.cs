@@ -47,21 +47,18 @@ namespace Job
 
     public class DifferentialSaveJob : SaveJob
     {
-        private const int _diff = 0x46464944; // "DIFF"
+        // Magic "DIFF" : on disk = 0x44 0x49 0x46 0x46, lu en int32 LE = 0x46464944
+        private const int _diff = 0x46464944;
 
-        // xdelta-style rolling-hash parameters.
-        // BlockSize is the granularity at which we look for matches. Smaller values
-        // catch finer matches (better diff) at the cost of a bigger index. 16 is a
-        // good general-purpose default; bump it up for huge files if memory matters.
-        private const int _blockSize = 16;
-        // Cap how many candidate positions per hash bucket we'll try to extend.
-        // On highly repetitive data (e.g. zero-padded files) a single hash can map
-        // to millions of positions, which would make the inner loop quadratic.
-        // 32 is enough to find a good match in practice.
-        private const int _maxCandidatesPerHash = 32;
-        // Rabin-Karp polynomial base. 257 is a small prime > 256 so every byte
-        // value contributes uniquely to the hash before reduction.
-        private const uint _hashBase = 257;
+        // Tags d'opération du flux delta
+        private const byte OpCopy = 0x00; // [0x00][srcOffset:int32][length:int32]
+        private const byte OpAdd  = 0x01; // [0x01][length:int32][data:length bytes]
+
+        // Taille de bloc Xdelta (rolling-hash window)
+        private const int BlockSize = 16;
+
+        // Adler-32 modulus
+        private const uint Mod = 65521u;
 
         public DifferentialSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
 
@@ -75,48 +72,173 @@ namespace Job
             }
         }
 
-        private enum OpTag : byte { Copy = 0, Add = 1 }
-
-        private struct Op
+        // Adler-32 sur une fenêtre [offset, offset+length).
+        private static uint Adler32(byte[] data, int offset, int length)
         {
-            public OpTag Tag;
-            public int Offset; // Copy: position in old file. Add: position in new file (only used at write time).
-            public int Length;
+            uint a = 1, b = 0;
+            for (int i = 0; i < length; i++)
+            {
+                a = (a + data[offset + i]) % Mod;
+                b = (b + a) % Mod;
+            }
+            return (b << 16) | a;
         }
 
-        // .diff format (little-endian):
-        //   int   magic ("DIFF")
-        //   int   oldFileLength
-        //   int   newFileLength
-        //   int   opCount
-        //   for each op:
-        //     byte tag (0 = Copy, 1 = Add)
-        //     if Copy:
-        //       int srcOffset   // start position in old file
-        //       int length
-        //     if Add:
-        //       int length
-        //       byte[length]    // literal bytes
-        //
-        // Reconstruction: walk ops in order, appending either old[srcOffset..srcOffset+length]
-        // (Copy) or the literal bytes (Add). This is xdelta/VCDIFF-style: a Copy can
-        // reference *any* part of the old file, so a moved block is encoded as a single
-        // Copy regardless of how far it travelled.
-        //
-        // The encoder builds an index of every BlockSize-byte window of the old file
-        // (Rabin-Karp rolling hash), then scans the new file with the same rolling hash:
-        // on a hash hit, it verifies the actual bytes (defending against collisions)
-        // and extends the match forward as far as possible. Bytes that don't anchor a
-        // match accumulate in a literal buffer that's flushed as an Add op when the
-        // next Copy starts (or at end of file). Both pre-indexing and the scan are
-        // O(N+M) on average, so this scales to large files.
+        // Slide la fenêtre Adler-32 d'un byte (out -> in).
+        private static uint RollAdler32(uint hash, byte outByte, byte inByte, int blockSize)
+        {
+            long a = hash & 0xFFFFu;
+            long b = hash >> 16;
+            a = (a - outByte + inByte + Mod) % Mod;
+            // Padding suffisant pour rester >= 0 avant le mod
+            long pad = Mod * (long)(blockSize + 1);
+            b = (b - (long)blockSize * outByte + a - 1 + pad) % Mod;
+            return ((uint)b << 16) | (uint)a;
+        }
+
+        /// <summary>
+        /// Génère un fichier delta entre <paramref name="destinationFile"/> (référence) et
+        /// <paramref name="sourceFile"/> (cible) selon un algorithme inspiré de Xdelta :
+        /// table de hash Adler-32 sur les blocs non-chevauchants de la référence, puis
+        /// scan rolling-hash sur la cible avec vérification byte-à-byte et extension
+        /// gloutonne du match.
+        ///
+        /// Format binaire :
+        ///   [magic:int32 = "DIFF"]
+        ///   [oldLen:int32][newLen:int32][opCount:int32]
+        ///   opCount × { COPY | ADD }
+        ///     COPY = [0x00][srcOffset:int32][length:int32]
+        ///     ADD  = [0x01][length:int32][data:length bytes]
+        /// </summary>
         public static void GenerateDelta(string sourceFile, string destinationFile, string diffFile)
         {
             byte[] oldBytes = File.ReadAllBytes(destinationFile);
             byte[] newBytes = File.ReadAllBytes(sourceFile);
 
-            var ops = ComputeDelta(oldBytes, newBytes);
+            // 1. Indexer les blocs CHEVAUCHANTS de la référence par leur Adler-32
+            //    (chaque offset 0..oldLen-BlockSize). Permet de trouver l'alignement
+            //    optimal d'un match, pas seulement les multiples de BlockSize.
+            //    On plafonne le nombre de candidats par hash pour éviter l'explosion
+            //    quadratique sur du contenu très répétitif.
+            const int MaxCandidatesPerHash = 16;
+            var index = new Dictionary<uint, List<int>>();
+            for (int i = 0; i + BlockSize <= oldBytes.Length; i++)
+            {
+                uint h = Adler32(oldBytes, i, BlockSize);
+                if (!index.TryGetValue(h, out var list)) { list = new List<int>(); index[h] = list; }
+                if (list.Count < MaxCandidatesPerHash) list.Add(i);
+            }
 
+            // 2. Scanner la cible avec rolling-hash, accumuler des opérations COPY/ADD.
+            var ops = new List<(byte Tag, int A, int B, byte[]? Data)>();
+            var addBuf = new List<byte>();
+
+            int p = 0;
+            bool haveHash = false;
+            uint windowHash = 0;
+
+            while (p < newBytes.Length)
+            {
+                bool canHash = oldBytes.Length >= BlockSize && p + BlockSize <= newBytes.Length;
+
+                if (!canHash)
+                {
+                    // Trop court pour matcher : on ajoute le byte au buffer ADD.
+                    addBuf.Add(newBytes[p]);
+                    p++;
+                    haveHash = false;
+                    continue;
+                }
+
+                if (!haveHash)
+                {
+                    windowHash = Adler32(newBytes, p, BlockSize);
+                    haveHash = true;
+                }
+
+                // Cherche le meilleur match parmi les candidats. Pour chacun on étend
+                // en avant ET en arrière (Xdelta) : le préfixe du match peut empiéter
+                // sur des bytes déjà rangés dans le buffer ADD, ce qui fait qu'on les
+                // retire de l'ADD pour les inclure dans le COPY.
+                int bestOff = -1;
+                int bestFwd = 0;
+                int bestBack = 0;
+                if (index.TryGetValue(windowHash, out var candidates))
+                {
+                    foreach (int candOff in candidates)
+                    {
+                        // Extension forward
+                        int fwd = 0;
+                        while (candOff + fwd < oldBytes.Length
+                               && p + fwd < newBytes.Length
+                               && oldBytes[candOff + fwd] == newBytes[p + fwd])
+                        {
+                            fwd++;
+                        }
+                        if (fwd < BlockSize) continue;
+
+                        // Extension backward, bornée par la taille du buffer ADD
+                        // (= nombre de bytes "récupérables") et par candOff.
+                        int back = 0;
+                        int maxBack = Math.Min(addBuf.Count, candOff);
+                        while (back < maxBack
+                               && oldBytes[candOff - 1 - back] == newBytes[p - 1 - back])
+                        {
+                            back++;
+                        }
+
+                        int total = fwd + back;
+                        if (total > bestFwd + bestBack)
+                        {
+                            bestOff = candOff;
+                            bestFwd = fwd;
+                            bestBack = back;
+                        }
+                    }
+                }
+
+                if (bestFwd >= BlockSize)
+                {
+                    // Récupère les bytes étendus en arrière depuis le buffer ADD.
+                    if (bestBack > 0)
+                        addBuf.RemoveRange(addBuf.Count - bestBack, bestBack);
+
+                    // Flush ce qui reste en ADD avant le COPY.
+                    if (addBuf.Count > 0)
+                    {
+                        ops.Add((OpAdd, addBuf.Count, 0, addBuf.ToArray()));
+                        addBuf.Clear();
+                    }
+                    ops.Add((OpCopy, bestOff - bestBack, bestFwd + bestBack, null));
+                    p += bestFwd;
+                    haveHash = false;
+                }
+                else
+                {
+                    // Pas de match : ajoute le byte au buffer et glisse la fenêtre d'un cran.
+                    byte outByte = newBytes[p];
+                    addBuf.Add(outByte);
+                    p++;
+                    if (p + BlockSize <= newBytes.Length)
+                    {
+                        byte inByte = newBytes[p + BlockSize - 1];
+                        windowHash = RollAdler32(windowHash, outByte, inByte, BlockSize);
+                    }
+                    else
+                    {
+                        haveHash = false;
+                    }
+                }
+            }
+
+            // Flush final.
+            if (addBuf.Count > 0)
+            {
+                ops.Add((OpAdd, addBuf.Count, 0, addBuf.ToArray()));
+                addBuf.Clear();
+            }
+
+            // 3. Sérialiser le delta.
             using (var diffStream = File.Create(diffFile))
             using (var writer = new BinaryWriter(diffStream))
             {
@@ -124,95 +246,20 @@ namespace Job
                 writer.Write(oldBytes.Length);
                 writer.Write(newBytes.Length);
                 writer.Write(ops.Count);
+
                 foreach (var op in ops)
                 {
-                    writer.Write((byte)op.Tag);
-                    if (op.Tag == OpTag.Copy)
+                    writer.Write(op.Tag);
+                    if (op.Tag == OpCopy)
                     {
-                        writer.Write(op.Offset);
-                        writer.Write(op.Length);
+                        writer.Write(op.A); // srcOffset
+                        writer.Write(op.B); // length
                     }
-                    else
+                    else // OpAdd
                     {
-                        writer.Write(op.Length);
-                        writer.Write(newBytes, op.Offset, op.Length);
+                        writer.Write(op.A); // length
+                        writer.Write(op.Data!);
                     }
-                }
-            }
-        }
-
-        private static List<Op> ComputeDelta(byte[] oldBytes, byte[] newBytes)
-        {
-            var ops = new List<Op>();
-            int B = _blockSize;
-
-            // Degenerate cases: at least one file shorter than a block — no point
-            // building an index, just emit the whole new file (if any) as a literal.
-            if (oldBytes.Length < B || newBytes.Length < B)
-            {
-                if (newBytes.Length > 0)
-                    ops.Add(new Op { Tag = OpTag.Add, Offset = 0, Length = newBytes.Length });
-                return ops;
-            }
-
-            // Precompute base^(B-1) for the rolling-hash update.
-            uint basePow = 1;
-            for (int i = 0; i < B - 1; i++) basePow *= _hashBase;
-
-            // Index every B-byte window of the old file by its hash.
-            var index = new Dictionary<uint, List<int>>();
-            uint h = InitHash(oldBytes, 0, B);
-            AddCandidate(index, h, 0);
-            for (int i = 1; i + B <= oldBytes.Length; i++)
-            {
-                h = RollHash(h, oldBytes[i - 1], oldBytes[i + B - 1], basePow);
-                AddCandidate(index, h, i);
-            }
-
-            // Scan the new file with the same rolling hash, looking for matches.
-            int newPos = 0;
-            int literalStart = 0;
-            uint hn = InitHash(newBytes, 0, B);
-
-            while (newPos + B <= newBytes.Length)
-            {
-                int bestSrc = -1;
-                int bestLen = 0;
-                if (index.TryGetValue(hn, out var positions))
-                {
-                    foreach (int p in positions)
-                    {
-                        // Verify (hash collisions exist) and greedily extend forward.
-                        int len = ExtendMatch(oldBytes, p, newBytes, newPos);
-                        if (len > bestLen) { bestLen = len; bestSrc = p; }
-                    }
-                }
-
-                if (bestLen >= B)
-                {
-                    if (newPos > literalStart)
-                        ops.Add(new Op
-                        {
-                            Tag = OpTag.Add,
-                            Offset = literalStart,
-                            Length = newPos - literalStart,
-                        });
-                    ops.Add(new Op { Tag = OpTag.Copy, Offset = bestSrc, Length = bestLen });
-                    newPos += bestLen;
-                    literalStart = newPos;
-
-                    if (newPos + B <= newBytes.Length)
-                        hn = InitHash(newBytes, newPos, B);
-                    else
-                        break;
-                }
-                else
-                {
-                    // Slide the window by one byte. We can only roll if the byte
-                    // entering the new window is in bounds.
-                    if (newPos + B < newBytes.Length)
-                        hn = RollHash(hn, newBytes[newPos], newBytes[newPos + B], basePow);
-                    newPos++;
                 }
             }
 

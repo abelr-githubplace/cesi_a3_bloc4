@@ -43,10 +43,17 @@ namespace EasySaveConsole
 
         public static void Main(string[] args)
         {
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
+            var configManager = ConfigManager.ConfigManager.Get("./config.json");
+            var appConfig = configManager.GetConfig();
 
-            var logger = Logger.Get("./save.log");
-            var stateManager = StateManager.StateManager.Get("./state.json");
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(
+                string.IsNullOrWhiteSpace(appConfig.Language) ? _default_lang : appConfig.Language);
+
+            Directory.CreateDirectory(appConfig.LogDirectory);
+            var logger = Logger.Get(Path.Combine(appConfig.LogDirectory, "save.log"));
+            var stateManager = StateManager.StateManager.Get(appConfig.StateFilePath);
+            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager };
+
             List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
             Parser.ParsedCommand input_command = Parser.Parse(args);

@@ -51,7 +51,7 @@ namespace StateManager
             }
             else
             {
-                File.Create(outputFile).Dispose();
+                using (File.Create(outputFile)) { }
                 _states = new List<SaveState>();
             }
         }
