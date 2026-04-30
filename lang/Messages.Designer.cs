@@ -39,7 +39,7 @@ namespace EasySave.lang {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasySave.CLI.Ressources.Messages", typeof(Messages).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasySave.GUI.Ressources.Messages", typeof(Messages).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -61,7 +61,25 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Error: No job IDs. Use --help.
+        ///   Recherche une chaîne localisée semblable à Delete.
+        /// </summary>
+        public static string Delete {
+            get {
+                return ResourceManager.GetString("Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Edit.
+        /// </summary>
+        public static string Edit {
+            get {
+                return ResourceManager.GetString("Edit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Error: No job IDs. Use --help.
         /// </summary>
         public static string Error {
             get {
@@ -178,7 +196,25 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to No command arguments detected..
+        ///   Recherche une chaîne localisée semblable à Name.
+        /// </summary>
+        public static string Name {
+            get {
+                return ResourceManager.GetString("Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à ➕ New Job.
+        /// </summary>
+        public static string NewJob {
+            get {
+                return ResourceManager.GetString("NewJob", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à No command arguments detected..
         /// </summary>
         public static string NoArgsWarning {
             get {
@@ -214,7 +250,16 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Press any key to exit....
+        ///   Recherche une chaîne localisée semblable à ⚙️ Settings.
+        /// </summary>
+        public static string Options {
+            get {
+                return ResourceManager.GetString("Options", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Press any key to exit....
         /// </summary>
         public static string PressToExit {
             get {
@@ -223,7 +268,16 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Which save(s) do you want to run?.
+        ///   Recherche une chaîne localisée semblable à Progess.
+        /// </summary>
+        public static string Progress {
+            get {
+                return ResourceManager.GetString("Progress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Which save(s) do you want to run?.
         /// </summary>
         public static string PromptSelection {
             get {
@@ -241,7 +295,25 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Save in progress....
+        ///   Recherche une chaîne localisée semblable à ▶▶  Run All.
+        /// </summary>
+        public static string RunAll {
+            get {
+                return ResourceManager.GetString("RunAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à ▶  Run Selected.
+        /// </summary>
+        public static string RunSelected {
+            get {
+                return ResourceManager.GetString("RunSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Save in progress....
         /// </summary>
         public static string Save {
             get {
@@ -367,7 +439,43 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Welcome.
+        ///   Recherche une chaîne localisée semblable à Source.
+        /// </summary>
+        public static string Source {
+            get {
+                return ResourceManager.GetString("Source", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à State.
+        /// </summary>
+        public static string State {
+            get {
+                return ResourceManager.GetString("State", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Target.
+        /// </summary>
+        public static string Target {
+            get {
+                return ResourceManager.GetString("Target", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Type.
+        /// </summary>
+        public static string Type {
+            get {
+                return ResourceManager.GetString("Type", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Welcome.
         /// </summary>
         public static string Welcome {
             get {

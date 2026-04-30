@@ -1,8 +1,16 @@
-﻿using System.Windows;
+﻿using System.Globalization;
+using System.Threading;
+using System.Windows;
 
 namespace EasySave.GUI
 {
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-FR");
+
+            base.OnStartup(e);
+        }
     }
 }
