@@ -45,7 +45,7 @@ namespace Saver
 
     public class Saver
     {
-        public Guid Id { get; set; }
+        public uint Id { get; set; }
         public string Name { get; }
         public string SourcePath { get; }
         public string DestinationPath { get; }
@@ -56,7 +56,19 @@ namespace Saver
         protected List<SaveJob> Jobs;
         private Config _config;
 
-        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress progress, Config config)
+        // gate is set => "go", reset => "paused". Stop cancels the token AND opens
+        // the gate, so a worker waiting on the gate immediately observes cancellation.
+        private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
+        public bool IsPaused => !_gate.IsSet;
+        public bool IsStopped => _cts.IsCancellationRequested;
+
+        public void Pause() => _gate.Reset();
+        public void Resume() => _gate.Set();
+        public void Stop() { _cts.Cancel(); _gate.Set(); }
+
+        public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config)
         {
             Id = save.SaveId;
             Name = save.SaveName;
@@ -80,22 +92,23 @@ namespace Saver
                     // Create Jobs
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
-                    var job = CreateJob(file, destFile, fileSize, saveAction);
-                    if (job != null) Jobs.Add(job);
-                    
+                    var job = CreateJob(file, destFile, fileSize, saveType);
+                    if (job == null) /* Error : should be handled */;
+                    Jobs.Add(job);
+
                     totalSize += fileSize;
                 }
             }
             TotalSize = totalSize;
         }
 
-        private SaveJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveManager.Action saveAction)
+        private SaveJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
         {
             var default_priority = Priority.Medium;
-            switch (saveAction)
+            switch (saveType)
             {
-                case SaveManager.Action.CompleteSave: return new Job.CompleteSaveJob(sourceFile, destFile, fileSize, default_priority);
-                case SaveManager.Action.DifferentialSave: return new Job.DifferentialSaveJob(sourceFile, destFile, fileSize, default_priority);
+                case SaveType.Complete: return new Job.CompleteSaveJob(sourceFile, destFile, fileSize, default_priority);
+                case SaveType.Differential: return new Job.DifferentialSaveJob(sourceFile, destFile, fileSize, default_priority);
                 default: return null;
             }
         }
@@ -125,6 +138,17 @@ namespace Saver
 
             for (int i = 0; i < Jobs.Count; i++)
             {
+                // Pause point: between files. Cahier des charges 2.0 says the current
+                // file must finish before the worker can react to a pause/stop, so
+                // the cooperative check sits between iterations rather than mid-copy.
+                if (!_gate.IsSet)
+                {
+                    PersistRunningState(i, copiedTotalBytes, Status.Paused);
+                    try { _gate.Wait(_cts.Token); }
+                    catch (OperationCanceledException) { break; }
+                }
+                if (_cts.IsCancellationRequested) break;
+
                 var job = Jobs[i];
 
                 var beginTime = DateTime.Now;
@@ -143,20 +167,10 @@ namespace Saver
                         SaveName = Name,
                         SourceFile = job.SourceFile,
                         DestinationFile = job.DestinationFile,
-                        Action = "SAVE",
                         FileSize = job.FileSize,
-                        TransferTime = (endTime - beginTime).Milliseconds,
-                    }.Format(_config.LogFormat)
+                        TransferTime = (endTime - beginTime).Milliseconds
+                    }
                 );
-                var activeState = new ActiveStateInfo {
-                    TotalFiles = this.FilesWithSizes.Count,
-                    TotalSize = this.TotalSize,
-                    FilesRemaining = Jobs.Count - i,
-                    SizeRemaining = this.TotalSize - copiedTotalBytes,
-                    Progress = this.Progress.GetProgress(),
-                    CurrentSourceFile = job.SourceFile,
-                    CurrentTargetFile = job.DestinationFile
-                };
                 _config.StateManager.Save(
                     new SaveState {
                         Id = this.Id,
@@ -165,11 +179,37 @@ namespace Saver
                         DestinationPath = this.DestinationPath,
                         LastActionTime = endTime,
                         Status = Status.Active,
-                        ActiveStateInfo = activeState,
+                        ActiveStateInfo = new ActiveStateInfo {
+                            TotalFiles = this.FilesWithSizes.Count,
+                            TotalSize = this.TotalSize,
+                            FilesRemaining = Jobs.Count - i,
+                            SizeRemaining = this.TotalSize - copiedTotalBytes,
+                            Progress = this.Progress.GetProgress(),
+                            CurrentSourceFile = job.SourceFile,
+                            CurrentTargetFile = job.DestinationFile
+                        }
                     }
                 );
             }
 
+            _config.StateManager.Save(
+                    new SaveState
+                    {
+                        Id = this.Id,
+                        Name = this.Name,
+                        SourcePath = this.SourcePath,
+                        DestinationPath = this.DestinationPath,
+                        LastActionTime = endTime,
+                        Status = Status.Inactive,
+                        ActiveStateInfo = null,
+                    }
+                );
+        }
+
+        private void PersistRunningState(int nextJobIndex, long copiedTotalBytes, Status status)
+        {
+            string currentSrc = nextJobIndex < Jobs.Count ? Jobs[nextJobIndex].SourceFile : "";
+            string currentDst = nextJobIndex < Jobs.Count ? Jobs[nextJobIndex].DestinationFile : "";
             _config.StateManager.Save(
                 new SaveState
                 {
@@ -177,11 +217,108 @@ namespace Saver
                     Name = this.Name,
                     SourcePath = this.SourcePath,
                     DestinationPath = this.DestinationPath,
-                    LastActionTime = endTime,
-                    Status = Status.Inactive,
-                    ActiveStateInfo = null,
+                    LastActionTime = DateTime.Now,
+                    Status = status,
+                    ActiveStateInfo = new ActiveStateInfo
+                    {
+                        TotalFiles = this.FilesWithSizes.Count,
+                        TotalSize = this.TotalSize,
+                        FilesRemaining = Jobs.Count - nextJobIndex,
+                        SizeRemaining = this.TotalSize - copiedTotalBytes,
+                        Progress = this.Progress.GetProgress(),
+                        CurrentSourceFile = currentSrc,
+                        CurrentTargetFile = currentDst,
+                    }
                 }
             );
+        }
+    }
+
+    public class Restorer
+    {
+        public uint Id { get; }
+        public string Name { get; }
+        public string SourcePath { get; }
+        public string DestinationPath { get; }
+        public long TotalSize { get; }
+        public Progress Progress { get; }
+
+        protected List<RestoreJob> Jobs;
+
+        private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
+        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+
+        public bool IsPaused => !_gate.IsSet;
+        public bool IsStopped => _cts.IsCancellationRequested;
+
+        public void Pause() => _gate.Reset();
+        public void Resume() => _gate.Set();
+        public void Stop() { _cts.Cancel(); _gate.Set(); }
+
+        public Restorer(SaveInfo save, Progress progress)
+        {
+            Id = save.SaveId;
+            Name = save.SaveName;
+            SourcePath = save.SourcePath;
+            DestinationPath = save.DestinationPath;
+            Progress = progress;
+            Jobs = new List<RestoreJob>();
+
+            long totalSize = 0;
+            if (File.Exists(DestinationPath) || Directory.Exists(DestinationPath))
+            {
+                foreach (string file in GetRestorableFiles(DestinationPath))
+                {
+                    long fileSize = new FileInfo(file).Length;
+                    string relativePath = File.Exists(DestinationPath)
+                        ? Path.GetFileName(file)
+                        : Path.GetRelativePath(DestinationPath, file);
+                    string srcFile = Path.Combine(SourcePath, relativePath);
+
+                    string diffFile = file + ".diff";
+                    RestoreJob job = File.Exists(diffFile)
+                        ? new DifferentialRestoreJob(srcFile, file, diffFile, fileSize)
+                        : new CompleteRestoreJob(srcFile, file, fileSize);
+
+                    Jobs.Add(job);
+                    totalSize += fileSize;
+                }
+            }
+            TotalSize = totalSize;
+        }
+
+        private static IEnumerable<string> GetRestorableFiles(string path)
+        {
+            if (File.Exists(path))
+            {
+                if (path.EndsWith(".diff", StringComparison.Ordinal)) return Array.Empty<string>();
+                return new[] { path };
+            }
+            if (!Directory.Exists(path)) return Array.Empty<string>();
+            // .diff files are sidecars consumed by their matching base file — skip them here.
+            return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .Where(f => !f.EndsWith(".diff", StringComparison.Ordinal));
+        }
+
+        public void Start()
+        {
+            long restoredTotalBytes = 0;
+            for (int i = 0; i < Jobs.Count; i++)
+            {
+                if (!_gate.IsSet)
+                {
+                    try { _gate.Wait(_cts.Token); }
+                    catch (OperationCanceledException) { break; }
+                }
+                if (_cts.IsCancellationRequested) break;
+
+                var job = Jobs[i];
+                long restored = job.Execute();
+                restoredTotalBytes += restored;
+
+                float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)restoredTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
+                Progress.SetProgress(percent);
+            }
         }
     }
 }

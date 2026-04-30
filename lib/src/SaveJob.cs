@@ -323,5 +323,127 @@ namespace Job
             GenerateDelta(SourceFile, DestinationFile, DestinationFile + ".diff");
             return FileSize;
         }
+
+        // Reverse of GenerateDelta: walk the ops, reconstruct the "new" bytes from
+        // the "old" bytes (which live in oldFile) plus the literals stored in the
+        // diff. Output is written to outFile.
+        public static void ApplyDelta(string oldFile, string diffFile, string outFile)
+        {
+            byte[] oldBytes = File.ReadAllBytes(oldFile);
+            byte[] result = ApplyDeltaBytes(oldBytes, diffFile);
+
+            string? outDir = Path.GetDirectoryName(outFile);
+            if (!string.IsNullOrEmpty(outDir) && !Directory.Exists(outDir))
+                Directory.CreateDirectory(outDir);
+
+            File.WriteAllBytes(outFile, result);
+        }
+
+        private static byte[] ApplyDeltaBytes(byte[] oldBytes, string diffFile)
+        {
+            using var stream = File.OpenRead(diffFile);
+            using var reader = new BinaryReader(stream);
+
+            int magic = reader.ReadInt32();
+            if (magic != _diff) throw new InvalidDataException("Not a DIFF file");
+
+            int oldLen = reader.ReadInt32();
+            int newLen = reader.ReadInt32();
+            if (oldLen != oldBytes.Length)
+                throw new InvalidDataException("Old file size does not match diff header");
+
+            int opCount = reader.ReadInt32();
+            var result = new byte[newLen];
+            int pos = 0;
+
+            for (int i = 0; i < opCount; i++)
+            {
+                OpTag tag = (OpTag)reader.ReadByte();
+                if (tag == OpTag.Copy)
+                {
+                    int srcOffset = reader.ReadInt32();
+                    int length = reader.ReadInt32();
+                    if (srcOffset < 0 || length < 0 || srcOffset + length > oldBytes.Length)
+                        throw new InvalidDataException("Copy op out of bounds");
+                    if (pos + length > newLen)
+                        throw new InvalidDataException("Copy op overruns output");
+                    Array.Copy(oldBytes, srcOffset, result, pos, length);
+                    pos += length;
+                }
+                else if (tag == OpTag.Add)
+                {
+                    int length = reader.ReadInt32();
+                    if (pos + length > newLen)
+                        throw new InvalidDataException("Add op overruns output");
+                    int read = reader.Read(result, pos, length);
+                    if (read != length)
+                        throw new InvalidDataException("Diff truncated mid-Add");
+                    pos += length;
+                }
+                else
+                {
+                    throw new InvalidDataException("Unknown op tag");
+                }
+            }
+
+            if (pos != newLen)
+                throw new InvalidDataException("Ops did not reconstruct the full output");
+
+            return result;
+        }
+    }
+
+    public abstract class RestoreJob
+    {
+        public string SourceFile { get; private set; }      // original location to restore TO
+        public string DestinationFile { get; private set; } // backup file to restore FROM
+        public long FileSize { get; private set; }
+
+        protected RestoreJob(string sourceFile, string destinationFile, long fileSize)
+        {
+            SourceFile = sourceFile;
+            DestinationFile = destinationFile;
+            FileSize = fileSize;
+        }
+
+        protected long CopyBack()
+        {
+            if (!File.Exists(DestinationFile)) return 0;
+
+            string? srcDir = Path.GetDirectoryName(SourceFile);
+            if (!string.IsNullOrEmpty(srcDir) && !Directory.Exists(srcDir))
+                Directory.CreateDirectory(srcDir);
+
+            File.Copy(DestinationFile, SourceFile, true);
+            return new FileInfo(SourceFile).Length;
+        }
+
+        public abstract long Execute();
+    }
+
+    public class CompleteRestoreJob : RestoreJob
+    {
+        public CompleteRestoreJob(string sourceFile, string destinationFile, long fileSize)
+            : base(sourceFile, destinationFile, fileSize) { }
+
+        public override long Execute() => CopyBack();
+    }
+
+    public class DifferentialRestoreJob : RestoreJob
+    {
+        private readonly string _diffFile;
+
+        public DifferentialRestoreJob(string sourceFile, string destinationFile, string diffFile, long fileSize)
+            : base(sourceFile, destinationFile, fileSize)
+        {
+            _diffFile = diffFile;
+        }
+
+        public override long Execute()
+        {
+            if (!File.Exists(_diffFile)) return CopyBack();
+            DifferentialSaveJob.ApplyDelta(DestinationFile, _diffFile, SourceFile);
+            return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
+        }
     }
 }

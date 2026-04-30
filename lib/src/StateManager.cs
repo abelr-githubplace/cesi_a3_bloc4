@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace StateManager
 {
-    public enum Status { Active, Inactive }
+    public enum Status { Active, Inactive, Paused }
 
     public record ActiveStateInfo
     {
@@ -96,6 +96,26 @@ namespace StateManager
                 if (existingIndex >= 0) _states[existingIndex] = state;
                 else _states.Add(state);
                 Write();
+            }
+        }
+
+        public bool Delete(string name)
+        {
+            lock (_writeLock)
+            {
+                int existingIndex = _states.FindIndex(s => s.Name == name);
+                if (existingIndex < 0) return false;
+                _states.RemoveAt(existingIndex);
+                Write();
+                return true;
+            }
+        }
+
+        public SaveState? Find(string name)
+        {
+            lock (_writeLock)
+            {
+                return _states.FirstOrDefault(s => s.Name == name);
             }
         }
 

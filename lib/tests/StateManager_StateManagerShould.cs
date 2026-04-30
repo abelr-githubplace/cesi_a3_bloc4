@@ -168,5 +168,54 @@ namespace EasySaveLibrary.Tests
             Assert.AreEqual(id, save.SaveId);
             Assert.AreNotEqual(Guid.Empty, save.SaveId);
         }
+
+        [TestMethod]
+        public void Delete_ExistingState_RemovesEntryAndReturnsTrue()
+        {
+            var sm = StateManager.StateManager.Get(_stateFile);
+            sm.Save(BuildState(1, "ToDelete"));
+            sm.Save(BuildState(2, "Keep"));
+
+            bool removed = sm.Delete("ToDelete");
+
+            Assert.IsTrue(removed);
+            var remaining = sm.GetSaves().Select(s => s.SaveName).ToArray();
+            CollectionAssert.AreEqual(new[] { "Keep" }, remaining);
+        }
+
+        [TestMethod]
+        public void Delete_UnknownState_ReturnsFalseAndDoesNotMutate()
+        {
+            var sm = StateManager.StateManager.Get(_stateFile);
+            sm.Save(BuildState(1, "Only"));
+
+            bool removed = sm.Delete("nope");
+
+            Assert.IsFalse(removed);
+            Assert.AreEqual(1, sm.GetSaves().Count);
+        }
+
+        [TestMethod]
+        public void Delete_PersistsToDisk()
+        {
+            var sm = StateManager.StateManager.Get(_stateFile);
+            sm.Save(BuildState(1, "Persisted"));
+            sm.Delete("Persisted");
+
+            ResetSingleton();
+            var reloaded = StateManager.StateManager.Get(_stateFile);
+            Assert.AreEqual(0, reloaded.GetSaves().Count);
+        }
+
+        [TestMethod]
+        public void Find_ReturnsState_OrNullWhenAbsent()
+        {
+            var sm = StateManager.StateManager.Get(_stateFile);
+            sm.Save(BuildState(42, "Hit"));
+
+            Assert.IsNotNull(sm.Find("Hit"));
+            Assert.AreEqual(42u, sm.Find("Hit")!.Id);
+            Assert.IsNull(sm.Find("Miss"));
+        }
     }
 }
