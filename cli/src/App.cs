@@ -88,7 +88,7 @@ namespace EasySaveConsole
                     Console.Write($"\n{Messages.SaveMenuAskSaveDst}\n> ");
                     while (string.IsNullOrWhiteSpace(dst)) dst = Console.ReadLine();
 
-                    saveInfo = new SaveInfo { SaveId = (uint)id, SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
+                    saveInfo = new SaveInfo { SaveId = Guid.NewGuid(), SaveName = name.Trim(), SourcePath = src.Trim(), DestinationPath = dst.Trim() };
                     saveInfos.Add(saveInfo);
                 }
                 else

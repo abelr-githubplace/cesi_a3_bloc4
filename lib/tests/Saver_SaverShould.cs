@@ -55,7 +55,7 @@ namespace EasySaveLibrary.Tests
 
         private static SaveInfo Info(string name, string source, string destination) => new SaveInfo
         {
-            SaveId = 1,
+            SaveId = Guid.NewGuid(),
             SaveName = name,
             SourcePath = source,
             DestinationPath = destination,

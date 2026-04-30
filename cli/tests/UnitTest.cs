@@ -17,8 +17,8 @@ namespace EasySaveConsole.Tests
         public void Setup()
         {
             _existingSaves.Clear();
-            _existingSaves.Add(new SaveInfo { SaveId = 1, SaveName = "Save1", SourcePath = "C:\\src1", DestinationPath = "D:\\dst1" });
-            _existingSaves.Add(new SaveInfo { SaveId = 2, SaveName = "Save2", SourcePath = "C:\\src2", DestinationPath = "D:\\dst2" });
+            _existingSaves.Add(new SaveInfo { SaveId = Guid.NewGuid(), SaveName = "Save1", SourcePath = "C:\\src1", DestinationPath = "D:\\dst1" });
+            _existingSaves.Add(new SaveInfo { SaveId = Guid.NewGuid(), SaveName = "Save2", SourcePath = "C:\\src2", DestinationPath = "D:\\dst2" });
         }
 
         [TestMethod]
@@ -84,7 +84,7 @@ namespace EasySaveConsole.Tests
                 var result = App.SaveInfosContext(userInputs, _existingSaves);
 
                 Assert.AreEqual(1, result.Length);
-                Assert.AreEqual(3u, result[0].SaveId);
+                Assert.AreNotEqual(Guid.Empty, result[0].SaveId);
                 Assert.AreEqual("NouvelleSave", result[0].SaveName);
             }
             finally

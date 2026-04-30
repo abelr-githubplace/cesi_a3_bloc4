@@ -18,7 +18,7 @@ namespace StateManager
 
     public record SaveState
     {
-        public required uint Id { get; init; }
+        public required Guid Id { get; init; }
         public required string Name { get; init; }
         public required string SourcePath { get; init; }
         public required string DestinationPath { get; init; }
@@ -92,8 +92,7 @@ namespace StateManager
         {
             lock (_writeLock)
             {
-                // Preserve insertion order so save IDs stay stable across writes
-                int existingIndex = _states.FindIndex(s => s.Name == state.Name);
+                int existingIndex = _states.FindIndex(s => s.Id == state.Id);
                 if (existingIndex >= 0) _states[existingIndex] = state;
                 else _states.Add(state);
                 Write();

@@ -48,7 +48,7 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(Path.Combine(src, "f.txt"), "data");
             return new SaveInfo
             {
-                SaveId = 1,
+                SaveId = Guid.NewGuid(),
                 SaveName = name,
                 SourcePath = src,
                 DestinationPath = Path.Combine(_workDir, name + "-dst"),

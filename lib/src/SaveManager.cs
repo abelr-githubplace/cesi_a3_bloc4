@@ -19,7 +19,7 @@ namespace SaveManager
 
 	public record SaveInfo
 	{
-		public required uint SaveId { get; init; }
+		public required Guid SaveId { get; init; }
 		public required string SaveName { get; init; }
 		public required string SourcePath { get; init; }
 		public required string DestinationPath { get; init; }

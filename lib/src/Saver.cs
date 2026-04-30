@@ -45,7 +45,7 @@ namespace Saver
 
     public class Saver
     {
-        public uint Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; }
         public string SourcePath { get; }
         public string DestinationPath { get; }
