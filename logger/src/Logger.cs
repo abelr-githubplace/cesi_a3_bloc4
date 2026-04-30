@@ -1,6 +1,7 @@
-﻿using System;
-using System.Text.Json;
+using System;
 using System.IO;
+using System.Text.Json;
+
 namespace EasyLog
 {
     public enum LogFormat { Text, JSON, XML }
