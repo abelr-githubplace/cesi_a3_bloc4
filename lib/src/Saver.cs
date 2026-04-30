@@ -81,8 +81,7 @@ namespace Saver
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
                     var job = CreateJob(file, destFile, fileSize, saveType);
-                    if (job == null) /* Error : should be handled */;
-                    Jobs.Add(job);
+                    if (job != null) Jobs.Add(job);
                     
                     totalSize += fileSize;
                 }
@@ -144,10 +143,21 @@ namespace Saver
                         SaveName = Name,
                         SourceFile = job.SourceFile,
                         DestinationFile = job.DestinationFile,
+                        Action = "SAVE",
                         FileSize = job.FileSize,
-                        TransferTime = (endTime - beginTime).Milliseconds
-                    }
+                        TransferTime = (endTime - beginTime).Milliseconds,
+                        EncryptionTime = 0
+                    }.Format(EasyLog.LogFormat.XML)
                 );
+                var activeState = new ActiveStateInfo {
+                    TotalFiles = this.FilesWithSizes.Count,
+                    TotalSize = this.TotalSize,
+                    FilesRemaining = Jobs.Count - i,
+                    SizeRemaining = this.TotalSize - copiedTotalBytes,
+                    Progress = this.Progress.GetProgress(),
+                    CurrentSourceFile = job.SourceFile,
+                    CurrentTargetFile = job.DestinationFile
+                };
                 _config.StateManager.Save(
                     new SaveState {
                         Id = this.Id,
@@ -156,31 +166,23 @@ namespace Saver
                         DestinationPath = this.DestinationPath,
                         LastActionTime = endTime,
                         Status = Status.Active,
-                        ActiveStateInfo = new ActiveStateInfo {
-                            TotalFiles = this.FilesWithSizes.Count,
-                            TotalSize = this.TotalSize,
-                            FilesRemaining = Jobs.Count - i,
-                            SizeRemaining = this.TotalSize - copiedTotalBytes,
-                            Progress = this.Progress.GetProgress(),
-                            CurrentSourceFile = job.SourceFile,
-                            CurrentTargetFile = job.DestinationFile
-                        }
+                        ActiveStateInfo = activeState,
                     }
                 );
             }
 
             _config.StateManager.Save(
-                    new SaveState
-                    {
-                        Id = this.Id,
-                        Name = this.Name,
-                        SourcePath = this.SourcePath,
-                        DestinationPath = this.DestinationPath,
-                        LastActionTime = endTime,
-                        Status = Status.Inactive,
-                        ActiveStateInfo = null,
-                    }
-                );
+                new SaveState
+                {
+                    Id = this.Id,
+                    Name = this.Name,
+                    SourcePath = this.SourcePath,
+                    DestinationPath = this.DestinationPath,
+                    LastActionTime = endTime,
+                    Status = Status.Inactive,
+                    ActiveStateInfo = null,
+                }
+            );
         }
     }
 }

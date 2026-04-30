@@ -16,13 +16,14 @@ namespace EasyLog
         public required string SourceFile { get; init; }
         public required string DestinationFile { get; init; }
         public required string Action { get; init; }
-        public required long FileSize { get; init; }
-        public required int TransferTime { get; init; }
-        public required int CryptoTime { get; init; }
+        public required long FileSize { get; init; }    // bytes
+        public required int TransferTime { get; init; } // milliseconds
+        public required int EncryptionTime { get; init; }   // milliseconds
 
         private string TextFormat() {
-            return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] " +
-                $"{SaveName} > {Action} from [{SourceFile}] to [{DestinationFile}] ({FileSize}kB) in {TransferTime}ms";
+            return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
+                $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) " +
+                $"in {TransferTime}ms ({EncryptionTime} ms of encryption)";
         }
 
         private string XMLFormat() {
@@ -31,23 +32,28 @@ namespace EasyLog
                 $"<Action>{Action}</Action>" +
                 $"<Source>{SourceFile}</Source>" +
                 $"<Target>{DestinationFile}</Target>" +
-                $"<SizeKB>{FileSize}</SizeKB>" +
-                $"<TransferTimeMS>{TransferTime}</TransferTimeMS>" +
-                $"<CryptoTimeMS>{CryptoTime}</CryptoTimeMS>";
+                $"<FileSize>{FileSize}</FileSize>" +
+                $"<TransferTime>{TransferTime}</TransferTime>" +
+                $"<EncryptTime>{EncryptionTime}</EncryptTime>";
+        }
+
+        private string JSONFormat() {
+            return "";
         }
 
         public string Format(LogFormat format) {
             switch (format) {
                 case LogFormat.Text: return TextFormat();
                 case LogFormat.XML: return XMLFormat();
-                default: break;
+                case LogFormat.JSON: return JSONFormat();
+                default: return "";
             }
         }
     }
 
     public class Logger
     {
-        private static Logger s_instance;
+        private static Logger? s_instance;
         private static readonly object s_lock = new object();
 
         private readonly string _outputFile;
@@ -57,13 +63,13 @@ namespace EasyLog
             _outputFile = outputFile;
         }
 
-        public static Logger Get(string outputFile, LogFormat format = LogFormat.Text)
+        public static Logger Get(string outputFile)
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null) s_instance = new Logger(outputFile, format);
+                    if (s_instance == null) s_instance = new Logger(outputFile);
                 }
             }
             return s_instance;
