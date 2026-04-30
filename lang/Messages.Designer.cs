@@ -374,5 +374,59 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Welcome", resourceCulture);
             }
         }
+
+        public static string OptionMenuBusinessSoftware {
+            get {
+                return ResourceManager.GetString("OptionMenuBusinessSoftware", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareMenuTitle {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareMenuTitle", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareMenuList {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareMenuList", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareMenuEmpty {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareMenuEmpty", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareMenuAdd {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareMenuAdd", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareMenuRemove {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareMenuRemove", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareAskAdd {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareAskAdd", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareAskRemove {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareAskRemove", resourceCulture);
+            }
+        }
+
+        public static string BusinessSoftwareDetectedSaveBlocked {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareDetectedSaveBlocked", resourceCulture);
+            }
+        }
     }
 }

@@ -46,13 +46,10 @@ namespace EasySaveConsole
             var configManager = ConfigManager.ConfigManager.Get("./config.json");
             var appConfig = configManager.GetConfig();
 
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(
-                string.IsNullOrWhiteSpace(appConfig.Language) ? _default_lang : appConfig.Language);
-
-            Directory.CreateDirectory(appConfig.LogDirectory);
-            var logger = Logger.Get(Path.Combine(appConfig.LogDirectory, "save.log"));
-            var stateManager = StateManager.StateManager.Get(appConfig.StateFilePath);
-            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager };
+            var logger = Logger.Get("./save.log");
+            var stateManager = StateManager.StateManager.Get("./state.json");
+            var appConfig = AppConfig.AppConfig.Get("./config.json");
+            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager, AppConfig = appConfig };
 
             List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
@@ -63,7 +60,7 @@ namespace EasySaveConsole
             {
                 while (true)
                 {
-                    (SaveManager.Config new_config, ProgramCommand command) = App.MainMenu(config, saveInfos);
+                    ProgramCommand command = App.MainMenu(saveInfos, appConfig);
                     if (command.Action == ProgramAction.Exit) break;
                     switch (command.Action)
                     {
@@ -117,8 +114,13 @@ namespace EasySaveConsole
 
             bool success = SaveManager.SaveManager.Execute(command, progresses.ToArray(), config);
 
-            var end_message = success ? $"{Messages.SaveSuccess}" : $"{Messages.SaveFailed}";
-            Console.WriteLine($"{end_message}");
+            string end_message;
+            if (success) end_message = $"{Messages.SaveSuccess}";
+            else if (command.SaveType != SaveManager.SaveType.Differential
+                     && SaveManager.SaveManager.IsBusinessSoftwareRunning(config))
+                end_message = $"{Messages.BusinessSoftwareDetectedSaveBlocked}";
+            else end_message = $"{Messages.SaveFailed}";
+            Console.WriteLine($"\n--- {end_message} ---");
             if (!Console.IsInputRedirected) Console.ReadKey();
             try { Console.Clear(); } catch { }
         }

@@ -11,7 +11,7 @@ namespace EasySaveConsole
             try { Console.Clear(); } catch (IOException) { }
         }
 
-        public static (Config, ProgramCommand) MainMenu(Config config, List<SaveInfo> previous_saves)
+        public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves, AppConfig.AppConfig appConfig)
         {
             var new_config = config;
             while (true)
@@ -114,7 +114,34 @@ namespace EasySaveConsole
             return SaveInfosContext(saveIds, saveInfos);
         }
 
-        private static Config OptionMenu(Config config)
+        private static SaveType? SaveTypeMenu()
+        {
+            while (true)
+            {
+                Clear();
+                Console.WriteLine($"[{Messages.SaveTypeMenuTitle}]\n" +
+                    "\n" +
+                    $"<1> {Messages.SaveTypeComplete}\n" +
+                    $"<2> {Messages.SaveTypeDifferential}\n" +
+                    "\n" +
+                    $"<Esc> {Messages.ReturnToPreviousMenu}");
+
+                bool reload = false;
+                while (!reload)
+                {
+                    var key = Console.ReadKey();
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.D1: Clear(); return SaveType.Complete;
+                        case ConsoleKey.D2: Clear(); return SaveType.Differential;
+                        case ConsoleKey.Escape: return null;
+                        default: break;
+                    }
+                }
+            }
+        }
+
+        private static void OptionMenu(AppConfig.AppConfig appConfig)
         {
             var new_config = config;
             while (true)
@@ -123,7 +150,7 @@ namespace EasySaveConsole
                 Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.OptionMenuLanguage}\n" +
-                    $"<2> {Messages.OptionMenuLogFormat}\n" +
+                    $"<2> {Messages.OptionMenuBusinessSoftware}\n" +
                     "\n" +
                     $"<Esc> {Messages.ReturnToPreviousMenu}");
 
@@ -134,8 +161,47 @@ namespace EasySaveConsole
                     switch (key.Key)
                     {
                         case ConsoleKey.D1: LanguageMenu(); reload = true; break;
-                        case ConsoleKey.D2: new_config = LogFormatMenu(new_config); reload = true; break;
-                        case ConsoleKey.Escape: return new_config;
+                        case ConsoleKey.D2: BusinessSoftwareMenu(appConfig); reload = true; break;
+                        case ConsoleKey.Escape: return;
+                        default: break;
+                    }
+                }
+            }
+        }
+
+        private static void BusinessSoftwareMenu(AppConfig.AppConfig appConfig)
+        {
+            while (true)
+            {
+                Clear();
+                Console.WriteLine($"[{Messages.BusinessSoftwareMenuTitle}]\n");
+
+                var watched = appConfig.GetBusinessSoftware();
+                Console.WriteLine($"{Messages.BusinessSoftwareMenuList}");
+                if (watched.Count == 0) Console.WriteLine($"  {Messages.BusinessSoftwareMenuEmpty}");
+                else for (int i = 0; i < watched.Count; i++) Console.WriteLine($"  - {watched[i]}");
+
+                Console.WriteLine($"\n<1> {Messages.BusinessSoftwareMenuAdd}\n" +
+                    $"<2> {Messages.BusinessSoftwareMenuRemove}\n" +
+                    $"\n<Esc> {Messages.ReturnToPreviousMenu}");
+
+                bool reload = false;
+                while (!reload)
+                {
+                    var key = Console.ReadKey(true);
+                    switch (key.Key)
+                    {
+                        case ConsoleKey.D1:
+                            Console.Write($"\n{Messages.BusinessSoftwareAskAdd}\n> ");
+                            string? toAdd = Console.ReadLine();
+                            if (!string.IsNullOrWhiteSpace(toAdd)) appConfig.AddBusinessSoftware(toAdd);
+                            reload = true; break;
+                        case ConsoleKey.D2:
+                            Console.Write($"\n{Messages.BusinessSoftwareAskRemove}\n> ");
+                            string? toRemove = Console.ReadLine();
+                            if (!string.IsNullOrWhiteSpace(toRemove)) appConfig.RemoveBusinessSoftware(toRemove);
+                            reload = true; break;
+                        case ConsoleKey.Escape: return;
                         default: break;
                     }
                 }
