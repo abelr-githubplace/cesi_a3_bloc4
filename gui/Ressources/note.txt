@@ -1,6 +1,6 @@
 Menu Option à changer :
 extension à encrypter : faire en sorte que séparer par "," et que le logiciel puisse les reconnaitre
-logiciel metier à voir ?
+logiciel metier à voir liste à creer avec chemin de fichier à ajouter
 corriger le fonctionnnement du changement de langue dans le menu option
 boutou play/pause à creer
 bouton delete
