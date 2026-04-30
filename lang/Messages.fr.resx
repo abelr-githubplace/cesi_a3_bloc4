@@ -286,7 +286,7 @@
     <value>▶▶  Executer Tous</value>
   </data>
   <data name="ChooseLanguage" xml:space="preserve">
-    <value>Choisir la lange :</value>
+    <value>Choisir la langue :</value>
   </data>
   <data name="LogFormat" xml:space="preserve">
     <value>Format des logs :</value>

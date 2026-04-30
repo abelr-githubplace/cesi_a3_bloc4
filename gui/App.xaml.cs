@@ -6,11 +6,6 @@ namespace EasySave.GUI
 {
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
-        {
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
-
-            base.OnStartup(e);
-        }
+        public App() { }
     }
 }
