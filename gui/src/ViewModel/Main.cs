@@ -8,6 +8,8 @@ using EasyLog;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using EasySave.lang;
+using EasySave.GUI.Helpers;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -129,7 +131,7 @@ namespace EasySave.GUI.ViewModels
             if (parameter is SaveJob job)
             {
                 // TODO: Appeler la méthode dans la lib pour mettre le thread en pause
-                job.State = "En pause";
+                job.State = TranslationSource.Instance["Break"];
             }
         }
 
@@ -138,7 +140,7 @@ namespace EasySave.GUI.ViewModels
             if (parameter is SaveJob job)
             {
                 // TODO: Appeler la méthode dans la lib pour annuler la sauvegarde en cours
-                job.State = "Arrêté";
+                job.State = TranslationSource.Instance["Stopped"];
             }
         }
 
@@ -146,9 +148,9 @@ namespace EasySave.GUI.ViewModels
         {
             if (job == null) return;
 
-            if (job.State == "En cours") return;
+            if (job.State == TranslationSource.Instance["Running"]) return;
 
-            job.State = "En cours";
+            job.State = TranslationSource.Instance["Running"];
 
             await Task.Run(() =>
             {
@@ -158,14 +160,14 @@ namespace EasySave.GUI.ViewModels
                 {
                     SaveAction = SaveManager.Action.Save,
                     Saves = new[] { job.Model },
-                    SaveType = job.Type == "Complète" ? SaveType.Complete : SaveType.Differential
+                    SaveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential
                 };
 
                 bool success = SaveManager.SaveManager.Execute(command, new[] { progress }, _config);
 
-                if (job.State == "En cours")
+                if (job.State == TranslationSource.Instance["Running"])
                 {
-                    job.State = success ? "Terminé" : "Erreur";
+                    job.State = success ? TranslationSource.Instance["Complete"] : TranslationSource.Instance["Error1"];
                 }
             });
         }

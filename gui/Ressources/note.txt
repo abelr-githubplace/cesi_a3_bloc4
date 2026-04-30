@@ -4,9 +4,5 @@ logiciel metier à voir liste à creer avec chemin de fichier à ajouter
 
 
 
-corriger le fonctionnnement du changement de langue dans le menu option actuellement il faut redémarrer le logiciel pour que les changements soient pris en compte
-
-
-
-boutou play/pause à implementer "main.cs"
+boutou pause à implementer "main.cs"
 bouton annuler à implementer "main.cs"

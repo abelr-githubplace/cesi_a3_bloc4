@@ -1,4 +1,6 @@
 ﻿using EasySave.GUI.ViewModels.Base;
+using EasySave.GUI.Helpers;
+using System.Globalization;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -8,7 +10,20 @@ namespace EasySave.GUI.ViewModels
         public string LogFormat { get => _logFormat; set { _logFormat = value; OnPropertyChanged(); } }
 
         private string _language = "FR";
-        public string language { get => _language; set { _language = value; OnPropertyChanged(); } }
+        public string language
+        {
+            get => _language;
+            set
+            {
+                _language = value;
+                OnPropertyChanged();
+
+                if (value == "FR")
+                    TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
+                else if (value == "EN")
+                    TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
+            }
+        }
 
         private string _businessSoftwareName;
         public string BusinessSoftwareName { get => _businessSoftwareName; set { _businessSoftwareName = value; OnPropertyChanged(); } }
@@ -20,6 +35,5 @@ namespace EasySave.GUI.ViewModels
         {
             // TODO: Charger ces valeurs depuis un fichier de config ou le StateManager
         }
-
     }
 }

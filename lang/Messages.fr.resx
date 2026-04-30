@@ -306,4 +306,16 @@
   <data name="SaveEditor" xml:space="preserve">
     <value>Éditeur de sauvegarde</value>
   </data>
+  <data name="Running" xml:space="preserve">
+    <value>En Cours d'éxecution</value>
+  </data>
+  <data name="Error1" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="Stopped" xml:space="preserve">
+    <value>Arrêté</value>
+  </data>
+  <data name="Break" xml:space="preserve">
+    <value>En Pause</value>
+  </data>
 </root>

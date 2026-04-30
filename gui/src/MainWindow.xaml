@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lang="clr-namespace:EasySave.lang"
+        xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         mc:Ignorable="d"
         Title="EasySave 2.0" Height="450" Width="800"
         WindowStartupLocation="CenterScreen">
@@ -16,19 +17,19 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Content="{x:Static lang:Messages.NewJob}" Command="{Binding AddJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
-            <Button Content="{x:Static lang:Messages.Options}" Command="{Binding OpenOptionsCommand}" Margin="0,0,10,0" Padding="10,5"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[NewJob]}" Command="{Binding AddJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Options]}" Command="{Binding OpenOptionsCommand}" Margin="0,0,10,0" Padding="10,5"/>
         </StackPanel>
 
         <DataGrid Grid.Row="1" ItemsSource="{Binding SaveJobs}" SelectedItem="{Binding SelectedJob}" 
                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="{x:Static lang:Messages.Name}" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="{x:Static lang:Messages.Source}" Binding="{Binding SourcePath}" Width="2*"/>
-                <DataGridTextColumn Header="{x:Static lang:Messages.Target}" Binding="{Binding TargetPath}" Width="2*"/>
-                <DataGridTextColumn Header="{x:Static lang:Messages.Type}" Binding="{Binding Type}" Width="*"/>
-                <DataGridTextColumn Header="{x:Static lang:Messages.State}" Binding="{Binding State}" Width="*"/>
-                <DataGridTextColumn Header="{x:Static lang:Messages.Progress}" Binding="{Binding Progress, StringFormat={}{0}%}" Width="*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}" Binding="{Binding Name}" Width="*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Source]}" Binding="{Binding SourcePath}" Width="2*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Target]}" Binding="{Binding TargetPath}" Width="2*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" Binding="{Binding Type}" Width="*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[State]}" Binding="{Binding State}" Width="*"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Progress]}" Binding="{Binding Progress, StringFormat={}{0}%}" Width="*"/>
 
                 <DataGridTemplateColumn Header="Actions" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
@@ -45,15 +46,15 @@
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="{x:Static lang:Messages.Edit}" Command="{Binding EditJobCommand}" CommandParameter="{Binding SelectedJob}"/>
-                    <MenuItem Header="{x:Static lang:Messages.Delete}" Command="{Binding DeleteJobCommand}" CommandParameter="{Binding SelectedJob}"/>
+                    <MenuItem Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Edit]}" Command="{Binding EditJobCommand}" CommandParameter="{Binding SelectedJob}"/>
+                    <MenuItem Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delete]}" Command="{Binding DeleteJobCommand}" CommandParameter="{Binding SelectedJob}"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
         </DataGrid>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="{x:Static lang:Messages.RunSelected}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
-            <Button Content="{x:Static lang:Messages.RunAll}" Command="{Binding RunAllJobsCommand}" Padding="10,5"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunSelected]}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunAll]}" Command="{Binding RunAllJobsCommand}" Padding="10,5"/>
         </StackPanel>
     </Grid>
 </Window>

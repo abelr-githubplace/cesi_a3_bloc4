@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:lang="clr-namespace:EasySave.lang"
-        Title="{x:Static lang:Messages.SaveEditor}" Height="300" Width="400"
+        xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
+        Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[SaveEditor]}" Height="300" Width="400"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
 
     <Grid Margin="15">
@@ -20,26 +21,26 @@
             <ColumnDefinition Width="35"/>
         </Grid.ColumnDefinitions>
 
-        <Label Grid.Row="0" Grid.Column="0" Content="{x:Static lang:Messages.Name}"/>
+        <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}"/>
         <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10" VerticalAlignment="Center"/>
 
-        <Label Grid.Row="1" Grid.Column="0" Content="{x:Static lang:Messages.Source}"/>
+        <Label Grid.Row="1" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Source]}"/>
         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,5,10" VerticalAlignment="Center"/>
         <Button Grid.Row="1" Grid.Column="2" Content="..." Command="{Binding BrowseSourceCommand}" Margin="0,0,0,10"/>
 
-        <Label Grid.Row="2" Grid.Column="0" Content="{x:Static lang:Messages.Target}"/>
+        <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Target]}"/>
         <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,5,10" VerticalAlignment="Center"/>
         <Button Grid.Row="2" Grid.Column="2" Content="..." Command="{Binding BrowseTargetCommand}" Margin="0,0,0,10"/>
 
-        <Label Grid.Row="3" Grid.Column="0" Content="{x:Static lang:Messages.Type}"/>
+        <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}"/>
         <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Content" Margin="0,0,0,10">
-            <ComboBoxItem Content="{x:Static lang:Messages.Complete}"/>
-            <ComboBoxItem Content="{x:Static lang:Messages.Differential}"/>
+            <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Complete]}"/>
+            <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Differential]}"/>
         </ComboBox>
 
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="{x:Static lang:Messages.MainMenuExit}" Click="Cancel_Click" Width="75" Margin="0,0,10,0"/>
-            <Button Content="{x:Static lang:Messages.MainMenuSave}" Command="{Binding SaveCommand}" Click="Save_Click" Width="Auto"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[MainMenuExit]}" Click="Cancel_Click" Width="75" Margin="0,0,10,0"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[MainMenuSave]}" Command="{Binding SaveCommand}" Click="Save_Click" Width="Auto"/>
         </StackPanel>
     </Grid>
 </Window>
