@@ -57,7 +57,7 @@ namespace EasySaveConsole
 
                 while (id < 1 || id > 5)
                 {
-                    Console.Write($"\n[{Messages.Invalid}]\n> ");
+                    Console.Write($"\n[{Messages.InvalidSaveIndex}]\n> ");
                     string? input = Console.ReadLine();
                     int.TryParse(input, out id);
                 }
