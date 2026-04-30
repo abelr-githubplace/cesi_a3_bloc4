@@ -1,16 +1,17 @@
-BUILD=dotnet build -verbosity q
-TEST=dotnet test -verbosity q
-
 DEBUG= --configuration Debug
 RELEASE= --configuration Release
-WIN_OS= --os win
-
-DEBUG_BUILD=${BUILD} ${DEBUG} ${WIN_OS}
-RELEASE_BUILD=${BUILD} ${RELEASE} ${WIN_OS}
+TARGET_OS= --os win
 
 BUILD=dotnet build ${TARGET_OS} --verbosity q
 TEST=dotnet test ${TARGET_OS} --verbosity q --logger "console;verbosity=detailed"
 CLEAN=dotnet clean --verbosity q
+
+LOGGER_PROJ=logger/EasyLog.csproj
+LIBRARY_PROJ=lib/EasySaveLibrary.csproj
+CLI_PROJ=cli/EasySave.CLI.csproj
+GUI_PROJ=gui/EasySave.GUI.csproj
+SERVER_PROJ=server/EasySave.Server.csproj
+REMOTE_PROJ=remote/EasySave.Remote.csproj
 
 DEBUG_LOGGER_PATH=logger/bin/Debug/net10.0/win-x64/EasyLog.dll
 DEBUG_LIBRARY_PATH=lib/bin/Debug/net10.0/win-x64/EasySaveLibrary.dll
@@ -37,10 +38,10 @@ logger: ${DEBUG_LOGGER_PATH}
 logger-release: ${LOGGER_PATH}
 
 ${DEBUG_LOGGER_PATH}:
-	@-${BUILD} ${DEBUG} logger/EasyLog.csproj
+	@-${BUILD} ${DEBUG} ${LOGGER_PROJ}
 
 ${LOGGER_PATH}:
-	@-${BUILD} ${RELEASE} logger/EasyLog.csproj
+	@-${BUILD} ${RELEASE} ${LOGGER_PROJ}
 
 # Library
 
@@ -49,10 +50,10 @@ lib: ${DEBUG_LIBRARY_PATH}
 lib-release: ${LIBRARY_PATH}
 
 ${DEBUG_LIBRARY_PATH}:
-	@-${BUILD} ${DEBUG} lib/EasySaveLibrary.csproj
+	@-${BUILD} ${DEBUG} ${LIBRARY_PROJ}
 		
 ${LIBRARY_PATH}:
-	@-${BUILD} ${RELEASE} lib/EasySaveLibrary.csproj
+	@-${BUILD} ${RELEASE} ${LIBRARY_PROJ}
 
 # Command Line Interface
 
@@ -61,10 +62,10 @@ cli: ${DEBUG_CLI_PATH}
 cli-release: ${CLI_PATH}
 
 ${DEBUG_CLI_PATH}:
-	@-${BUILD} ${DEBUG} cli/EasySave.CLI.csproj
+	@-${BUILD} ${DEBUG} ${CLI_PROJ}
 		
 ${CLI_PATH}:
-	@-${BUILD} ${RELEASE} cli/EasySave.CLI.csproj
+	@-${BUILD} ${RELEASE} ${CLI_PROJ}
 
 run-cli: ${CLI_PATH}
 	@-${CLI_PATH}
@@ -76,10 +77,10 @@ gui: ${DEBUG_GUI_PATH}
 gui-release: ${GUI_PATH}
 
 ${DEBUG_GUI_PATH}:
-	@-${BUILD} ${DEBUG} gui/EasySave.GUI.csproj
+	@-${BUILD} ${DEBUG} ${GUI_PROJ}
 		
 ${GUI_PATH}:
-	@-${BUILD} ${RELEASE} gui/EasySave.GUI.csproj
+	@-${BUILD} ${RELEASE} ${GUI_PROJ}
 
 run-gui: ${GUI_PATH}
 	@-${GUI_PATH}
@@ -91,10 +92,10 @@ server: ${DEBUG_SERVER_PATH}
 server-release: ${SERVER_PATH}
 
 ${DEBUG_SERVER_PATH}:
-	@-${BUILD} ${DEBUG} server/EasySave.Server.csproj
+	@-${BUILD} ${DEBUG} ${SERVER_PROJ}
 		
 ${SERVER_PATH}:
-	@-${BUILD} ${RELEASE} server/EasySave.Server.csproj
+	@-${BUILD} ${RELEASE} ${SERVER_PROJ}
 
 run-server: ${SERVER_PATH}
 	@-${SERVER_PATH}
@@ -106,46 +107,47 @@ remote: ${DEBUG_REMOTE_PATH}
 remote-release: ${REMOTE_PATH}
 
 ${DEBUG_REMOTE_PATH}:
-	@-${BUILD} ${DEBUG} remote/EasySave.Remote.csproj
+	@-${BUILD} ${DEBUG} ${REMOTE_PROJ}
 
 ${REMOTE_PATH}:
-	@-${BUILD} ${RELEASE} remote/EasySave.Remote.csproj
+	@-${BUILD} ${RELEASE} ${REMOTE_PROJ}
 
 run-remote: ${REMOTE_PATH}
 	@-${REMOTE_PATH}
 
 # !! PHONIES !!
 
-.PHONY: clean clean-logger clean-lib clean-cli clean-gui clean-server clean-remote clean-test test test-logger test-lib test-cli test-gui test-server test-remote
+.PHONY:
 
 # Clean
 
-clean: clean-bin clean-test clean-cli
+clean: clean-logger clean-lib clean-cli clean-gui clean-server clean-remote clean-test
 
 clean-logger:
-	@-${CLEAN} logger/EasyLog.csproj
+	@-${CLEAN} ${LOGGER_PROJ}
 	@-${RM} -r logger/bin logger/tests/bin
 
 clean-lib:
-	@-${CLEAN} lib/EasySaveLibrary.csproj
+	@-${CLEAN} ${LIBRARY_PROJ}
 	@-${RM} -r lib/bin lib/tests/bin
 
 clean-cli:
-	@-${CLEAN} cli/EasySave.CLI.csproj
+	@-${CLEAN} ${CLI_PROJ}
 	@-${RM} -r cli/bin cli/tests/bin
-	@-${RM} state.json save.log
+	@-${RM} state.json save.log config.json
 
 clean-gui:
-	@-${CLEAN} cli/EasySave.GUI.csproj
+	@-${CLEAN} ${GUI_PROJ}
 	@-${RM} -r gui/bin gui/tests/bin
-	@-${RM} state.json save.log
+	@-${RM} state.json save.log config.json
 
 clean-server:
-	@-${CLEAN} server/EasySave.Server.csproj
+	@-${CLEAN} ${SERVER_PROJ}
 	@-${RM} -r server/bin server/tests/bin
+	@-${RM} state.json save.log config.json
 
 clean-remote:
-	@-${CLEAN} remote/EasySave.Remote.csproj
+	@-${CLEAN} ${REMOTE_PROJ}
 	@-${RM} -r remote/bin remote/tests/bin
 
 clean-test:
