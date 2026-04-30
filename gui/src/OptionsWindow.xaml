@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:lang="clr-namespace:EasySave.lang"
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
-        Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OptionMenuTitle]}" Height="250" Width="400"
+        Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OptionMenuTitle]}" 
+        Height="280" Width="450"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
 
     <Grid Margin="15">
@@ -11,11 +12,12 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="140"/>
+            <ColumnDefinition Width="150"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -33,12 +35,21 @@
         </ComboBox>
 
         <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[BuisinessSoftware]}"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding BusinessSoftwareName}" ToolTip="Ex Calculator" Margin="0,0,0,10" VerticalAlignment="Center"/>
+        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="35"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding BusinessSoftwareName, UpdateSourceTrigger=PropertyChanged}" 
+                     ToolTip="Ex: C:\Windows\System32\calc.exe" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <Button Grid.Column="1" Content="..." Command="{Binding BrowseSoftwareCommand}" Padding="0,-2,0,0"/>
+        </Grid>
 
         <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ExtensionsToEncrypt]}"/>
-        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExtensionsToEncrypt}" ToolTip="Ex: .txt, .pdf, .docx" Margin="0,3,0,0" VerticalAlignment="Top"/>
+        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExtensionsToEncrypt}" 
+                 ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,10" VerticalAlignment="Center"/>
 
-        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
+        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Fermer" Click="Close_Click" Width="75"/>
         </StackPanel>
     </Grid>
