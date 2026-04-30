@@ -3,15 +3,46 @@ using System.IO;
 
 namespace EasyLog
 {
+    public enum LogFormat {
+        Text,
+        JSON,
+        XML,
+    }
+
     public record LogInfo
     {
         public required DateTime DateTime { get; init; }
         public required string SaveName { get; init; }
         public required string SourceFile { get; init; }
         public required string DestinationFile { get; init; }
+        public required string Action { get; init; }
         public required long FileSize { get; init; }
         public required int TransferTime { get; init; }
         public required int CryptoTime { get; init; }
+
+        private string TextFormat() {
+            return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] " +
+                $"{SaveName} > {Action} from [{SourceFile}] to [{DestinationFile}] ({FileSize}kB) in {TransferTime}ms";
+        }
+
+        private string XMLFormat() {
+            return $"<Date>{this.DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
+                $"<Name>{SaveName}</Name>" +
+                $"<Action>{Action}</Action>" +
+                $"<Source>{SourceFile}</Source>" +
+                $"<Target>{DestinationFile}</Target>" +
+                $"<SizeKB>{FileSize}</SizeKB>" +
+                $"<TransferTimeMS>{TransferTime}</TransferTimeMS>" +
+                $"<CryptoTimeMS>{CryptoTime}</CryptoTimeMS>";
+        }
+
+        public string Format(LogFormat format) {
+            switch (format) {
+                case LogFormat.Text: return TextFormat();
+                case LogFormat.XML: return XMLFormat();
+                default: break;
+            }
+        }
     }
 
     public class Logger
@@ -20,12 +51,10 @@ namespace EasyLog
         private static readonly object s_lock = new object();
 
         private readonly string _outputFile;
-        private readonly LogFormat _format;
 
-        private Logger(string outputFile, LogFormat format)
+        private Logger(string outputFile)
         {
             _outputFile = outputFile;
-            _format = format;
         }
 
         public static Logger Get(string outputFile, LogFormat format = LogFormat.Text)
@@ -34,63 +63,18 @@ namespace EasyLog
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null)
-                    {
-                        s_instance = new Logger(outputFile, format);
-                    }
+                    if (s_instance == null) s_instance = new Logger(outputFile, format);
                 }
             }
             return s_instance;
         }
 
-        public void Log(LogInfo logInfo)
+        public void Log(string log)
         {
-            if (_format == LogFormat.Xml)
+            using (StreamWriter writer = new StreamWriter(_outputFile, true))
             {
-                WriteXml(logInfo);
+                writer.WriteLine(log);
             }
-            else
-            {
-                WriteText(logInfo);
-            }
-        }
-
-        //  FORMAT TEXTE (par défaut)
-        private void WriteText(LogInfo logInfo)
-        {
-            using StreamWriter writer = new StreamWriter(_outputFile, true);
-
-            string line =
-                $"[{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}] " +
-                $"{logInfo.SaveName} > SAVE from " +
-                $"[{logInfo.SourceFile}] to " +
-                $"[{logInfo.DestinationFile}] " +
-                $"({logInfo.FileSize}kB) in {logInfo.TransferTime}ms";
-
-            writer.WriteLine(line);
-        }
-
-        // FORMAT XML 
-        private void WriteXml(LogInfo logInfo)
-        {
-            using StreamWriter writer = new StreamWriter(_outputFile, true);
-
-            writer.WriteLine(
-                $"<Date>{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
-                $"<Name>{logInfo.SaveName}</Name>" +
-                $"<Source>{logInfo.SourceFile}</Source>" +
-                $"<Target>{logInfo.DestinationFile}</Target>" +
-                $"<SizeKB>{logInfo.FileSize}</SizeKB>" +
-                $"<TransferTimeMS>{logInfo.TransferTime}</TransferTimeMS>"+
-                $"<CryptoTimeMS>{logInfo.CryptoTime}</CryptoTimeMS>"
-
-            );
-        }
-
-        // Close volontairement 
-        public void Close()
-        {
-            // format journal sans racine
         }
     }
 }
