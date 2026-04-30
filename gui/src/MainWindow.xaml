@@ -29,6 +29,19 @@
                 <DataGridTextColumn Header="{x:Static lang:Messages.Type}" Binding="{Binding Type}" Width="*"/>
                 <DataGridTextColumn Header="{x:Static lang:Messages.State}" Binding="{Binding State}" Width="*"/>
                 <DataGridTextColumn Header="{x:Static lang:Messages.Progress}" Binding="{Binding Progress, StringFormat={}{0}%}" Width="*"/>
+
+                <DataGridTemplateColumn Header="Actions" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="▶" Command="{Binding DataContext.PlayJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="⏸" Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="⏹" Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>

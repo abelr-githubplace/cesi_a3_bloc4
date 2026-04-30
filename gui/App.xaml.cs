@@ -8,7 +8,7 @@ namespace EasySave.GUI
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo("fr-FR");
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
 
             base.OnStartup(e);
         }

@@ -285,4 +285,25 @@
   <data name="RunAll" xml:space="preserve">
     <value>▶▶  Executer Tous</value>
   </data>
+  <data name="ChooseLanguage" xml:space="preserve">
+    <value>Choisir la lange :</value>
+  </data>
+  <data name="LogFormat" xml:space="preserve">
+    <value>Format des logs :</value>
+  </data>
+  <data name="BuisinessSoftware" xml:space="preserve">
+    <value>Application Metier :</value>
+  </data>
+  <data name="ExtensionsToEncrypt" xml:space="preserve">
+    <value>Extension à chiffrer :</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Complète</value>
+  </data>
+  <data name="Differential" xml:space="preserve">
+    <value>Différentiel</value>
+  </data>
+  <data name="SaveEditor" xml:space="preserve">
+    <value>Éditeur de sauvegarde</value>
+  </data>
 </root>

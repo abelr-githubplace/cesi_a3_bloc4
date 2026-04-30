@@ -32,6 +32,10 @@ namespace EasySave.GUI.ViewModels
         public ICommand RunSelectedJobCommand { get; }
         public ICommand RunAllJobsCommand { get; }
 
+        public ICommand PlayJobCommand { get; }
+        public ICommand PauseJobCommand { get; }
+        public ICommand StopJobCommand { get; }
+
         public Main()
         {
             var logger = Logger.Get("./save.log");
@@ -47,6 +51,10 @@ namespace EasySave.GUI.ViewModels
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
             RunSelectedJobCommand = new RelayCommand(o => RunJob(SelectedJob), o => SelectedJob != null);
             RunAllJobsCommand = new RelayCommand(o => RunAllJobs(), o => SaveJobs.Any());
+
+            PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
+            PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
+            StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
         }
 
         private void LoadJobs()
@@ -108,9 +116,38 @@ namespace EasySave.GUI.ViewModels
             window.ShowDialog();
         }
 
+        private void PlayJob(object parameter)
+        {
+            if (parameter is SaveJob job)
+            {
+                RunJob(job);
+            }
+        }
+
+        private void PauseJob(object parameter)
+        {
+            if (parameter is SaveJob job)
+            {
+                // TODO: Appeler la méthode dans la lib pour mettre le thread en pause
+                job.State = "En pause";
+            }
+        }
+
+        private void StopJob(object parameter)
+        {
+            if (parameter is SaveJob job)
+            {
+                // TODO: Appeler la méthode dans la lib pour annuler la sauvegarde en cours
+                job.State = "Arrêté";
+            }
+        }
+
         private async void RunJob(SaveJob job)
         {
             if (job == null) return;
+
+            if (job.State == "En cours") return;
+
             job.State = "En cours";
 
             await Task.Run(() =>
@@ -125,7 +162,11 @@ namespace EasySave.GUI.ViewModels
                 };
 
                 bool success = SaveManager.SaveManager.Execute(command, new[] { progress }, _config);
-                job.State = success ? "Terminé" : "Erreur";
+
+                if (job.State == "En cours")
+                {
+                    job.State = success ? "Terminé" : "Erreur";
+                }
             });
         }
 

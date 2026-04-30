@@ -61,11 +61,47 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Recherche une chaîne localisée semblable à Business Software App :.
+        /// </summary>
+        public static string BuisinessSoftware {
+            get {
+                return ResourceManager.GetString("BuisinessSoftware", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Choose App Language :.
+        /// </summary>
+        public static string ChooseLanguage {
+            get {
+                return ResourceManager.GetString("ChooseLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Complete.
+        /// </summary>
+        public static string Complete {
+            get {
+                return ResourceManager.GetString("Complete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Recherche une chaîne localisée semblable à Delete.
         /// </summary>
         public static string Delete {
             get {
                 return ResourceManager.GetString("Delete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Differential.
+        /// </summary>
+        public static string Differential {
+            get {
+                return ResourceManager.GetString("Differential", resourceCulture);
             }
         }
         
@@ -88,7 +124,16 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Invalid number: please enter a number between 1 and 5.
+        ///   Recherche une chaîne localisée semblable à Extension To Encrypt :.
+        /// </summary>
+        public static string ExtensionsToEncrypt {
+            get {
+                return ResourceManager.GetString("ExtensionsToEncrypt", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Invalid number. Please enter a number between 1 and 5..
         /// </summary>
         public static string InvalidSaveIndex {
             get {
@@ -322,7 +367,16 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Backup save failed..
+        ///   Recherche une chaîne localisée semblable à Save Editor.
+        /// </summary>
+        public static string SaveEditor {
+            get {
+                return ResourceManager.GetString("SaveEditor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Recherche une chaîne localisée semblable à Backup save failed..
         /// </summary>
         public static string SaveFailed {
             get {

@@ -21,6 +21,5 @@ namespace EasySave.GUI.ViewModels
             // TODO: Charger ces valeurs depuis un fichier de config ou le StateManager
         }
 
-        // Dans une vraie application, on ajouterait une ICommand "SaveConfigCommand"
     }
 }
