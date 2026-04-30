@@ -3,7 +3,7 @@ RELEASE= --configuration Release
 TARGET_OS= --os win
 
 BUILD=dotnet build ${TARGET_OS} --verbosity q
-TEST=dotnet test ${TARGET_OS} --verbosity q --logger "console;verbosity=detailed"
+TEST=dotnet test ${TARGET_OS} --logger "console;verbosity=detailed"
 CLEAN=dotnet clean --verbosity q
 
 LOGGER_PROJ=logger/EasyLog.csproj
