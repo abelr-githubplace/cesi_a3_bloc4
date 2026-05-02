@@ -96,23 +96,24 @@ namespace EasySaveConsole
         static void Execute(SaveManager.Command command, SaveManager.Config config)
         {
             try { Console.Clear(); } catch { }
-            Console.WriteLine($"\n--- {Messages.Saving} ---");
-
             var progresses = new List<Saver.Progress>();
             var bars = new List<ProgressBar>();
 
             for (int i = 0; i < command.Saves.Length; i++)
             {
                 Saver.Progress progress = new Saver.Progress();
-                var bar = new ProgressBar(command.Saves[i].SaveName, progress);
+                var bar = new ProgressBar(command.Saves[i].SaveName, i, progress);
                 progresses.Add(progress);
                 bars.Add(bar);
+                bar.Update(); // First render
             }
+
             bool success = SaveManager.SaveManager.Execute(command, progresses.ToArray(), config);
 
             var end_message = success ? $"{Messages.SaveSuccess}" : $"{Messages.SaveFailed}";
-            Console.WriteLine($"\n--- {end_message} ---");
+            Console.WriteLine($"{end_message}");
             if (!Console.IsInputRedirected) Console.ReadKey();
+            try { Console.Clear(); } catch { }
         }
     }
 }
