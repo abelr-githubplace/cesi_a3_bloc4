@@ -16,16 +16,16 @@
         public void Update()
         {
             float progress = _progress.GetProgress();
-            int totalBlocks = 20;
+            if (progress == 0f) return;
+
+            int totalBlocks = Console.WindowWidth - _saveName.Length - 15;
             int filledBlocks = (int)((progress / 100) * totalBlocks);
             int emptyBlocks = totalBlocks - filledBlocks;
 
             string filled = new string('█', filledBlocks);
             string empty = new string('░', emptyBlocks);
 
-            Console.Write($"\r {_saveName} [{filled}{empty}] {progress:0.0}%  ");
-
-            if (progress >= 100f) Console.WriteLine();
+            Console.Write($"=> {_saveName} [{filled}{empty}] {progress,6:0.00}%\r");
         }
     }
 }

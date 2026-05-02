@@ -133,6 +133,24 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Perform a complete backup save.
+        /// </summary>
+        public static string MainMenuCompleteSave {
+            get {
+                return ResourceManager.GetString("MainMenuCompleteSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Perform a differential backup save.
+        /// </summary>
+        public static string MainMenuDifferentialSave {
+            get {
+                return ResourceManager.GetString("MainMenuDifferentialSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exit.
         /// </summary>
         public static string MainMenuExit {
@@ -147,15 +165,6 @@ namespace EasySave.lang {
         public static string MainMenuOptions {
             get {
                 return ResourceManager.GetString("MainMenuOptions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Perform a backup save.
-        /// </summary>
-        public static string MainMenuSave {
-            get {
-                return ResourceManager.GetString("MainMenuSave", resourceCulture);
             }
         }
         

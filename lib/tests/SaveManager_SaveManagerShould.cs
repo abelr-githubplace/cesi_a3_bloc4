@@ -23,6 +23,7 @@ namespace EasySaveLibrary.Tests
             {
                 Logger = EasyLog.Logger.Get(Path.Combine(_workDir, "save.log")),
                 StateManager = StateManager.StateManager.Get(Path.Combine(_workDir, "state.json")),
+                LogFormat = EasyLog.LogFormat.JSON,
             };
         }
 
@@ -59,9 +60,8 @@ namespace EasySaveLibrary.Tests
         {
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
+                SaveAction = SaveManager.Action.CompleteSave,
                 Saves = new[] { MakeSave("only") },
-                SaveType = SaveType.Complete,
             };
 
             bool ok = SaveManager.SaveManager.Execute(command, new Progress[] { }, _config);
@@ -76,9 +76,8 @@ namespace EasySaveLibrary.Tests
             var progresses = new[] { new Progress(), new Progress() };
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
+                SaveAction = SaveManager.Action.CompleteSave,
                 Saves = saves,
-                SaveType = SaveType.Complete,
             };
 
             bool ok = SaveManager.SaveManager.Execute(command, progresses, _config);
@@ -88,23 +87,6 @@ namespace EasySaveLibrary.Tests
             Assert.IsTrue(File.Exists(Path.Combine(saves[1].DestinationPath, "f.txt")));
             Assert.AreEqual(100f, progresses[0].GetProgress());
             Assert.AreEqual(100f, progresses[1].GetProgress());
-        }
-
-        [TestMethod]
-        public void Execute_NullSaveType_DefaultsToComplete()
-        {
-            var save = MakeSave("default");
-            var command = new Command
-            {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = null,
-            };
-
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, _config);
-
-            Assert.IsTrue(ok);
-            Assert.IsTrue(File.Exists(Path.Combine(save.DestinationPath, "f.txt")));
         }
     }
 }

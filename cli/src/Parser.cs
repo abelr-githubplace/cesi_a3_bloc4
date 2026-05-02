@@ -1,40 +1,33 @@
-﻿namespace EasySaveConsole
+﻿using EasyLog;
+
+namespace EasySaveConsole
 {
     public class Parser
     {
-        public record ParsedCommand(ProgramAction Action, List<int>? SaveIds, SaveManager.SaveType SaveType);
+        public record ParsedCommand(ProgramAction Action, LogFormat Format, List<int>? SaveIds);
 
         public static ParsedCommand Parse(string[] args)
         {
-            if (args == null || args.Length == 0) return new ParsedCommand(ProgramAction.InteractiveMode, null, SaveManager.SaveType.Complete);
+            var logFormat = LogFormat.JSON;
+            var default_command = new ParsedCommand(ProgramAction.InteractiveMode, logFormat, null);
+            if (args == null || args.Length == 0) return default_command;
 
-            ProgramAction action = ProgramAction.SaveAction; // No option with arguments is a save
-            List<int>? saveIds = null;
-            SaveManager.SaveType saveType = SaveManager.SaveType.Complete;
-
-            for (int i = 0; i < args.Length; i++)
+            ProgramAction action = ProgramAction.CompleteSave; // Default action is complete save
+            var i = 0;
+            while (args[i].StartsWith("-"))
             {
-                string arg = args[i];
-                if (arg == "-t" || arg == "--type")
+                var new_action = ParseOption(args[i]);
+                switch (new_action)
                 {
-                    if (i + 1 < args.Length)
-                    {
-                        saveType = ParseSaveType(args[i + 1]);
-                        i++;
-                    }
+                    case ProgramAction.LogFormatJSON: logFormat = LogFormat.JSON; break;
+                    case ProgramAction.LogFormatXML: logFormat = LogFormat.XML; break;
+                    case ProgramAction.LogFormatText: logFormat = LogFormat.Text; break;
+                    case ProgramAction.InteractiveMode: return default_command;
+                    default: action = new_action; break;
                 }
-                else if (arg.StartsWith("--type=")) saveType = ParseSaveType(arg.Substring("--type=".Length));
-                else if (arg.StartsWith("-")) action = ParseOption(arg);
-                else saveIds = ParseArguments(arg);
+                i++;
             }
-            return new ParsedCommand(action, saveIds, saveType);
-        }
-
-        private static SaveManager.SaveType ParseSaveType(string value)
-        {
-            string v = value.Trim().ToLowerInvariant();
-            if (v == "differential" || v == "diff" || v == "d") return SaveManager.SaveType.Differential;
-            return SaveManager.SaveType.Complete;
+            return new ParsedCommand(action, logFormat, ParseArguments(args[i]));
         }
 
         private static List<int> ParseRange(string range)
@@ -75,10 +68,15 @@
         {
             switch (option)
             {
-                case "--save": return ProgramAction.SaveAction;
+                case "--save": return ProgramAction.CompleteSave;
+                case "--complete": return ProgramAction.CompleteSave;
+                case "--differential": return ProgramAction.DifferentialSave;
+                case "--log=JSON": return ProgramAction.LogFormatJSON;
+                case "--log=XML": return ProgramAction.LogFormatXML;
+                case "--log=Text": return ProgramAction.LogFormatText;
                 case "-h": case "--help": return ProgramAction.Help;
                 case "-v": case "--version": return ProgramAction.Version;
-                default: return ProgramAction.InteractiveMode;
+                case "-i": case "--interactive": default: return ProgramAction.InteractiveMode;
             }
         }
     }

@@ -1,3 +1,5 @@
+MAKE=make --quiet
+
 DEBUG= --configuration Debug
 RELEASE= --configuration Release
 TARGET_OS= --os win

@@ -10,7 +10,6 @@ ANSI_BOLD=$(tput bold)
 ANSI_RED=$(tput setaf 1)
 ANSI_GREEN=$(tput setaf 2)
 ANSI_YELLOW=$(tput setaf 3)
-EXE='cli/bin/Debug/net10.0/win-x64/EasySave.CLI.exe'
 
 PASS=0
 FAIL=0
@@ -189,11 +188,11 @@ cat << EOF
 ╞═ Version ══════════════════════════════════════╡
 EOF
 
-VERSION='EasySave v1.0'
+VERSION='EasySave v1.1'
 run_cli --version
-assert_contains "--version" "$(cat /tmp/easysave_out)" "$VERSION"
+assert_eq "--version" "$(cat /tmp/easysave_out)" "$VERSION"
 run_cli -v
-assert_contains "-v" "$(cat /tmp/easysave_out)" "$VERSION"
+assert_eq "-v" "$(cat /tmp/easysave_out)" "$VERSION"
 
 
 cat << EOF

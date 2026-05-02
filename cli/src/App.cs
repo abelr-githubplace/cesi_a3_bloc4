@@ -19,7 +19,8 @@ namespace EasySaveConsole
                 Clear();
                 Console.WriteLine($"[{Messages.MainMenuTitle}]\n" +
                     "\n" +
-                    $"<1> {Messages.MainMenuSave}\n" +
+                    $"<1> {Messages.MainMenuCompleteSave}\n" +
+                    $"<2> {Messages.MainMenuDifferentialSave}\n" +
                     "\n" +
                     $"<O> {Messages.MainMenuOptions}\n" +
                     $"<Esc> {Messages.MainMenuExit}");
@@ -31,12 +32,20 @@ namespace EasySaveConsole
                     switch (key.Key)
                     {
                         case ConsoleKey.D1:
-                            SaveInfo[] saves = SaveMenu(previous_saves);
+                            SaveInfo[] saves_1 = SaveMenu(previous_saves);
                             Clear();
                             return (new_config, new ProgramCommand
                             {
-                                Action = ProgramAction.SaveAction,
-                                Command = new Command { SaveAction = SaveManager.Action.Save, Saves = saves, SaveType = SaveTypeMenu() }
+                                Action = ProgramAction.CompleteSave,
+                                Command = new Command { SaveAction = SaveManager.Action.CompleteSave, Saves = saves_1 }
+                            });
+                        case ConsoleKey.D2:
+                            SaveInfo[] saves_2 = SaveMenu(previous_saves);
+                            Clear();
+                            return (new_config, new ProgramCommand
+                            {
+                                Action = ProgramAction.CompleteSave,
+                                Command = new Command { SaveAction = SaveManager.Action.CompleteSave, Saves = saves_2 }
                             });
                         case ConsoleKey.O: new_config = OptionMenu(new_config); reload = true; break;
                         case ConsoleKey.Escape: return (new_config, new ProgramCommand { Action = ProgramAction.Exit });
@@ -103,33 +112,6 @@ namespace EasySaveConsole
             while (string.IsNullOrWhiteSpace(input)) input = Console.ReadLine();
             var saveIds = Parser.ParseArguments(input);
             return SaveInfosContext(saveIds, saveInfos);
-        }
-
-        private static SaveType? SaveTypeMenu()
-        {
-            while (true)
-            {
-                Clear();
-                Console.WriteLine($"[{Messages.SaveTypeMenuTitle}]\n" +
-                    "\n" +
-                    $"<1> {Messages.SaveTypeComplete}\n" +
-                    $"<2> {Messages.SaveTypeDifferential}\n" +
-                    "\n" +
-                    $"<Esc> {Messages.ReturnToPreviousMenu}");
-
-                bool reload = false;
-                while (!reload)
-                {
-                    var key = Console.ReadKey();
-                    switch (key.Key)
-                    {
-                        case ConsoleKey.D1: Clear(); return SaveType.Complete;
-                        case ConsoleKey.D2: Clear(); return SaveType.Differential;
-                        case ConsoleKey.Escape: return null;
-                        default: break;
-                    }
-                }
-            }
         }
 
         private static Config OptionMenu(Config config)

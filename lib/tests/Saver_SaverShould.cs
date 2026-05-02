@@ -35,6 +35,7 @@ namespace EasySaveLibrary.Tests
             {
                 Logger = EasyLog.Logger.Get(_logFile),
                 StateManager = StateManager.StateManager.Get(_stateFile),
+                LogFormat = EasyLog.LogFormat.JSON
             };
         }
 
@@ -66,7 +67,7 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(Path.Combine(_src, "a.txt"), "AA");
             File.WriteAllText(Path.Combine(_src, "b.txt"), "BBB");
 
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress(), _config);
 
             Assert.AreEqual(2, saver.FilesWithSizes.Count);
             Assert.AreEqual(5L, saver.TotalSize);
@@ -78,7 +79,7 @@ namespace EasySaveLibrary.Tests
             string lone = Path.Combine(_workDir, "lone.txt");
             File.WriteAllText(lone, "hello");
 
-            var saver = new Saver.Saver(Info("Job", lone, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver.Saver(Info("Job", lone, _dst), SaveManager.Action.CompleteSave, new Progress(), _config);
 
             Assert.AreEqual(1, saver.FilesWithSizes.Count);
             Assert.AreEqual(5L, saver.TotalSize);
@@ -89,7 +90,7 @@ namespace EasySaveLibrary.Tests
         {
             string missing = Path.Combine(_workDir, "nope");
 
-            var saver = new Saver.Saver(Info("Job", missing, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver.Saver(Info("Job", missing, _dst), SaveManager.Action.CompleteSave, new Progress(), _config);
 
             Assert.AreEqual(0, saver.FilesWithSizes.Count);
             Assert.AreEqual(0L, saver.TotalSize);
@@ -101,7 +102,7 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(Path.Combine(_src, "a.txt"), "first");
             File.WriteAllText(Path.Combine(_src, "b.txt"), "second");
             var progress = new Progress();
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, progress, _config);
+            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, progress, _config);
 
             saver.Start();
 
@@ -114,7 +115,7 @@ namespace EasySaveLibrary.Tests
         public void Start_EmptySource_CompletesWithoutWritingDestination()
         {
             var progress = new Progress();
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, progress, _config);
+            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, progress, _config);
 
             saver.Start();
 
@@ -127,7 +128,7 @@ namespace EasySaveLibrary.Tests
         public void Start_CompleteSave_WritesLogEntries()
         {
             File.WriteAllText(Path.Combine(_src, "a.txt"), "first");
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress(), _config);
 
             saver.Start();
 
@@ -141,7 +142,7 @@ namespace EasySaveLibrary.Tests
         public void Start_PersistsInactiveStateAtCompletion()
         {
             File.WriteAllText(Path.Combine(_src, "a.txt"), "x");
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress(), _config);
 
             saver.Start();
 

@@ -2,8 +2,7 @@
 
 namespace SaveManager
 {
-	public enum Action { Save }
-	public enum SaveType { Complete, Differential }
+	public enum Action { CompleteSave, DifferentialSave }
 
 	public record Config
 	{
@@ -16,7 +15,6 @@ namespace SaveManager
 	{
 		public required Action SaveAction { get; init; }
 		public required SaveInfo[] Saves { get; init; }
-		public SaveType? SaveType { get; init; }
 	}
 
 	public record SaveInfo
@@ -33,17 +31,17 @@ namespace SaveManager
 		{
 			switch (command.SaveAction)
 			{
-				case Action.Save: return Save(command.Saves, command.SaveType, progresses, config);
+				case Action.CompleteSave: return Save(command, progresses, config);
 				default: return false;
 			}
 		}
 
-        private static bool Save(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
+        private static bool Save(Command command, Progress[] progresses, Config config)
 		{
-            if (saves.Length != progresses.Length) return false;
+            if (command.Saves.Length != progresses.Length) return false;
 			var savers = new List<Saver.Saver>();
-			for (int i = 0; i < saves.Length; i++)
-				savers.Add(new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config));
+			for (int i = 0; i < command.Saves.Length; i++)
+				savers.Add(new Saver.Saver(command.Saves[i], command.SaveAction, progresses[i], config));
 			foreach (var saver in savers) saver.Start();
 			return true;
 		}
