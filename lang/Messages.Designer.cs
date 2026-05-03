@@ -70,11 +70,83 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid number: please enter a number between 1 and 5.
+        /// </summary>
+        public static string InvalidSaveIndex {
+            get {
+                return ResourceManager.GetString("InvalidSaveIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Language menu.
         /// </summary>
         public static string LanguageMenuTitle {
             get {
                 return ResourceManager.GetString("LanguageMenuTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to JSON.
+        /// </summary>
+        public static string LogFormatJson {
+            get {
+                return ResourceManager.GetString("LogFormatJson", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log format menu.
+        /// </summary>
+        public static string LogFormatMenuTitle {
+            get {
+                return ResourceManager.GetString("LogFormatMenuTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Selected log format.
+        /// </summary>
+        public static string LogFormatSelected {
+            get {
+                return ResourceManager.GetString("LogFormatSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Text.
+        /// </summary>
+        public static string LogFormatText {
+            get {
+                return ResourceManager.GetString("LogFormatText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to XML.
+        /// </summary>
+        public static string LogFormatXml {
+            get {
+                return ResourceManager.GetString("LogFormatXml", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Perform a complete backup save.
+        /// </summary>
+        public static string MainMenuCompleteSave {
+            get {
+                return ResourceManager.GetString("MainMenuCompleteSave", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Perform a differential backup save.
+        /// </summary>
+        public static string MainMenuDifferentialSave {
+            get {
+                return ResourceManager.GetString("MainMenuDifferentialSave", resourceCulture);
             }
         }
         
@@ -93,15 +165,6 @@ namespace EasySave.lang {
         public static string MainMenuOptions {
             get {
                 return ResourceManager.GetString("MainMenuOptions", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Perform a backup save.
-        /// </summary>
-        public static string MainMenuSave {
-            get {
-                return ResourceManager.GetString("MainMenuSave", resourceCulture);
             }
         }
         
@@ -129,6 +192,15 @@ namespace EasySave.lang {
         public static string OptionMenuLanguage {
             get {
                 return ResourceManager.GetString("OptionMenuLanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log format.
+        /// </summary>
+        public static string OptionMenuLogFormat {
+            get {
+                return ResourceManager.GetString("OptionMenuLogFormat", resourceCulture);
             }
         }
         

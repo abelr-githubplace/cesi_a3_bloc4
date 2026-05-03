@@ -132,8 +132,8 @@
   <data name="MainMenuOptions" xml:space="preserve">
     <value>Options</value>
   </data>
-  <data name="MainMenuSave" xml:space="preserve">
-    <value>Effectuer une sauvegarde</value>
+  <data name="MainMenuCompleteSave" xml:space="preserve">
+    <value>Effectuer une sauvegarde complète</value>
   </data>
   <data name="MainMenuTitle" xml:space="preserve">
     <value>Menu principal</value>
@@ -197,5 +197,29 @@
   </data>
   <data name="Error" xml:space="preserve">
     <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
+  </data>
+  <data name="InvalidSaveIndex" xml:space="preserve">
+    <value>Numéro invalide : veuillez entrer un nombre entre 1 et 5</value>
+  </data>
+  <data name="LogFormatMenuTitle" xml:space="preserve">
+    <value>Menu du format de journal</value>
+  </data>
+  <data name="LogFormatText" xml:space="preserve">
+    <value>Texte</value>
+  </data>
+  <data name="LogFormatXml" xml:space="preserve">
+    <value>XML </value>
+  </data>
+  <data name="LogFormatJson" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="LogFormatSelected" xml:space="preserve">
+    <value>Format de journal sélectionné</value>
+  </data>
+  <data name="OptionMenuLogFormat" xml:space="preserve">
+    <value>Format du journal de log</value>
+  </data>
+  <data name="MainMenuDifferentialSave" xml:space="preserve">
+    <value>Effectuer une sauvegarde différentielle</value>
   </data>
 </root>

@@ -56,7 +56,7 @@ namespace Saver
         protected List<SaveJob> Jobs;
         private Config _config;
 
-        public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config)
+        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress progress, Config config)
         {
             Id = save.SaveId;
             Name = save.SaveName;
@@ -80,9 +80,8 @@ namespace Saver
                     // Create Jobs
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
-                    var job = CreateJob(file, destFile, fileSize, saveType);
-                    if (job == null) /* Error : should be handled */;
-                    Jobs.Add(job);
+                    var job = CreateJob(file, destFile, fileSize, saveAction);
+                    if (job != null) Jobs.Add(job);
                     
                     totalSize += fileSize;
                 }
@@ -90,13 +89,13 @@ namespace Saver
             TotalSize = totalSize;
         }
 
-        private SaveJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
+        private SaveJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveManager.Action saveAction)
         {
             var default_priority = Priority.Medium;
-            switch (saveType)
+            switch (saveAction)
             {
-                case SaveType.Complete: return new Job.CompleteSaveJob(sourceFile, destFile, fileSize, default_priority);
-                case SaveType.Differential: return new Job.DifferentialSaveJob(sourceFile, destFile, fileSize, default_priority);
+                case SaveManager.Action.CompleteSave: return new Job.CompleteSaveJob(sourceFile, destFile, fileSize, default_priority);
+                case SaveManager.Action.DifferentialSave: return new Job.DifferentialSaveJob(sourceFile, destFile, fileSize, default_priority);
                 default: return null;
             }
         }
@@ -144,10 +143,20 @@ namespace Saver
                         SaveName = Name,
                         SourceFile = job.SourceFile,
                         DestinationFile = job.DestinationFile,
+                        Action = "SAVE",
                         FileSize = job.FileSize,
-                        TransferTime = (endTime - beginTime).Milliseconds
-                    }
+                        TransferTime = (endTime - beginTime).Milliseconds,
+                    }.Format(_config.LogFormat)
                 );
+                var activeState = new ActiveStateInfo {
+                    TotalFiles = this.FilesWithSizes.Count,
+                    TotalSize = this.TotalSize,
+                    FilesRemaining = Jobs.Count - i,
+                    SizeRemaining = this.TotalSize - copiedTotalBytes,
+                    Progress = this.Progress.GetProgress(),
+                    CurrentSourceFile = job.SourceFile,
+                    CurrentTargetFile = job.DestinationFile
+                };
                 _config.StateManager.Save(
                     new SaveState {
                         Id = this.Id,
@@ -156,31 +165,23 @@ namespace Saver
                         DestinationPath = this.DestinationPath,
                         LastActionTime = endTime,
                         Status = Status.Active,
-                        ActiveStateInfo = new ActiveStateInfo {
-                            TotalFiles = this.FilesWithSizes.Count,
-                            TotalSize = this.TotalSize,
-                            FilesRemaining = Jobs.Count - i,
-                            SizeRemaining = this.TotalSize - copiedTotalBytes,
-                            Progress = this.Progress.GetProgress(),
-                            CurrentSourceFile = job.SourceFile,
-                            CurrentTargetFile = job.DestinationFile
-                        }
+                        ActiveStateInfo = activeState,
                     }
                 );
             }
 
             _config.StateManager.Save(
-                    new SaveState
-                    {
-                        Id = this.Id,
-                        Name = this.Name,
-                        SourcePath = this.SourcePath,
-                        DestinationPath = this.DestinationPath,
-                        LastActionTime = endTime,
-                        Status = Status.Inactive,
-                        ActiveStateInfo = null,
-                    }
-                );
+                new SaveState
+                {
+                    Id = this.Id,
+                    Name = this.Name,
+                    SourcePath = this.SourcePath,
+                    DestinationPath = this.DestinationPath,
+                    LastActionTime = endTime,
+                    Status = Status.Inactive,
+                    ActiveStateInfo = null,
+                }
+            );
         }
     }
 }

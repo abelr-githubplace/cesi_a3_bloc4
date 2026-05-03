@@ -6,6 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+<PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\PrimeService\**" />
+    <EmbeddedResource Remove="tests\PrimeService\**" />
+    <None Remove="tests\PrimeService\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\lang\Messages.Designer.cs" Link="Ressources\Messages.Designer.cs">
@@ -26,18 +35,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="EasySaveLibrary">
-      <HintPath>../lib/bin/Release/net10.0/EasySaveLibrary.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-    <ItemGroup>
-    <Reference Include="EasyLog">
-      <HintPath>../EasyLog/bin/Release/net10.0/EasyLog.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\logger\EasyLog.csproj" />
   </ItemGroup>
 
 </Project>

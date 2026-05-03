@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="../lib/EasySaveLibrary.csproj" />
+  <Project Path="../logger/EasyLog.csproj" />
   <Project Path="EasySave.CLI.csproj" />
+  <Project Path="tests/tests.csproj" />
 </Solution>

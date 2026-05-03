@@ -132,8 +132,8 @@
   <data name="MainMenuOptions" xml:space="preserve">
     <value>Options</value>
   </data>
-  <data name="MainMenuSave" xml:space="preserve">
-    <value>Perform a backup save</value>
+  <data name="MainMenuCompleteSave" xml:space="preserve">
+    <value>Perform a complete backup save</value>
   </data>
   <data name="MainMenuTitle" xml:space="preserve">
     <value>Main menu</value>
@@ -197,5 +197,29 @@
   </data>
   <data name="Error" xml:space="preserve">
     <value>Error: No job IDs. Use --help</value>
+  </data>
+  <data name="InvalidSaveIndex" xml:space="preserve">
+    <value>Invalid number: please enter a number between 1 and 5</value>
+  </data>
+  <data name="LogFormatMenuTitle" xml:space="preserve">
+    <value>Log format menu</value>
+  </data>
+  <data name="LogFormatText" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="LogFormatXml" xml:space="preserve">
+    <value>XML</value>
+  </data>
+  <data name="LogFormatJson" xml:space="preserve">
+    <value>JSON</value>
+  </data>
+  <data name="LogFormatSelected" xml:space="preserve">
+    <value>Selected log format</value>
+  </data>
+  <data name="OptionMenuLogFormat" xml:space="preserve">
+    <value>Log format</value>
+  </data>
+  <data name="MainMenuDifferentialSave" xml:space="preserve">
+    <value>Perform a differential backup save</value>
   </data>
 </root>

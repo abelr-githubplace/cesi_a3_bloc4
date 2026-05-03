@@ -51,7 +51,7 @@ namespace StateManager
             }
             else
             {
-                File.Create(outputFile);
+                File.Create(outputFile).Dispose();
                 _states = new List<SaveState>();
             }
         }
@@ -86,14 +86,21 @@ namespace StateManager
             return saveInfos;
         }
 
+        private readonly object _writeLock = new object();
+
         public void Save(SaveState state)
         {
-            _states.RemoveAll(s => s.Name == state.Name); // Maybe optimized
-            _states.Add(state);
-            Write();
+            lock (_writeLock)
+            {
+                // Preserve insertion order so save IDs stay stable across writes
+                int existingIndex = _states.FindIndex(s => s.Name == state.Name);
+                if (existingIndex >= 0) _states[existingIndex] = state;
+                else _states.Add(state);
+                Write();
+            }
         }
 
-        private async void Write()
+        private void Write()
         {
             var json = JsonSerializer.Serialize(
                 _states,
@@ -104,7 +111,7 @@ namespace StateManager
                     Converters = { new JsonStringEnumConverter() },
                 }
             );
-            using (StreamWriter file = new StreamWriter(_outputFile)) await file.WriteAsync(json);
+            File.WriteAllText(_outputFile, json);
         }
     }
 }
