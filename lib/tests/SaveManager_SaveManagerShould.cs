@@ -60,7 +60,7 @@ namespace EasySaveLibrary.Tests
         {
             var command = new Command
             {
-                SaveAction = SaveManager.Action.CompleteSave,
+                SaveAction = SaveManager.Action.Save,
                 Saves = new[] { MakeSave("only") },
             };
 
@@ -76,7 +76,7 @@ namespace EasySaveLibrary.Tests
             var progresses = new[] { new Progress(), new Progress() };
             var command = new Command
             {
-                SaveAction = SaveManager.Action.CompleteSave,
+                SaveAction = SaveManager.Action.Save,
                 Saves = saves,
             };
 

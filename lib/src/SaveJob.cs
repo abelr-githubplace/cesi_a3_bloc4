@@ -262,53 +262,6 @@ namespace Job
                     }
                 }
             }
-
-            // Anything left over (the trailing bytes that couldn't form a full block,
-            // plus any literal we accumulated) gets emitted as one final Add.
-            if (newBytes.Length > literalStart)
-                ops.Add(new Op
-                {
-                    Tag = OpTag.Add,
-                    Offset = literalStart,
-                    Length = newBytes.Length - literalStart,
-                });
-
-            return ops;
-        }
-
-        private static uint InitHash(byte[] data, int start, int len)
-        {
-            uint h = 0;
-            for (int i = 0; i < len; i++) h = h * _hashBase + data[start + i];
-            return h;
-        }
-
-        private static uint RollHash(uint hash, byte leaving, byte entering, uint basePow)
-        {
-            return (hash - leaving * basePow) * _hashBase + entering;
-        }
-
-        private static void AddCandidate(Dictionary<uint, List<int>> index, uint hash, int position)
-        {
-            if (!index.TryGetValue(hash, out var list))
-            {
-                list = new List<int>(1);
-                index[hash] = list;
-            }
-            // Keep the bucket bounded so highly repetitive data doesn't make matching
-            // quadratic. We keep the earliest positions: in practice they're as good
-            // as any other for finding a long match.
-            if (list.Count < _maxCandidatesPerHash) list.Add(position);
-        }
-
-        private static int ExtendMatch(byte[] oldBytes, int oldStart, byte[] newBytes, int newStart)
-        {
-            int len = 0;
-            int oldRem = oldBytes.Length - oldStart;
-            int newRem = newBytes.Length - newStart;
-            int max = oldRem < newRem ? oldRem : newRem;
-            while (len < max && oldBytes[oldStart + len] == newBytes[newStart + len]) len++;
-            return len;
         }
 
         public override long Execute()
@@ -320,8 +273,10 @@ namespace Job
 
             if (sourceHash == destHash) return FileSize;
 
+            // Snapshot the prior destination as a sidecar diff before overwriting,
+            // so a future restore can reconstruct the previous version.
             GenerateDelta(SourceFile, DestinationFile, DestinationFile + ".diff");
-            return FileSize;
+            return CopyFile();
         }
 
         // Reverse of GenerateDelta: walk the ops, reconstruct the "new" bytes from
@@ -358,8 +313,8 @@ namespace Job
 
             for (int i = 0; i < opCount; i++)
             {
-                OpTag tag = (OpTag)reader.ReadByte();
-                if (tag == OpTag.Copy)
+                byte tag = reader.ReadByte();
+                if (tag == OpCopy)
                 {
                     int srcOffset = reader.ReadInt32();
                     int length = reader.ReadInt32();
@@ -370,7 +325,7 @@ namespace Job
                     Array.Copy(oldBytes, srcOffset, result, pos, length);
                     pos += length;
                 }
-                else if (tag == OpTag.Add)
+                else if (tag == OpAdd)
                 {
                     int length = reader.ReadInt32();
                     if (pos + length > newLen)

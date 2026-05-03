@@ -1,4 +1,3 @@
-
 using Saver;
 
 namespace SaveManager
@@ -8,8 +7,10 @@ namespace SaveManager
 
 	public record Config
 	{
+		public required EasyLog.LogFormat LogFormat { get; init; }
 		public required EasyLog.Logger Logger { get; init; }
         public required StateManager.StateManager StateManager { get; init; }
+        public AppConfig.AppConfig? AppConfig { get; init; }
     }
 
 	public record Command
@@ -24,7 +25,7 @@ namespace SaveManager
 
 	public record SaveInfo
 	{
-		public required uint SaveId { get; init; }
+		public required Guid SaveId { get; init; }
 		public required string SaveName { get; init; }
 		public required string SourcePath { get; init; }
 		public required string DestinationPath { get; init; }
@@ -43,7 +44,7 @@ namespace SaveManager
 			}
 		}
 
-		private static bool Save(Command command, Progress[] progresses, Config config)
+		private static bool Save(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
 		{
             if (saves.Length != progresses.Length) return false;
             SaveType effectiveType = saveType ?? SaveType.Complete;

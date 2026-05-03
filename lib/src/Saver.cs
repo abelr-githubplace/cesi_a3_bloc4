@@ -45,7 +45,7 @@ namespace Saver
 
     public class Saver
     {
-        public uint Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; }
         public string SourcePath { get; }
         public string DestinationPath { get; }
@@ -93,8 +93,7 @@ namespace Saver
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
                     var job = CreateJob(file, destFile, fileSize, saveType);
-                    if (job == null) /* Error : should be handled */;
-                    Jobs.Add(job);
+                    if (job != null) Jobs.Add(job);
 
                     totalSize += fileSize;
                 }
@@ -167,9 +166,10 @@ namespace Saver
                         SaveName = Name,
                         SourceFile = job.SourceFile,
                         DestinationFile = job.DestinationFile,
+                        Action = "SAVE",
                         FileSize = job.FileSize,
-                        TransferTime = (endTime - beginTime).Milliseconds
-                    }
+                        TransferTime = (endTime - beginTime).Milliseconds,
+                    }.Format(_config.LogFormat)
                 );
                 _config.StateManager.Save(
                     new SaveState {
@@ -236,7 +236,7 @@ namespace Saver
 
     public class Restorer
     {
-        public uint Id { get; }
+        public Guid Id { get; }
         public string Name { get; }
         public string SourcePath { get; }
         public string DestinationPath { get; }

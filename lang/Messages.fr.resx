@@ -221,6 +221,7 @@
   </data>
   <data name="MainMenuDifferentialSave" xml:space="preserve">
     <value>Effectuer une sauvegarde différentielle</value>
+  </data>
   <data name="OptionMenuBusinessSoftware" xml:space="preserve">
     <value>Logiciel métier</value>
   </data>

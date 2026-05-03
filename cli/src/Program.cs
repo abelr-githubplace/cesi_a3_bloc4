@@ -43,24 +43,27 @@ namespace EasySaveConsole
 
         public static void Main(string[] args)
         {
-            var configManager = ConfigManager.ConfigManager.Get("./config.json");
-            var appConfig = configManager.GetConfig();
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
 
+            var appConfig = AppConfig.AppConfig.Get("./config.json");
             var logger = Logger.Get("./save.log");
             var stateManager = StateManager.StateManager.Get("./state.json");
-            var appConfig = AppConfig.AppConfig.Get("./config.json");
-            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager, AppConfig = appConfig };
-
             List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
             Parser.ParsedCommand input_command = Parser.Parse(args);
-            var config = new SaveManager.Config { Logger = logger, StateManager = stateManager, LogFormat = input_command.Format };
+            var config = new SaveManager.Config
+            {
+                Logger = logger,
+                StateManager = stateManager,
+                LogFormat = input_command.Format,
+                AppConfig = appConfig,
+            };
 
             if (input_command.Action == ProgramAction.InteractiveMode)
             {
                 while (true)
                 {
-                    ProgramCommand command = App.MainMenu(saveInfos, appConfig);
+                    (SaveManager.Config new_config, ProgramCommand command) = App.MainMenu(config, saveInfos);
                     if (command.Action == ProgramAction.Exit) break;
                     switch (command.Action)
                     {
@@ -69,6 +72,7 @@ namespace EasySaveConsole
                         case ProgramAction.CompleteSave: Execute(command.Command, new_config); break;
                         case ProgramAction.DifferentialSave: Execute(command.Command, new_config); break;
                     }
+                    config = new_config;
                 }
                 return;
             }
@@ -80,10 +84,13 @@ namespace EasySaveConsole
                )
             {
                 SaveManager.SaveInfo[] saves = App.SaveInfosContext(input_command.SaveIds, saveInfos);
+                var saveType = input_command.Action == ProgramAction.DifferentialSave
+                    ? SaveManager.SaveType.Differential
+                    : SaveManager.SaveType.Complete;
                 argCommand = new ProgramCommand
                 {
-                    Action = ProgramAction.CompleteSave,
-                    Command = new SaveManager.Command { SaveAction = SaveManager.Action.CompleteSave, Saves = saves }
+                    Action = input_command.Action,
+                    Command = new SaveManager.Command { SaveAction = SaveManager.Action.Save, SaveType = saveType, Saves = saves }
                 };
             }
 

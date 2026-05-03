@@ -11,7 +11,7 @@ namespace EasySaveConsole
             try { Console.Clear(); } catch (IOException) { }
         }
 
-        public static ProgramCommand MainMenu(List<SaveManager.SaveInfo> previous_saves, AppConfig.AppConfig appConfig)
+        public static (Config, ProgramCommand) MainMenu(Config config, List<SaveManager.SaveInfo> previous_saves)
         {
             var new_config = config;
             while (true)
@@ -37,15 +37,15 @@ namespace EasySaveConsole
                             return (new_config, new ProgramCommand
                             {
                                 Action = ProgramAction.CompleteSave,
-                                Command = new Command { SaveAction = SaveManager.Action.CompleteSave, Saves = saves_1 }
+                                Command = new Command { SaveAction = SaveManager.Action.Save, SaveType = SaveManager.SaveType.Complete, Saves = saves_1 }
                             });
                         case ConsoleKey.D2:
                             SaveInfo[] saves_2 = SaveMenu(previous_saves);
                             Clear();
                             return (new_config, new ProgramCommand
                             {
-                                Action = ProgramAction.CompleteSave,
-                                Command = new Command { SaveAction = SaveManager.Action.CompleteSave, Saves = saves_2 }
+                                Action = ProgramAction.DifferentialSave,
+                                Command = new Command { SaveAction = SaveManager.Action.Save, SaveType = SaveManager.SaveType.Differential, Saves = saves_2 }
                             });
                         case ConsoleKey.O: new_config = OptionMenu(new_config); reload = true; break;
                         case ConsoleKey.Escape: return (new_config, new ProgramCommand { Action = ProgramAction.Exit });
@@ -141,7 +141,7 @@ namespace EasySaveConsole
             }
         }
 
-        private static void OptionMenu(AppConfig.AppConfig appConfig)
+        private static Config OptionMenu(Config config)
         {
             var new_config = config;
             while (true)
@@ -150,7 +150,8 @@ namespace EasySaveConsole
                 Console.WriteLine($"[{Messages.OptionMenuTitle}]\n" +
                     "\n" +
                     $"<1> {Messages.OptionMenuLanguage}\n" +
-                    $"<2> {Messages.OptionMenuBusinessSoftware}\n" +
+                    $"<2> {Messages.OptionMenuLogFormat}\n" +
+                    $"<3> {Messages.OptionMenuBusinessSoftware}\n" +
                     "\n" +
                     $"<Esc> {Messages.ReturnToPreviousMenu}");
 
@@ -161,8 +162,11 @@ namespace EasySaveConsole
                     switch (key.Key)
                     {
                         case ConsoleKey.D1: LanguageMenu(); reload = true; break;
-                        case ConsoleKey.D2: BusinessSoftwareMenu(appConfig); reload = true; break;
-                        case ConsoleKey.Escape: return;
+                        case ConsoleKey.D2: new_config = LogFormatMenu(new_config); reload = true; break;
+                        case ConsoleKey.D3:
+                            if (new_config.AppConfig != null) BusinessSoftwareMenu(new_config.AppConfig);
+                            reload = true; break;
+                        case ConsoleKey.Escape: return new_config;
                         default: break;
                     }
                 }

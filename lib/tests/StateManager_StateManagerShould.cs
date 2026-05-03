@@ -45,6 +45,9 @@ namespace EasySaveLibrary.Tests
             ActiveStateInfo = null,
         };
 
+        private static Guid GuidFromInt(int n) => new Guid(n, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        private static SaveState BuildState(int id, string name) => BuildState(GuidFromInt(id), name);
+
         [TestMethod]
         public void Get_FirstCall_CreatesOutputFile()
         {
@@ -214,7 +217,7 @@ namespace EasySaveLibrary.Tests
             sm.Save(BuildState(42, "Hit"));
 
             Assert.IsNotNull(sm.Find("Hit"));
-            Assert.AreEqual(42u, sm.Find("Hit")!.Id);
+            Assert.AreEqual(GuidFromInt(42), sm.Find("Hit")!.Id);
             Assert.IsNull(sm.Find("Miss"));
         }
     }

@@ -70,19 +70,22 @@ namespace EasySaveLibrary.Tests
         }
 
         [TestMethod]
-        public void Execute_DifferingFiles_LeavesDestinationUntouched()
+        public void Execute_DifferingFiles_UpdatesDestinationAndWritesDiffSidecar()
         {
             string src = Path.Combine(_workDir, "src.txt");
             string dst = Path.Combine(_workDir, "dst.txt");
             string original = new string('A', 256);
+            string updated = new string('A', 128) + new string('B', 128);
             File.WriteAllText(dst, original);
-            File.WriteAllText(src, new string('A', 128) + new string('B', 128));
+            File.WriteAllText(src, updated);
 
             var job = new DifferentialSaveJob(src, dst, new FileInfo(src).Length, Priority.Medium);
             job.Execute();
 
-            Assert.AreEqual(original, File.ReadAllText(dst),
-                "When a .diff is produced, the destination file itself must stay unchanged");
+            Assert.AreEqual(updated, File.ReadAllText(dst),
+                "Destination must mirror the new source content after a differential save");
+            Assert.IsTrue(File.Exists(dst + ".diff"),
+                "A .diff sidecar must be produced so the prior version is restorable");
         }
 
         [TestMethod]

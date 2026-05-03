@@ -66,7 +66,7 @@ seed_state() {
     cat > "$RUN_DIR/state.json" << EOF
 [
   {
-    "Id": 1,
+    "Id": "00000000-0000-0000-0000-000000000001",
     "Name": "save1",
     "SourcePath": "$SRC1_ABS",
     "DestinationPath": "$DST1_ABS",
@@ -74,7 +74,7 @@ seed_state() {
     "Status": "Inactive"
   },
   {
-    "Id": 2,
+    "Id": "00000000-0000-0000-0000-000000000002",
     "Name": "save2",
     "SourcePath": "$SRC2_ABS",
     "DestinationPath": "$DST2_ABS",
@@ -143,7 +143,9 @@ assert_file_nonempty() {
 
 assert_dirs_match() {
     local label="$1" a="$2" b="$3"
-    if diff -r "$a" "$b" > /dev/null 2>&1; then pass "$label";
+    # .diff sidecars in the destination are restore metadata, not user data —
+    # exclude them when comparing against the source tree.
+    if diff -r --exclude='*.diff' "$a" "$b" > /dev/null 2>&1; then pass "$label";
     else fail "$label" "| DIRECTORIES DIFFER |" "$a\n$b";
     fi
 }
