@@ -15,10 +15,13 @@ namespace EasyLog
         public required string Action { get; init; }
         public required long FileSize { get; init; }        // bytes
         public required int TransferTime { get; init; }     // milliseconds
+        // 0 = not encrypted, >0 = encryption time in ms, <0 = error code
+        public int EncryptionTime { get; init; } = 0;
 
         private string TextFormat() {
             return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
-                $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms";
+                $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms" +
+                $" [crypt:{EncryptionTime}ms]";
         }
 
         private string XMLFormat() {
@@ -28,7 +31,8 @@ namespace EasyLog
                 $"<Source>{SourceFile}</Source>" +
                 $"<Target>{DestinationFile}</Target>" +
                 $"<FileSize>{FileSize}</FileSize>" +
-                $"<TransferTime>{TransferTime}</TransferTime>";
+                $"<TransferTime>{TransferTime}</TransferTime>" +
+                $"<EncryptionTime>{EncryptionTime}</EncryptionTime>";
         }
 
         private string JSONFormat() {
@@ -41,6 +45,7 @@ namespace EasyLog
                 Action = this.Action,
                 FileSize = this.FileSize,
                 TransferTime = this.TransferTime,
+                EncryptionTime = this.EncryptionTime,
             };
             return JsonSerializer.Serialize(JsonLog);
         }

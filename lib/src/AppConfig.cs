@@ -5,6 +5,8 @@ namespace AppConfig
     public record AppConfigData
     {
         public List<string> BusinessSoftware { get; init; } = new List<string>();
+        public List<string> EncryptionExtensions { get; init; } = new List<string>();
+        public string EncryptionKey { get; init; } = "EasySaveDefaultKey";
     }
 
     public sealed class AppConfig
@@ -72,6 +74,48 @@ namespace AppConfig
                 int removed = _data.BusinessSoftware.RemoveAll(p => string.Equals(p, normalized, StringComparison.OrdinalIgnoreCase));
                 if (removed > 0) Write();
             }
+        }
+
+        public IReadOnlyList<string> GetEncryptionExtensions()
+        {
+            lock (_writeLock) return _data.EncryptionExtensions.ToList();
+        }
+
+        public void SetEncryptionExtensions(IEnumerable<string> extensions)
+        {
+            var normalized = extensions
+                .Select(NormalizeExtension)
+                .Where(e => !string.IsNullOrEmpty(e))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            lock (_writeLock)
+            {
+                _data = _data with { EncryptionExtensions = normalized };
+                Write();
+            }
+        }
+
+        public string GetEncryptionKey()
+        {
+            lock (_writeLock) return _data.EncryptionKey;
+        }
+
+        public void SetEncryptionKey(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            lock (_writeLock)
+            {
+                _data = _data with { EncryptionKey = key };
+                Write();
+            }
+        }
+
+        private static string NormalizeExtension(string ext)
+        {
+            string trimmed = ext.Trim();
+            if (string.IsNullOrEmpty(trimmed)) return string.Empty;
+            if (!trimmed.StartsWith('.')) trimmed = "." + trimmed;
+            return trimmed.ToLowerInvariant();
         }
 
         // Strip the .exe suffix so the stored name matches what Process.GetProcessesByName expects.

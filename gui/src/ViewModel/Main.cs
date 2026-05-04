@@ -115,8 +115,7 @@ namespace EasySave.GUI.ViewModels
                                                       .Select(e => e.Trim())
                                                       .Where(e => !string.IsNullOrEmpty(e))
                                                       .ToList();
-
-                        // TODO: ajouter ExtensionsToEncrypt dans SaveManager.Config,assigner ici avec "_config = _config with { EncryptionExtensions = extensionList };"
+                        _appConfig.SetEncryptionExtensions(extensionList);
                     }
                 }
             }

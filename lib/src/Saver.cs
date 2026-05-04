@@ -160,6 +160,8 @@ namespace Saver
                 float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)copiedTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
                 Progress.SetProgress(percent);
 
+                int encryptionTime = TryEncrypt(job.DestinationFile);
+
                 _config.Logger.Log(
                     new EasyLog.LogInfo {
                         DateTime = DateTime.Now,
@@ -169,6 +171,7 @@ namespace Saver
                         Action = "SAVE",
                         FileSize = job.FileSize,
                         TransferTime = (endTime - beginTime).Milliseconds,
+                        EncryptionTime = encryptionTime,
                     }.Format(_config.LogFormat)
                 );
                 _config.StateManager.Save(
@@ -204,6 +207,18 @@ namespace Saver
                         ActiveStateInfo = null,
                     }
                 );
+        }
+
+        // Returns 0 if encryption is disabled or the file is not in scope,
+        // a positive ms count on success, or a negative error code from EasyCrypt.
+        private int TryEncrypt(string destinationFile)
+        {
+            var appConfig = _config.AppConfig;
+            if (appConfig == null) return 0;
+            var extensions = appConfig.GetEncryptionExtensions();
+            if (extensions.Count == 0) return 0;
+            if (!EasyCrypt.Crypter.ShouldEncrypt(destinationFile, extensions)) return 0;
+            return EasyCrypt.Crypter.EncryptFile(destinationFile, appConfig.GetEncryptionKey());
         }
 
         private void PersistRunningState(int nextJobIndex, long copiedTotalBytes, Status status)
