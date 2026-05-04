@@ -32,6 +32,18 @@ namespace Job
             return new FileInfo(DestinationFile).Length;
         }
 
+        // SHA-256 streamed (no full-file load) — used by both Complete and
+        // Differential to detect "no change" and skip work.
+        protected static string ComputeSha256(string filePath)
+        {
+            using (var sha256 = SHA256.Create())
+            using (var stream = File.OpenRead(filePath))
+            {
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
         public abstract long Execute();
     }
 
@@ -39,8 +51,19 @@ namespace Job
     {
         public CompleteSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
 
+        // Skip the copy when the destination already holds the exact same bytes
+        // as the source (cahier des charges 2.0: "éviter de sauvegarder les
+        // fichiers dont le hash n'a pas changé"). Mirrors the DifferentialSaveJob
+        // short-circuit, minus the delta generation.
         public override long Execute()
         {
+            if (!File.Exists(SourceFile)) return 0;
+            if (!File.Exists(DestinationFile)) return CopyFile();
+
+            string sourceHash = ComputeSha256(SourceFile);
+            string destHash = ComputeSha256(DestinationFile);
+            if (sourceHash == destHash) return FileSize; // no-op, file unchanged
+
             return CopyFile();
         }
     }
@@ -61,16 +84,6 @@ namespace Job
         private const uint Mod = 65521u;
 
         public DifferentialSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
-
-        private static string ComputeSha256(string filePath)
-        {
-            using (var sha256 = SHA256.Create())
-            using (var stream = File.OpenRead(filePath))
-            {
-                byte[] hashBytes = sha256.ComputeHash(stream);
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-            }
-        }
 
         // Adler-32 sur une fenêtre [offset, offset+length).
         private static uint Adler32(byte[] data, int offset, int length)
