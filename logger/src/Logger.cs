@@ -6,10 +6,49 @@ namespace EasyLog
 {
     public enum LogFormat { Text, JSON, XML }
 
- 
+    public record LogSaveInterrup
+    {
+        public required DateTime DateTime { get; init; }
+        public required string SaveName { get; init; }
+        public required string Interrupt { get; init; }
+
+        private string TextFormat()
+        {
+            return $"[{DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Interrupt}";
+        }
+
+        private string JSONFormat()
+        {
+            var jsonLog = new
+            {
+                Date = DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
+                Name = SaveName,
+                Interrupt,
+            };
+            return JsonSerializer.Serialize(jsonLog);
+        }
+
+        private string XMLFormat()
+        {
+            return $"<Date>{DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
+                $"<Name>{SaveName}</Name>" +
+                $"<Interrupt>{Interrupt}</Interrupt>";
+        }
+
+        public string Format(LogFormat format)
+        {
+            switch (format)
+            {
+                case LogFormat.Text: return TextFormat();
+                case LogFormat.XML: return XMLFormat();
+                case LogFormat.JSON: return JSONFormat();
+                default: return JSONFormat(); // default to JSON
+            }
+        }
+    }
+
     public record LogInfo
     {
-        
         public required DateTime DateTime { get; init; }
         public required string SaveName { get; init; }
         public required string SourceFile { get; init; }
@@ -17,34 +56,26 @@ namespace EasyLog
         public required string Action { get; init; }
         public required long FileSize { get; init; }        // bytes
         public required int TransferTime { get; init; }     // milliseconds
-
-    
-        public int CryptoTime { get; init; }
-
-        //  V2.0 
-        public string? SystemMessage { get; init; }
-
-       
-        // V1.1 : formats existants
+        public required int EncryptionTime { get; init; }   // milliseconds
        
         private string TextFormat()
         {
             return $"[{DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
-                   $"from [{SourceFile}] to [{DestinationFile}] " +
-                   $"({FileSize}B) in {TransferTime}ms" +
-                   $" | CryptoTime: {CryptoTime}ms";
+                $"from [{SourceFile}] to [{DestinationFile}] " +
+                $"({FileSize}B) in {TransferTime}ms " +
+                $"encrypted in {EncryptionTime}ms";
         }
 
         private string XMLFormat()
         {
             return $"<Date>{DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
-                   $"<Name>{SaveName}</Name>" +
-                   $"<Action>{Action}</Action>" +
-                   $"<Source>{SourceFile}</Source>" +
-                   $"<Target>{DestinationFile}</Target>" +
-                   $"<FileSize>{FileSize}</FileSize>" +
-                   $"<TransferTime>{TransferTime}</TransferTime>" +
-                   $"<CryptoTime>{CryptoTime}</CryptoTime>";
+                $"<Name>{SaveName}</Name>" +
+                $"<Action>{Action}</Action>" +
+                $"<Source>{SourceFile}</Source>" +
+                $"<Target>{DestinationFile}</Target>" +
+                $"<FileSize>{FileSize}</FileSize>" +
+                $"<TransferTime>{TransferTime}</TransferTime>" +
+                $"<EncryptionTime>{EncryptionTime}</EncryptionTime>";
         }
 
         private string JSONFormat()
@@ -58,25 +89,22 @@ namespace EasyLog
                 Target = DestinationFile,
                 FileSize,
                 TransferTime,
-                CryptoTime
+                EncryptionTime,
             };
             return JsonSerializer.Serialize(jsonLog);
         }
 
-        //  V1.1 conservé
         public string Format(LogFormat format)
         {
-            return format switch
+            switch (format)
             {
-                LogFormat.Text => TextFormat(),
-                LogFormat.XML => XMLFormat(),
-                LogFormat.JSON => JSONFormat(),
-                _ => ""
-            };
+                case LogFormat.Text: return TextFormat();
+                case LogFormat.XML: return XMLFormat();
+                case LogFormat.JSON: return JSONFormat();
+                default: return JSONFormat(); // default to JSON
+            }
         }
     }
-
-    // LOGGER V1.1 + V2
    
     public class Logger
     {
@@ -102,30 +130,12 @@ namespace EasyLog
             return s_instance;
         }
 
-        public void Log(LogInfo logInfo, LogFormat format)
+        public void Log(string log)
         {
-            using StreamWriter writer = new StreamWriter(_outputFile, true);
-
-            //  arrêt logiciel métier
-            if (!string.IsNullOrEmpty(logInfo.SystemMessage))
+            using (StreamWriter writer = new StreamWriter(_outputFile, true))
             {
-                writer.WriteLine(
-                    format == LogFormat.JSON
-                        ? JsonSerializer.Serialize(new
-                        {
-                            Date = logInfo.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
-                            Event = "STOP",
-                            Message = logInfo.SystemMessage
-                        })
-                        : $"<Date>{logInfo.DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
-                          $"<Event>STOP</Event>" +
-                          $"<Message>{logInfo.SystemMessage}</Message>"
-                );
-                return;
+                writer.WriteLine(log);
             }
-
-            // sauvegarde 
-            writer.WriteLine(logInfo.Format(format));
         }
     }
 }

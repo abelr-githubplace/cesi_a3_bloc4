@@ -146,6 +146,7 @@ namespace Saver
                         Action = "SAVE",
                         FileSize = job.FileSize,
                         TransferTime = (endTime - beginTime).Milliseconds,
+                        EncryptionTime = 0,
                     }.Format(_config.LogFormat)
                 );
                 var activeState = new ActiveStateInfo {
