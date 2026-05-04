@@ -45,4 +45,5 @@ lib/tests/obj
 logger/bin
 logger/obj
 logger/tests/bin
-logger/tests/obj
+logger/tests/objCryptoSoft/
+CryptoSoft/

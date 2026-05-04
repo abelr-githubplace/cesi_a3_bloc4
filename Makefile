@@ -9,6 +9,7 @@ TEST=dotnet test ${TARGET_OS} --logger "console;verbosity=detailed"
 CLEAN=dotnet clean --verbosity q
 
 LOGGER_PROJ=logger/EasyLog.csproj
+CRYPTO_PROJ=crypto/EasyCrypt.csproj
 LIBRARY_PROJ=lib/EasySaveLibrary.csproj
 CLI_PROJ=cli/EasySave.CLI.csproj
 GUI_PROJ=gui/EasySave.GUI.csproj
@@ -16,6 +17,7 @@ SERVER_PROJ=server/EasySave.Server.csproj
 REMOTE_PROJ=remote/EasySave.Remote.csproj
 
 DEBUG_LOGGER_PATH=logger/bin/Debug/net10.0/win-x64/EasyLog.dll
+DEBUG_CRYPTO_PATH=crypto/bin/Debug/net10.0/win-x64/EasyCrypt.dll
 DEBUG_LIBRARY_PATH=lib/bin/Debug/net10.0/win-x64/EasySaveLibrary.dll
 DEBUG_CLI_PATH=cli/bin/Debug/net10.0/win-x64/EasySave.CLI.exe
 DEBUG_GUI_PATH=gui/bin/Debug/net10.0-windows/win-x64/EasySave.GUI.exe
@@ -23,6 +25,7 @@ DEBUG_SERVER_PATH=server/bin/Debug/net10.0/win-x64/EasySave.Server.exe
 DEBUG_REMOTE_PATH=remote/bin/Debug/net10.0/win-x64/EasySave.Remote.exe
 
 LOGGER_PATH=logger/bin/Release/net10.0/win-x64/EasyLog.dll
+CRYPTO_PATH=crypto/bin/Release/net10.0/win-x64/EasyCrypt.dll
 LIBRARY_PATH=lib/bin/Release/net10.0/win-x64/EasySaveLibrary.dll
 CLI_PATH=cli/bin/Release/net10.0/win-x64/EasySave.CLI.exe
 GUI_PATH=gui/bin/Release/net10.0-windows/win-x64/EasySave.GUI.exe
@@ -44,6 +47,18 @@ ${DEBUG_LOGGER_PATH}:
 
 ${LOGGER_PATH}:
 	@-${BUILD} ${RELEASE} ${LOGGER_PROJ}
+
+# Crypto
+
+crypto: ${DEBUG_CRYPTO_PATH}
+
+crypto-release: ${CRYPTO_PATH}
+
+${DEBUG_CRYPTO_PATH}:
+	@-${BUILD} ${DEBUG} ${CRYPTO_PROJ}
+
+${CRYPTO_PATH}:
+	@-${BUILD} ${RELEASE} ${CRYPTO_PROJ}
 
 # Library
 
@@ -123,11 +138,15 @@ run-remote: ${REMOTE_PATH}
 
 # Clean
 
-clean: clean-logger clean-lib clean-cli clean-gui clean-server clean-remote clean-test
+clean: clean-logger clean-crypto clean-lib clean-cli clean-gui clean-server clean-remote clean-test
 
 clean-logger:
 	@-${CLEAN} ${LOGGER_PROJ}
 	@-${RM} -r logger/bin logger/tests/bin
+
+clean-crypto:
+	@-${CLEAN} ${CRYPTO_PROJ}
+	@-${RM} -r crypto/bin crypto/tests/bin
 
 clean-lib:
 	@-${CLEAN} ${LIBRARY_PROJ}

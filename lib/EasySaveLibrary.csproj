@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\logger\EasyLog.csproj" />
+    <ProjectReference Include="..\crypto\EasyCrypt.csproj" />
   </ItemGroup>
 
 </Project>

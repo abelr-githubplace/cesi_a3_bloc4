@@ -133,6 +133,7 @@ namespace EasySave.GUI.ViewModels
                                                       .Select(e => e.Trim())
                                                       .Where(e => !string.IsNullOrEmpty(e))
                                                       .ToList();
+                        _appConfig.SetEncryptionExtensions(extensionList);
                     }
                 }
             }
