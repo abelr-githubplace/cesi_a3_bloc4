@@ -12,6 +12,8 @@ using System.Collections.Generic;
 using EasySave.lang;
 using EasySave.GUI.Helpers;
 using Saver;
+using System.IO;
+using System.Text.Json;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -19,10 +21,12 @@ namespace EasySave.GUI.ViewModels
     {
         private StateManager.StateManager _stateManager;
         private Config _config;
+        private AppConfig.AppConfig _appConfig; // Gestionnaire du Logiciel Métier
 
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
 
         private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
+
         private SaveJob? _selectedJob;
         public SaveJob? SelectedJob
         {
@@ -45,8 +49,19 @@ namespace EasySave.GUI.ViewModels
         {
             var logger = Logger.Get("./save.log");
             _stateManager = StateManager.StateManager.Get("./state.json");
+            _appConfig = AppConfig.AppConfig.Get("./config.json");
 
-            _config = new Config { Logger = logger, StateManager = _stateManager, LogFormat = EasyLog.LogFormat.JSON };
+            _config = new Config
+            {
+                Logger = logger,
+                StateManager = _stateManager,
+                LogFormat = EasyLog.LogFormat.JSON, // Par défaut
+                AppConfig = _appConfig              // On attache la gestion du logiciel métier
+            };
+
+            // On met à jour "_config" dès le démarrage avec les préférences JSON
+            ApplySettingsFromOptions();
+
             SaveJobs = new ObservableCollection<SaveJob>();
             LoadJobs();
 
@@ -60,6 +75,52 @@ namespace EasySave.GUI.ViewModels
             PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
             PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
             StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
+        }
+        private void ApplySettingsFromOptions()
+        {
+            try
+            {
+                if (File.Exists("./gui_config.json"))
+                {
+                    string json = File.ReadAllText("./gui_config.json");
+                    var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+
+                    if (root.TryGetProperty("LogFormat", out var formatProp))
+                    {
+                        string formatStr = formatProp.GetString() ?? "JSON";
+                        if (Enum.TryParse<EasyLog.LogFormat>(formatStr, true, out var logFormat))
+                        {
+                            _config = _config with { LogFormat = logFormat };
+                        }
+                    }
+
+                    if (root.TryGetProperty("BusinessSoftwareName", out var processProp))
+                    {
+                        string processName = processProp.GetString() ?? "";
+                        if (!string.IsNullOrWhiteSpace(processName))
+                        {
+                            foreach (var p in _appConfig.GetBusinessSoftware().ToList())
+                                _appConfig.RemoveBusinessSoftware(p);
+
+                            string fileName = Path.GetFileNameWithoutExtension(processName);
+                            _appConfig.AddBusinessSoftware(fileName);
+                        }
+                    }
+
+                    if (root.TryGetProperty("ExtensionsToEncrypt", out var extProp))
+                    {
+                        string extensions = extProp.GetString() ?? "";
+                        var extensionList = extensions.Split(',')
+                                                      .Select(e => e.Trim())
+                                                      .Where(e => !string.IsNullOrEmpty(e))
+                                                      .ToList();
+
+                        // TODO: ajouter ExtensionsToEncrypt dans SaveManager.Config,assigner ici avec "_config = _config with { EncryptionExtensions = extensionList };"
+                    }
+                }
+            }
+            catch (Exception) {}
         }
 
         private void LoadJobs()
@@ -99,9 +160,7 @@ namespace EasySave.GUI.ViewModels
             var editorVM = new SaveEditor(jobToEdit);
             var window = new SaveEditorWindow { DataContext = editorVM };
 
-            if (window.ShowDialog() == true)
-            {
-            }
+            if (window.ShowDialog() == true) { }
         }
 
         private void DeleteJob(object parameter)
@@ -118,6 +177,8 @@ namespace EasySave.GUI.ViewModels
             var optionsVM = new Options();
             var window = new OptionsWindow { DataContext = optionsVM };
             window.ShowDialog();
+
+            ApplySettingsFromOptions();
         }
 
         private void PlayJob(object parameter)
@@ -175,7 +236,6 @@ namespace EasySave.GUI.ViewModels
         private async void RunJob(SaveJob? job)
         {
             if (job == null) return;
-
             if (job.State == TranslationSource.Instance["Running"]) return;
 
             job.State = TranslationSource.Instance["Running"];
@@ -184,7 +244,7 @@ namespace EasySave.GUI.ViewModels
             {
                 var progress = new Saver.Progress();
 
-                var saveType = job.Type == TranslationSource.Instance["Fisnish"] ? SaveType.Complete : SaveType.Differential;
+                var saveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential;
                 var saver = new Saver.Saver(job.Model, saveType, progress, _config);
 
                 lock (_activeSavers)

@@ -3,13 +3,22 @@ using EasySave.GUI.Helpers;
 using System.Globalization;
 using System.Windows.Input;
 using Microsoft.Win32;
+using System.IO;
+using System.Text.Json;
+using System;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Options : ViewModel
     {
-        private string _logFormat = "TXT";
-        public string LogFormat { get => _logFormat; set { _logFormat = value; OnPropertyChanged(); } }
+        private readonly string _configFilePath = "./gui_config.json";
+
+        private string _logFormat = "JSON";
+        public string LogFormat
+        {
+            get => _logFormat;
+            set { _logFormat = value; OnPropertyChanged(); SaveSettings(); }
+        }
 
         private string _language = "FR";
         public string language
@@ -24,22 +33,31 @@ namespace EasySave.GUI.ViewModels
                     TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
                 else if (value == "EN")
                     TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
+
+                SaveSettings();
             }
         }
 
         private string _businessSoftwareName = string.Empty;
-        public string BusinessSoftwareName { get => _businessSoftwareName; set { _businessSoftwareName = value; OnPropertyChanged(); } }
+        public string BusinessSoftwareName
+        {
+            get => _businessSoftwareName;
+            set { _businessSoftwareName = value; OnPropertyChanged(); SaveSettings(); }
+        }
 
         private string _extensionsToEncrypt = string.Empty;
-        public string ExtensionsToEncrypt { get => _extensionsToEncrypt; set { _extensionsToEncrypt = value; OnPropertyChanged(); } }
+        public string ExtensionsToEncrypt
+        {
+            get => _extensionsToEncrypt;
+            set { _extensionsToEncrypt = value; OnPropertyChanged(); SaveSettings(); }
+        }
 
         public ICommand BrowseSoftwareCommand { get; }
 
         public Options()
         {
             BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
-
-            // TODO: Charger les valeurs initiales depuis ton StateManager ici
+            LoadSettings(); // Charge les paramètres au démarrage de la fenêtre
         }
 
         private void BrowseSoftwareFile()
@@ -54,6 +72,59 @@ namespace EasySave.GUI.ViewModels
             {
                 BusinessSoftwareName = dialog.FileName;
             }
+        }
+
+
+        private class OptionsData
+        {
+            public string Language { get; set; } = "FR";
+            public string LogFormat { get; set; } = "JSON";
+            public string BusinessSoftwareName { get; set; } = string.Empty;
+            public string ExtensionsToEncrypt { get; set; } = string.Empty;
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                var data = new OptionsData
+                {
+                    Language = this.language,
+                    LogFormat = this.LogFormat,
+                    BusinessSoftwareName = this.BusinessSoftwareName,
+                    ExtensionsToEncrypt = this.ExtensionsToEncrypt
+                };
+
+                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(_configFilePath, json);
+            }
+            catch (Exception) {}
+        }
+
+        private void LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(_configFilePath))
+                {
+                    string json = File.ReadAllText(_configFilePath);
+                    var data = JsonSerializer.Deserialize<OptionsData>(json);
+
+                    if (data != null)
+                    {
+                        _logFormat = data.LogFormat ?? "JSON";
+                        _businessSoftwareName = data.BusinessSoftwareName ?? string.Empty;
+                        _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
+
+                        OnPropertyChanged(nameof(LogFormat));
+                        OnPropertyChanged(nameof(BusinessSoftwareName));
+                        OnPropertyChanged(nameof(ExtensionsToEncrypt));
+
+                        this.language = data.Language ?? "FR";
+                    }
+                }
+            }
+            catch (Exception) {}
         }
     }
 }
