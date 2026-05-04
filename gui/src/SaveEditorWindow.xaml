@@ -40,7 +40,7 @@
 
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[MainMenuExit]}" Click="Cancel_Click" Width="75" Margin="0,0,10,0"/>
-            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[MainMenuSave]}" Command="{Binding SaveCommand}" Click="Save_Click" Width="Auto"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[AddSave]}" Command="{Binding SaveCommand}" Click="Save_Click" Width="Auto"/>
         </StackPanel>
     </Grid>
 </Window>

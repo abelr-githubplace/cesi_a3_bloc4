@@ -318,4 +318,10 @@
   <data name="Break" xml:space="preserve">
     <value>In Break</value>
   </data>
+  <data name="AddSave" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Finish" xml:space="preserve">
+    <value>Finish</value>
+  </data>
 </root>

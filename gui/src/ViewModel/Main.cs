@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Windows.Input;
 using EasySave.GUI.ViewModels.Base;
 using EasySave.GUI.Views;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using EasySave.lang;
 using EasySave.GUI.Helpers;
+using Saver;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -20,8 +22,9 @@ namespace EasySave.GUI.ViewModels
 
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
 
-        private SaveJob _selectedJob;
-        public SaveJob SelectedJob
+        private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
+        private SaveJob? _selectedJob;
+        public SaveJob? SelectedJob
         {
             get => _selectedJob;
             set { _selectedJob = value; OnPropertyChanged(); }
@@ -42,8 +45,8 @@ namespace EasySave.GUI.ViewModels
         {
             var logger = Logger.Get("./save.log");
             _stateManager = StateManager.StateManager.Get("./state.json");
-            _config = new Config { Logger = logger, StateManager = _stateManager };
 
+            _config = new Config { Logger = logger, StateManager = _stateManager, LogFormat = EasyLog.LogFormat.JSON };
             SaveJobs = new ObservableCollection<SaveJob>();
             LoadJobs();
 
@@ -78,14 +81,13 @@ namespace EasySave.GUI.ViewModels
             {
                 var newSaveInfo = new SaveInfo
                 {
-                    SaveId = (uint)(SaveJobs.Count + 1),
+                    SaveId = Guid.NewGuid(),
                     SaveName = editorVM.Name,
                     SourcePath = editorVM.SourcePath,
                     DestinationPath = editorVM.TargetPath
                 };
 
                 SaveJobs.Add(new SaveJob(newSaveInfo));
-                // TODO: Appeler _stateManager pour sauvegarder la liste mise à jour
             }
         }
 
@@ -122,7 +124,21 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                RunJob(job);
+                if (job.State == TranslationSource.Instance["Break"])
+                {
+                    lock (_activeSavers)
+                    {
+                        if (_activeSavers.TryGetValue(job, out var saver))
+                        {
+                            saver.Resume();
+                            job.State = TranslationSource.Instance["Running"];
+                        }
+                    }
+                }
+                else
+                {
+                    RunJob(job);
+                }
             }
         }
 
@@ -130,8 +146,14 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                // TODO: Appeler la méthode dans la lib pour mettre le thread en pause
-                job.State = TranslationSource.Instance["Break"];
+                lock (_activeSavers)
+                {
+                    if (_activeSavers.TryGetValue(job, out var saver))
+                    {
+                        saver.Pause();
+                        job.State = TranslationSource.Instance["Break"];
+                    }
+                }
             }
         }
 
@@ -139,12 +161,18 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                // TODO: Appeler la méthode dans la lib pour annuler la sauvegarde en cours
-                job.State = TranslationSource.Instance["Stopped"];
+                lock (_activeSavers)
+                {
+                    if (_activeSavers.TryGetValue(job, out var saver))
+                    {
+                        saver.Stop();
+                        job.State = TranslationSource.Instance["Stopped"];
+                    }
+                }
             }
         }
 
-        private async void RunJob(SaveJob job)
+        private async void RunJob(SaveJob? job)
         {
             if (job == null) return;
 
@@ -156,18 +184,24 @@ namespace EasySave.GUI.ViewModels
             {
                 var progress = new Saver.Progress();
 
-                var command = new Command
-                {
-                    SaveAction = SaveManager.Action.Save,
-                    Saves = new[] { job.Model },
-                    SaveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential
-                };
+                var saveType = job.Type == TranslationSource.Instance["Fisnish"] ? SaveType.Complete : SaveType.Differential;
+                var saver = new Saver.Saver(job.Model, saveType, progress, _config);
 
-                bool success = SaveManager.SaveManager.Execute(command, new[] { progress }, _config);
+                lock (_activeSavers)
+                {
+                    _activeSavers[job] = saver;
+                }
+
+                saver.Start();
+
+                lock (_activeSavers)
+                {
+                    _activeSavers.Remove(job);
+                }
 
                 if (job.State == TranslationSource.Instance["Running"])
                 {
-                    job.State = success ? TranslationSource.Instance["Complete"] : TranslationSource.Instance["Error1"];
+                    job.State = saver.IsStopped ? TranslationSource.Instance["Stopped"] : TranslationSource.Instance["Finish"];
                 }
             });
         }
