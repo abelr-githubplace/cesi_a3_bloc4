@@ -148,6 +148,16 @@ namespace Saver
                 }
                 if (_cts.IsCancellationRequested) break;
 
+                // Cahier des charges 2.0 : "Dans le cas de travaux séquentiels,
+                // le logiciel doit terminer la sauvegarde du fichier en cours" —
+                // donc le check tombe entre fichiers, comme la pause.
+                if (i > 0 && IsBusinessSoftwareDetected())
+                {
+                    LogBusinessSoftwareInterrupt();
+                    PersistRunningState(i, copiedTotalBytes, Status.Inactive);
+                    return;
+                }
+
                 var job = Jobs[i];
 
                 var beginTime = DateTime.Now;
@@ -234,6 +244,36 @@ namespace Saver
                 Key = appConfig.GetEncryptionKey(),
                 CryptoSoftPath = appConfig.GetCryptoSoftPath(),
             };
+        }
+
+        private bool IsBusinessSoftwareDetected()
+        {
+            if (_config.AppConfig == null) return false;
+            var watched = _config.AppConfig.GetBusinessSoftware();
+            if (watched.Count == 0) return false;
+            return BusinessSoftwareMonitor.BusinessSoftwareMonitor.IsAnyRunning(watched);
+        }
+
+        private void LogBusinessSoftwareInterrupt()
+        {
+            var watched = _config.AppConfig?.GetBusinessSoftware();
+            var running = watched == null
+                ? new List<string>()
+                : BusinessSoftwareMonitor.BusinessSoftwareMonitor.GetRunningBusinessSoftware(watched);
+            string detected = running.Count > 0 ? string.Join(",", running) : "unknown";
+
+            _config.Logger.Log(
+                new EasyLog.LogInfo
+                {
+                    DateTime = DateTime.Now,
+                    SaveName = Name,
+                    SourceFile = SourcePath,
+                    DestinationFile = DestinationPath,
+                    Action = "BUSINESS_SOFTWARE_STOP:" + detected,
+                    FileSize = 0,
+                    TransferTime = -1,
+                }.Format(_config.LogFormat)
+            );
         }
 
         private void PersistRunningState(int nextJobIndex, long copiedTotalBytes, Status status)
