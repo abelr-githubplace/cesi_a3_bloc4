@@ -15,8 +15,20 @@ namespace RuntimePaths
         {
             get
             {
-                string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string dir = Path.Combine(root, AppFolder);
+                // EASYSAVE_HOME lets integration tests / portable installs
+                // redirect runtime files to a sandbox or USB stick instead of
+                // the per-user LOCALAPPDATA default.
+                string? overrideDir = Environment.GetEnvironmentVariable("EASYSAVE_HOME");
+                string dir;
+                if (!string.IsNullOrWhiteSpace(overrideDir))
+                {
+                    dir = overrideDir;
+                }
+                else
+                {
+                    string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                    dir = Path.Combine(root, AppFolder);
+                }
                 Directory.CreateDirectory(dir);
                 return dir;
             }
@@ -26,7 +38,12 @@ namespace RuntimePaths
         {
             get
             {
-                string dir = Path.Combine(BaseDirectory, "logs");
+                // When EASYSAVE_HOME is set (typically integration tests), keep
+                // the daily log next to state.json/config.json so the test
+                // harness only has to look in one place.
+                bool hasOverride = !string.IsNullOrWhiteSpace(
+                    Environment.GetEnvironmentVariable("EASYSAVE_HOME"));
+                string dir = hasOverride ? BaseDirectory : Path.Combine(BaseDirectory, "logs");
                 Directory.CreateDirectory(dir);
                 return dir;
             }
