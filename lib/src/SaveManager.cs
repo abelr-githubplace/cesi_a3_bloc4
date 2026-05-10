@@ -52,7 +52,7 @@ namespace SaveManager
             // The stop must be consigned in the daily log.
             if (IsBusinessSoftwareRunning(config))
             {
-                LogBusinessSoftwareStop(saves, config);
+                LogBusinessSoftwareBlock(saves, config);
                 return false;
             }
 
@@ -63,12 +63,26 @@ namespace SaveManager
 			return true;
 		}
 
-        private static void LogBusinessSoftwareStop(SaveInfo[] saves, Config config)
+        public static bool IsBusinessSoftwareRunning(Config config)
         {
-            var running = config.AppConfig == null
-                ? new List<string>()
-                : BusinessSoftwareMonitor.BusinessSoftwareMonitor.GetRunningBusinessSoftware(config.AppConfig.GetBusinessSoftware());
-            string detected = running.Count == 0 ? "unknown" : string.Join(",", running);
+            if (config.AppConfig == null) return false;
+            var watched = config.AppConfig.GetBusinessSoftware();
+            if (watched.Count == 0) return false;
+            return BusinessSoftwareMonitor.BusinessSoftwareMonitor.IsAnyRunning(watched);
+        }
+
+        // Cahier des charges 2.0 : "L'arrêt doit être consigné dans le fichier log".
+        // Emits one log entry per save that was refused / interrupted because a
+        // watched business software was running. TransferTime is set to -1 so the
+        // log line is recognizable as an error/event rather than a transfer.
+        public static void LogBusinessSoftwareBlock(IEnumerable<SaveInfo> saves, Config config)
+        {
+            if (config.AppConfig == null) return;
+            var running = BusinessSoftwareMonitor.BusinessSoftwareMonitor
+                .GetRunningBusinessSoftware(config.AppConfig.GetBusinessSoftware());
+            if (running.Count == 0) return;
+
+            string detected = string.Join(",", running);
             foreach (var save in saves)
             {
                 config.Logger.Log(
@@ -84,14 +98,6 @@ namespace SaveManager
                     }.Format(config.LogFormat)
                 );
             }
-        }
-
-        public static bool IsBusinessSoftwareRunning(Config config)
-        {
-            if (config.AppConfig == null) return false;
-            var watched = config.AppConfig.GetBusinessSoftware();
-            if (watched.Count == 0) return false;
-            return BusinessSoftwareMonitor.BusinessSoftwareMonitor.IsAnyRunning(watched);
         }
 
 		private static bool Delete(SaveInfo[] saves, bool deleteFiles, Config config)
