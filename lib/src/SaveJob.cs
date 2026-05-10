@@ -4,6 +4,20 @@ namespace Job
 {
     public enum Priority { High, Medium, Low }
 
+    // Bundles the data a SaveJob/RestoreJob needs to know whether a given file
+    // should be treated as encrypted on disk (and how to decrypt/encrypt it).
+    // Plumbed through Execute() so the jobs themselves remain free of any
+    // direct dependency on AppConfig — this keeps the lib testable.
+    public record EncryptionContext
+    {
+        public required IReadOnlyList<string> Extensions { get; init; }
+        public required string Key { get; init; }
+        public string? CryptoSoftPath { get; init; }
+
+        public bool ShouldEncrypt(string filePath)
+            => EasyCrypt.Crypter.ShouldEncrypt(filePath, Extensions);
+    }
+
     public abstract class SaveJob
     {
         public string SourceFile { get; private set; }
@@ -44,7 +58,18 @@ namespace Job
             }
         }
 
-        public abstract long Execute();
+        public abstract long Execute(EncryptionContext? ctx = null);
+
+        // Decrypt a copy of `path` to a sibling temp so we can compare or read
+        // its plaintext bytes without disturbing the encrypted backup on disk.
+        // Returns the temp path; caller is responsible for deleting it.
+        protected static string DecryptToTemp(string path, EncryptionContext ctx, string suffix)
+        {
+            string tmp = path + suffix;
+            File.Copy(path, tmp, true);
+            EasyCrypt.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
+            return tmp;
+        }
     }
 
     public class CompleteSaveJob : SaveJob
@@ -52,19 +77,34 @@ namespace Job
         public CompleteSaveJob(string sourceFile, string destinationFile, long fileSize, Priority priority) : base(sourceFile, destinationFile, fileSize, priority) { }
 
         // Skip the copy when the destination already holds the exact same bytes
-        // as the source (cahier des charges 2.0: "éviter de sauvegarder les
-        // fichiers dont le hash n'a pas changé"). Mirrors the DifferentialSaveJob
-        // short-circuit, minus the delta generation.
-        public override long Execute()
+        // as the source. If the destination is encrypted at rest, we have to
+        // decrypt a temp copy first — otherwise we'd be hashing AES bytes against
+        // plaintext source bytes and would always end up re-copying.
+        public override long Execute(EncryptionContext? ctx = null)
         {
             if (!File.Exists(SourceFile)) return 0;
             if (!File.Exists(DestinationFile)) return CopyFile();
 
-            string sourceHash = ComputeSha256(SourceFile);
-            string destHash = ComputeSha256(DestinationFile);
-            if (sourceHash == destHash) return FileSize; // no-op, file unchanged
+            bool destEncrypted = ctx != null && ctx.ShouldEncrypt(DestinationFile);
+            string compareTarget = DestinationFile;
+            string? tempCmp = null;
+            try
+            {
+                if (destEncrypted) {
+                    tempCmp = DecryptToTemp(DestinationFile, ctx!, ".cmp.tmp");
+                    compareTarget = tempCmp;
+                }
 
-            return CopyFile();
+                string sourceHash = ComputeSha256(SourceFile);
+                string destHash = ComputeSha256(compareTarget);
+                if (sourceHash == destHash) return FileSize; // no-op, file unchanged
+
+                return CopyFile();
+            }
+            finally
+            {
+                if (tempCmp != null && File.Exists(tempCmp)) File.Delete(tempCmp);
+            }
         }
     }
 
@@ -277,19 +317,46 @@ namespace Job
             }
         }
 
-        public override long Execute()
+        public override long Execute(EncryptionContext? ctx = null)
         {
             if (!File.Exists(DestinationFile)) return CopyFile();
 
-            string sourceHash = ComputeSha256(SourceFile);
-            string destHash = ComputeSha256(DestinationFile);
+            // If the on-disk destination is encrypted, the diff has to be
+            // generated against its plaintext, otherwise the rolling-hash
+            // delta is computed over AES bytes and the resulting diff is
+            // meaningless on restore. Same idea for the hash short-circuit.
+            bool destEncrypted = ctx != null && ctx.ShouldEncrypt(DestinationFile);
+            string oldRef = DestinationFile;
+            string? tempOld = null;
+            try
+            {
+                if (destEncrypted) {
+                    tempOld = DecryptToTemp(DestinationFile, ctx!, ".old.tmp");
+                    oldRef = tempOld;
+                }
 
-            if (sourceHash == destHash) return FileSize;
+                string sourceHash = ComputeSha256(SourceFile);
+                string destHash = ComputeSha256(oldRef);
+                if (sourceHash == destHash) return FileSize;
 
-            // Snapshot the prior destination as a sidecar diff before overwriting,
-            // so a future restore can reconstruct the previous version.
-            GenerateDelta(SourceFile, DestinationFile, DestinationFile + ".diff");
-            return CopyFile();
+                // Snapshot the prior destination (plaintext) as a sidecar diff
+                // before overwriting, so a future restore can reconstruct the
+                // previous version.
+                string diffFile = DestinationFile + ".diff";
+                GenerateDelta(SourceFile, oldRef, diffFile);
+
+                // Encrypt the diff alongside the destination so the sidecar
+                // doesn't leak plaintext bytes when the rest of the backup is
+                // protected.
+                if (destEncrypted)
+                    EasyCrypt.Crypter.EncryptFile(diffFile, ctx!.Key, ctx!.CryptoSoftPath);
+
+                return CopyFile();
+            }
+            finally
+            {
+                if (tempOld != null && File.Exists(tempOld)) File.Delete(tempOld);
+            }
         }
 
         // Reverse of GenerateDelta: walk the ops, reconstruct the "new" bytes from
@@ -386,7 +453,16 @@ namespace Job
             return new FileInfo(SourceFile).Length;
         }
 
-        public abstract long Execute();
+        public abstract long Execute(EncryptionContext? ctx = null);
+
+        // Same primitive as on the save side but reused on the restore path.
+        protected static string DecryptToTemp(string path, EncryptionContext ctx, string suffix)
+        {
+            string tmp = path + suffix;
+            File.Copy(path, tmp, true);
+            EasyCrypt.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
+            return tmp;
+        }
     }
 
     public class CompleteRestoreJob : RestoreJob
@@ -394,7 +470,17 @@ namespace Job
         public CompleteRestoreJob(string sourceFile, string destinationFile, long fileSize)
             : base(sourceFile, destinationFile, fileSize) { }
 
-        public override long Execute() => CopyBack();
+        // Restore = copy the backup back to its original path, then decrypt
+        // in place if the file should be encrypted at rest. Restoring "as
+        // encrypted bytes" would be useless to the user.
+        public override long Execute(EncryptionContext? ctx = null)
+        {
+            long copied = CopyBack();
+            if (copied <= 0) return 0;
+            if (ctx != null && ctx.ShouldEncrypt(SourceFile))
+                EasyCrypt.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
+            return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
+        }
     }
 
     public class DifferentialRestoreJob : RestoreJob
@@ -407,11 +493,45 @@ namespace Job
             _diffFile = diffFile;
         }
 
-        public override long Execute()
+        public override long Execute(EncryptionContext? ctx = null)
         {
-            if (!File.Exists(_diffFile)) return CopyBack();
-            DifferentialSaveJob.ApplyDelta(DestinationFile, _diffFile, SourceFile);
-            return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
+            if (!File.Exists(_diffFile))
+            {
+                // No diff: same as a complete restore — copy back, decrypt if needed.
+                long copied = CopyBack();
+                if (copied <= 0) return 0;
+                if (ctx != null && ctx.ShouldEncrypt(SourceFile))
+                    EasyCrypt.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
+                return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
+            }
+
+            // Differential: apply the delta against the *plaintext* of the
+            // backup destination. If both the destination and the .diff are
+            // encrypted at rest we decrypt temp copies first; the originals
+            // stay untouched on disk.
+            bool encrypted = ctx != null && ctx.ShouldEncrypt(DestinationFile);
+            string oldRef = DestinationFile;
+            string diffRef = _diffFile;
+            string? tempOld = null;
+            string? tempDiff = null;
+            try
+            {
+                if (encrypted)
+                {
+                    tempOld = DecryptToTemp(DestinationFile, ctx!, ".old.tmp");
+                    oldRef = tempOld;
+                    tempDiff = DecryptToTemp(_diffFile, ctx!, ".diff.tmp");
+                    diffRef = tempDiff;
+                }
+
+                DifferentialSaveJob.ApplyDelta(oldRef, diffRef, SourceFile);
+                return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
+            }
+            finally
+            {
+                if (tempOld != null && File.Exists(tempOld)) File.Delete(tempOld);
+                if (tempDiff != null && File.Exists(tempDiff)) File.Delete(tempDiff);
+            }
         }
     }
 }

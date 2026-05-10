@@ -4,23 +4,81 @@ using System.Text;
 
 namespace EasyCrypt
 {
-    // AES-256-CBC with a per-file random IV stored as the first 16 bytes of the
-    // output. Streaming so a multi-GB file does not need to fit in RAM
-    // (CryptoSoft's File.ReadAllBytes was the constraint to lift).
+    // Cahier des charges 2.0 : "le logiciel devra être capable de crypter les
+    // fichiers en utilisant le logiciel CryptoSoft (réalisé durant le prosit 4)".
     //
-    // On-disk layout: [16-byte IV][ciphertext...]
-    // The encrypted file is written to a sibling temp path then atomically
-    // renamed over the source — partial writes never leave a half-encrypted file.
+    // The public API still exposes EncryptFile/DecryptFile, but when an external
+    // CryptoSoft binary path is provided, we shell out to it via Process.Start
+    // instead of running AES inline. The inline AES implementation is kept as a
+    // fallback so the app stays usable in environments where CryptoSoft is not
+    // installed (CI, dev machines without the prosit 4 binary).
+    //
+    // Convention for the external binary:
+    //   <cryptosoft.exe> <filepath> <key>
+    //   exit code = elapsed milliseconds on success (>= 0)
+    //   exit code < 0  = error code propagated as-is
+    // CryptoSoft is symmetric (XOR-based in the prosit 4 spec), so encrypt and
+    // decrypt go through the same invocation.
+    //
+    // On-disk layout for the inline fallback: [16-byte IV][AES-256-CBC ciphertext].
     public static class Crypter
     {
         private const int IvSize = 16;
         private const int BufferSize = 81920;
 
-        public static int EncryptFile(string filePath, string passphrase)
+        public static int EncryptFile(string filePath, string passphrase, string? cryptoSoftPath = null)
         {
             if (!File.Exists(filePath)) return -1;
             if (string.IsNullOrEmpty(passphrase)) return -2;
 
+            if (!string.IsNullOrWhiteSpace(cryptoSoftPath) && File.Exists(cryptoSoftPath))
+                return RunCryptoSoft(cryptoSoftPath, filePath, passphrase);
+
+            return EncryptFileInline(filePath, passphrase);
+        }
+
+        public static int DecryptFile(string filePath, string passphrase, string? cryptoSoftPath = null)
+        {
+            if (!File.Exists(filePath)) return -1;
+            if (string.IsNullOrEmpty(passphrase)) return -2;
+
+            if (!string.IsNullOrWhiteSpace(cryptoSoftPath) && File.Exists(cryptoSoftPath))
+                return RunCryptoSoft(cryptoSoftPath, filePath, passphrase);
+
+            return DecryptFileInline(filePath, passphrase);
+        }
+
+        // External CryptoSoft invocation. Stdout is captured for diagnostics but
+        // the milliseconds / error code is read from the exit code per the
+        // documented convention above.
+        private static int RunCryptoSoft(string exePath, string filePath, string passphrase)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                };
+                psi.ArgumentList.Add(filePath);
+                psi.ArgumentList.Add(passphrase);
+
+                using var proc = Process.Start(psi);
+                if (proc == null) return -98;
+                proc.WaitForExit();
+                return proc.ExitCode;
+            }
+            catch (Exception)
+            {
+                return -97;
+            }
+        }
+
+        private static int EncryptFileInline(string filePath, string passphrase)
+        {
             var sw = Stopwatch.StartNew();
             try
             {
@@ -58,11 +116,8 @@ namespace EasyCrypt
             }
         }
 
-        public static int DecryptFile(string filePath, string passphrase)
+        private static int DecryptFileInline(string filePath, string passphrase)
         {
-            if (!File.Exists(filePath)) return -1;
-            if (string.IsNullOrEmpty(passphrase)) return -2;
-
             var sw = Stopwatch.StartNew();
             try
             {
@@ -117,7 +172,7 @@ namespace EasyCrypt
             return false;
         }
 
-        // Stretch the user's passphrase to a 32-byte AES-256 key.
+        // Stretch the user's passphrase to a 32-byte AES-256 key (inline fallback).
         // Fixed salt is acceptable here because the IV is per-file random;
         // the goal is "deterministic key from passphrase", not password storage.
         private static byte[] DeriveKey(string passphrase)
