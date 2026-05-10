@@ -132,8 +132,10 @@ namespace EasySaveLibrary.Tests
 
             saver.Start();
 
-            Assert.IsTrue(File.Exists(_logFile));
-            string log = File.ReadAllText(_logFile);
+            // Logger rotates daily — file is {yyyy-MM-dd}.log inside _logFile (now a directory).
+            string dailyLog = Path.Combine(_logFile, $"{DateTime.Now:yyyy-MM-dd}.log");
+            Assert.IsTrue(File.Exists(dailyLog), $"Expected daily log at {dailyLog}");
+            string log = File.ReadAllText(dailyLog);
             StringAssert.Contains(log, "Job");
             StringAssert.Contains(log, "a.txt");
         }

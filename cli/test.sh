@@ -89,9 +89,22 @@ reset_destinations() {
     rm -rf "$DST1" "$DST2"
 }
 
-# Run the CLI from inside RUN_DIR with stdin closed so prompts don't hang
+# Run the CLI from inside RUN_DIR with stdin closed so prompts don't hang.
+# EASYSAVE_HOME pins state.json/config.json/{date}.log to the sandbox instead
+# of %LOCALAPPDATA%, which is what the test fixture pre-populates.
+# EasySave.exe is a Windows binary, so we must hand it a Windows-style path
+# (cygpath/wslpath conversion via abspath) — a /mnt/c/... value would be
+# treated as a literal path and the seeded state.json wouldn't be found.
+RUN_DIR_WIN="$(abspath "$RUN_DIR")"
 run_cli() {
-    (cd "$RUN_DIR" && "$EXE" "$@" < /dev/null > /tmp/easysave_out 2>&1)
+    # WSL → Windows env var passing: by default WSL only forwards a tiny set
+    # of env vars. Custom ones must be declared via WSLENV, otherwise the
+    # Windows EXE sees them as unset. We append (not overwrite) so an outer
+    # WSLENV from the user's environment is preserved.
+    (cd "$RUN_DIR" \
+        && WSLENV="${WSLENV:+$WSLENV:}EASYSAVE_HOME" \
+           EASYSAVE_HOME="$RUN_DIR_WIN" \
+           "$EXE" "$@" < /dev/null > /tmp/easysave_out 2>&1)
     return $?
 }
 
@@ -288,7 +301,9 @@ cat << EOF
 EOF
 
 assert_file_nonempty "state.json was written" "$RUN_DIR/state.json"
-assert_file_nonempty "save.log was written"   "$RUN_DIR/save.log"
+# Daily log: filename is {yyyy-MM-dd}.log, rotated by the Logger.
+DAILY_LOG="$RUN_DIR/$(date +%Y-%m-%d).log"
+assert_file_nonempty "daily log was written" "$DAILY_LOG"
 first_char="$(head -c 1 "$RUN_DIR/state.json")"
 if [ "$first_char" = "[" ] || [ "$first_char" = "{" ]; then pass "state.json starts with valid JSON delimiter"
 else fail "state.json doesn't look like JSON"; fi
