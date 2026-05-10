@@ -7,6 +7,9 @@ namespace AppConfig
         public List<string> BusinessSoftware { get; init; } = new List<string>();
         public List<string> EncryptionExtensions { get; init; } = new List<string>();
         public string EncryptionKey { get; init; } = "EasySaveDefaultKey";
+        // Path to an external CryptoSoft executable. If empty / missing, Crypter
+        // falls back to the inline AES implementation.
+        public string CryptoSoftPath { get; init; } = string.Empty;
     }
 
     public sealed class AppConfig
@@ -106,6 +109,21 @@ namespace AppConfig
             lock (_writeLock)
             {
                 _data = _data with { EncryptionKey = key };
+                Write();
+            }
+        }
+
+        public string GetCryptoSoftPath()
+        {
+            lock (_writeLock) return _data.CryptoSoftPath ?? string.Empty;
+        }
+
+        public void SetCryptoSoftPath(string path)
+        {
+            string trimmed = path?.Trim() ?? string.Empty;
+            lock (_writeLock)
+            {
+                _data = _data with { CryptoSoftPath = trimmed };
                 Write();
             }
         }

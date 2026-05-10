@@ -151,7 +151,7 @@ namespace Saver
                 var job = Jobs[i];
 
                 var beginTime = DateTime.Now;
-                long copiedSize = job.Execute();
+                long copiedSize = job.Execute(BuildEncryptionContext());
                 endTime = DateTime.Now;
 
                 if (copiedSize != job.FileSize) /* Error : does nothing for now, should be handled later on */;
@@ -213,12 +213,27 @@ namespace Saver
         // a positive ms count on success, or a negative error code from EasyCrypt.
         private int TryEncrypt(string destinationFile)
         {
+            var ctx = BuildEncryptionContext();
+            if (ctx == null) return 0;
+            if (!ctx.ShouldEncrypt(destinationFile)) return 0;
+            return EasyCrypt.Crypter.EncryptFile(destinationFile, ctx.Key, ctx.CryptoSoftPath);
+        }
+
+        // Single source of truth for "what does this Saver know about
+        // encryption" — null means encryption is disabled (no AppConfig
+        // attached or no extensions configured).
+        private Job.EncryptionContext? BuildEncryptionContext()
+        {
             var appConfig = _config.AppConfig;
-            if (appConfig == null) return 0;
+            if (appConfig == null) return null;
             var extensions = appConfig.GetEncryptionExtensions();
-            if (extensions.Count == 0) return 0;
-            if (!EasyCrypt.Crypter.ShouldEncrypt(destinationFile, extensions)) return 0;
-            return EasyCrypt.Crypter.EncryptFile(destinationFile, appConfig.GetEncryptionKey());
+            if (extensions.Count == 0) return null;
+            return new Job.EncryptionContext
+            {
+                Extensions = extensions,
+                Key = appConfig.GetEncryptionKey(),
+                CryptoSoftPath = appConfig.GetCryptoSoftPath(),
+            };
         }
 
         private void PersistRunningState(int nextJobIndex, long copiedTotalBytes, Status status)
@@ -259,6 +274,9 @@ namespace Saver
         public Progress Progress { get; }
 
         protected List<RestoreJob> Jobs;
+        // Optional. When null, restore is a plain CopyBack with no decryption —
+        // matches the legacy behavior for callers that don't care about crypto.
+        private readonly Config? _config;
 
         private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
@@ -270,13 +288,16 @@ namespace Saver
         public void Resume() => _gate.Set();
         public void Stop() { _cts.Cancel(); _gate.Set(); }
 
-        public Restorer(SaveInfo save, Progress progress)
+        public Restorer(SaveInfo save, Progress progress) : this(save, progress, null) { }
+
+        public Restorer(SaveInfo save, Progress progress, Config? config)
         {
             Id = save.SaveId;
             Name = save.SaveName;
             SourcePath = save.SourcePath;
             DestinationPath = save.DestinationPath;
             Progress = progress;
+            _config = config;
             Jobs = new List<RestoreJob>();
 
             long totalSize = 0;
@@ -328,12 +349,30 @@ namespace Saver
                 if (_cts.IsCancellationRequested) break;
 
                 var job = Jobs[i];
-                long restored = job.Execute();
+                long restored = job.Execute(BuildEncryptionContext());
                 restoredTotalBytes += restored;
 
                 float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)restoredTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
                 Progress.SetProgress(percent);
             }
+        }
+
+        // Same logic as on the Saver side: null when there's no AppConfig or
+        // no extensions configured. Restorer accepts a null Config for legacy
+        // callers (CLI / pre-2.0 tests).
+        private Job.EncryptionContext? BuildEncryptionContext()
+        {
+            if (_config == null) return null;
+            var appConfig = _config.AppConfig;
+            if (appConfig == null) return null;
+            var extensions = appConfig.GetEncryptionExtensions();
+            if (extensions.Count == 0) return null;
+            return new Job.EncryptionContext
+            {
+                Extensions = extensions,
+                Key = appConfig.GetEncryptionKey(),
+                CryptoSoftPath = appConfig.GetCryptoSoftPath(),
+            };
         }
     }
 }

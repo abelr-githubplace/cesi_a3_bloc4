@@ -39,7 +39,7 @@ namespace SaveManager
 			{
 				case Action.Save: return Save(command.Saves, command.SaveType, progresses, config);
 				case Action.Delete: return Delete(command.Saves, command.DeleteFiles, config);
-				case Action.Restore: return Restore(command.Saves, progresses);
+				case Action.Restore: return Restore(command.Saves, progresses, config);
 				default: return false;
 			}
 		}
@@ -88,12 +88,12 @@ namespace SaveManager
 			return allOk;
 		}
 
-		private static bool Restore(SaveInfo[] saves, Progress[] progresses)
+		private static bool Restore(SaveInfo[] saves, Progress[] progresses, Config config)
 		{
 			if (saves.Length != progresses.Length) return false;
 			var restorers = new List<Saver.Restorer>();
 			for (int i = 0; i < saves.Length; i++)
-				restorers.Add(new Saver.Restorer(saves[i], progresses[i]));
+				restorers.Add(new Saver.Restorer(saves[i], progresses[i], config));
 			foreach (var r in restorers) r.Start();
 			return true;
 		}
@@ -109,12 +109,12 @@ namespace SaveManager
 			return savers;
 		}
 
-		public static Saver.Restorer[] CreateRestorers(SaveInfo[] saves, Progress[] progresses)
+		public static Saver.Restorer[] CreateRestorers(SaveInfo[] saves, Progress[] progresses, Config? config = null)
 		{
 			if (saves.Length != progresses.Length) return Array.Empty<Saver.Restorer>();
 			var restorers = new Saver.Restorer[saves.Length];
 			for (int i = 0; i < saves.Length; i++)
-				restorers[i] = new Saver.Restorer(saves[i], progresses[i]);
+				restorers[i] = new Saver.Restorer(saves[i], progresses[i], config);
 			return restorers;
 		}
     }
