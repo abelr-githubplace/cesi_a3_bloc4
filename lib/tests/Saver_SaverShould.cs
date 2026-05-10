@@ -26,7 +26,7 @@ namespace EasySaveLibrary.Tests
             _dst = Path.Combine(_workDir, "dst");
             Directory.CreateDirectory(_src);
             _stateFile = Path.Combine(_workDir, "state.json");
-            _logFile = Path.Combine(_workDir, "save.log");
+            _logFile = _workDir;
 
             ResetSingleton(typeof(StateManager.StateManager));
             ResetSingleton(typeof(EasyLog.Logger));

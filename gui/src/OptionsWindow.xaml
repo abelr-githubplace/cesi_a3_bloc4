@@ -50,7 +50,7 @@
                  ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,10" VerticalAlignment="Center"/>
 
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Fermer" Click="Close_Click" Width="75"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Close]}" Click="Close_Click" Width="75"/>
         </StackPanel>
     </Grid>
 </Window>

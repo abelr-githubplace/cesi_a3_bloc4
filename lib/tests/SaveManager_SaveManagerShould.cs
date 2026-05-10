@@ -21,7 +21,7 @@ namespace EasySaveLibrary.Tests
             ResetSingleton(typeof(EasyLog.Logger));
             _config = new Config
             {
-                Logger = EasyLog.Logger.Get(Path.Combine(_workDir, "save.log")),
+                Logger = EasyLog.Logger.Get(_workDir),
                 StateManager = StateManager.StateManager.Get(Path.Combine(_workDir, "state.json")),
                 LogFormat = EasyLog.LogFormat.JSON,
             };
@@ -116,8 +116,10 @@ namespace EasySaveLibrary.Tests
         }
 
         [TestMethod]
-        public void Execute_DifferentialSave_NotBlockedWhenBusinessSoftwareRunning()
+        public void Execute_DifferentialSave_BlockedWhenBusinessSoftwareRunning()
         {
+            // Cahier des charges 2.0: business software detected => any save type
+            // is blocked (no Differential carve-out anymore).
             ResetSingleton(typeof(AppConfig.AppConfig));
             var appConfig = AppConfig.AppConfig.Get(Path.Combine(_workDir, "config.json"));
             string ownProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
@@ -134,8 +136,8 @@ namespace EasySaveLibrary.Tests
 
             bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, configWithApp);
 
-            Assert.IsTrue(ok, "Differential saves must continue even with business software running");
-            Assert.IsTrue(File.Exists(Path.Combine(save.DestinationPath, "f.txt")));
+            Assert.IsFalse(ok);
+            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Differential save must also be blocked when business software is detected");
             ResetSingleton(typeof(AppConfig.AppConfig));
         }
 

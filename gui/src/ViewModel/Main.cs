@@ -12,8 +12,6 @@ using System.Collections.Generic;
 using EasySave.lang;
 using EasySave.GUI.Helpers;
 using Saver;
-using System.IO;
-using System.Text.Json;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -47,20 +45,19 @@ namespace EasySave.GUI.ViewModels
 
         public Main()
         {
-            var logger = Logger.Get("./save.log");
-            _stateManager = StateManager.StateManager.Get("./state.json");
-            _appConfig = AppConfig.AppConfig.Get("./config.json");
+            var logger = Logger.Get(RuntimePaths.RuntimePaths.LogsDirectory);
+            _stateManager = StateManager.StateManager.Get(RuntimePaths.RuntimePaths.StateFile);
+            _appConfig = AppConfig.AppConfig.Get(RuntimePaths.RuntimePaths.ConfigFile);
 
             _config = new Config
             {
                 Logger = logger,
                 StateManager = _stateManager,
-                LogFormat = EasyLog.LogFormat.JSON, // Par défaut
-                AppConfig = _appConfig              // On attache la gestion du logiciel métier
+                LogFormat = ParseLogFormat(_appConfig.GetLogFormat()),
+                AppConfig = _appConfig
             };
 
-            // On met à jour "_config" dès le démarrage avec les préférences JSON
-            ApplySettingsFromOptions();
+            ApplyCultureFromAppConfig();
 
             SaveJobs = new ObservableCollection<SaveJob>();
             LoadJobs();
@@ -69,57 +66,33 @@ namespace EasySave.GUI.ViewModels
             EditJobCommand = new RelayCommand(EditJob, o => SelectedJob != null);
             DeleteJobCommand = new RelayCommand(DeleteJob, o => SelectedJob != null);
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
-            RunSelectedJobCommand = new RelayCommand(o => RunJob(SelectedJob), o => SelectedJob != null);
-            RunAllJobsCommand = new RelayCommand(o => RunAllJobs(), o => SaveJobs.Any());
+            RunSelectedJobCommand = new RelayCommand(async o => await RunJob(SelectedJob), o => SelectedJob != null);
+            RunAllJobsCommand = new RelayCommand(async o => await RunAllJobs(), o => SaveJobs.Any());
 
-            PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
+            PlayJobCommand = new RelayCommand(async o => await PlayJob(o), o => o is SaveJob);
             PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
             StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
         }
-        private void ApplySettingsFromOptions()
+        // Re-read whatever the Options window may have changed in AppConfig.
+        // Only LogFormat lives in the SaveManager Config record — everything
+        // else (business software, extensions, key, ...) is read on demand by
+        // the lib through the AppConfig instance already attached to _config.
+        private void RefreshConfigFromAppConfig()
         {
-            try
-            {
-                if (File.Exists("./gui_config.json"))
-                {
-                    string json = File.ReadAllText("./gui_config.json");
-                    var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
+            _config = _config with { LogFormat = ParseLogFormat(_appConfig.GetLogFormat()) };
+            ApplyCultureFromAppConfig();
+        }
 
-                    if (root.TryGetProperty("LogFormat", out var formatProp))
-                    {
-                        string formatStr = formatProp.GetString() ?? "JSON";
-                        if (Enum.TryParse<EasyLog.LogFormat>(formatStr, true, out var logFormat))
-                        {
-                            _config = _config with { LogFormat = logFormat };
-                        }
-                    }
+        private static EasyLog.LogFormat ParseLogFormat(string s)
+        {
+            return Enum.TryParse<EasyLog.LogFormat>(s, true, out var f) ? f : EasyLog.LogFormat.JSON;
+        }
 
-                    if (root.TryGetProperty("BusinessSoftwareName", out var processProp))
-                    {
-                        string processName = processProp.GetString() ?? "";
-                        if (!string.IsNullOrWhiteSpace(processName))
-                        {
-                            foreach (var p in _appConfig.GetBusinessSoftware().ToList())
-                                _appConfig.RemoveBusinessSoftware(p);
-
-                            string fileName = Path.GetFileNameWithoutExtension(processName);
-                            _appConfig.AddBusinessSoftware(fileName);
-                        }
-                    }
-
-                    if (root.TryGetProperty("ExtensionsToEncrypt", out var extProp))
-                    {
-                        string extensions = extProp.GetString() ?? "";
-                        var extensionList = extensions.Split(',')
-                                                      .Select(e => e.Trim())
-                                                      .Where(e => !string.IsNullOrEmpty(e))
-                                                      .ToList();
-                        _appConfig.SetEncryptionExtensions(extensionList);
-                    }
-                }
-            }
-            catch (Exception) {}
+        private void ApplyCultureFromAppConfig()
+        {
+            string lang = _appConfig.GetLanguage();
+            if (lang == "FR") TranslationSource.Instance.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
+            else if (lang == "EN") TranslationSource.Instance.CurrentCulture = new System.Globalization.CultureInfo("en-US");
         }
 
         private void LoadJobs()
@@ -177,10 +150,10 @@ namespace EasySave.GUI.ViewModels
             var window = new OptionsWindow { DataContext = optionsVM };
             window.ShowDialog();
 
-            ApplySettingsFromOptions();
+            RefreshConfigFromAppConfig();
         }
 
-        private void PlayJob(object parameter)
+        private async Task PlayJob(object parameter)
         {
             if (parameter is SaveJob job)
             {
@@ -197,7 +170,7 @@ namespace EasySave.GUI.ViewModels
                 }
                 else
                 {
-                    RunJob(job);
+                    await RunJob(job);
                 }
             }
         }
@@ -232,7 +205,7 @@ namespace EasySave.GUI.ViewModels
             }
         }
 
-        private async void RunJob(SaveJob? job)
+        private async Task RunJob(SaveJob? job)
         {
             if (job == null) return;
             if (job.State == TranslationSource.Instance["Running"]) return;
@@ -265,11 +238,13 @@ namespace EasySave.GUI.ViewModels
             });
         }
 
-        private void RunAllJobs()
+        // Cahier des charges 2.0: type Mono ou Séquentielle (parallel is 3.0).
+        // We await each job so the next one starts only once the previous is done.
+        private async Task RunAllJobs()
         {
             foreach (var job in SaveJobs)
             {
-                RunJob(job);
+                await RunJob(job);
             }
         }
     }

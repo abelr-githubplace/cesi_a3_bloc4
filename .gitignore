@@ -6,6 +6,9 @@
 # Runtime artifacts
 state.json
 save.log
+config.json
+gui_config.json
+*.log
 
 # Tests
 tests/
@@ -45,5 +48,11 @@ lib/tests/obj
 logger/bin
 logger/obj
 logger/tests/bin
-logger/tests/objCryptoSoft/
+logger/tests/obj
+
+# CryptoSoft (external binary, not versioned)
 CryptoSoft/
+
+# Crypto lib
+crypto/bin
+crypto/obj

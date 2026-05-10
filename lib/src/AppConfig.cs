@@ -10,6 +10,10 @@ namespace AppConfig
         // Path to an external CryptoSoft executable. If empty / missing, Crypter
         // falls back to the inline AES implementation.
         public string CryptoSoftPath { get; init; } = string.Empty;
+        // GUI / CLI user preferences live here too, so we have a single
+        // config.json on disk instead of one per surface.
+        public string Language { get; init; } = "FR";
+        public string LogFormat { get; init; } = "JSON";
     }
 
     public sealed class AppConfig
@@ -124,6 +128,36 @@ namespace AppConfig
             lock (_writeLock)
             {
                 _data = _data with { CryptoSoftPath = trimmed };
+                Write();
+            }
+        }
+
+        public string GetLanguage()
+        {
+            lock (_writeLock) return _data.Language;
+        }
+
+        public void SetLanguage(string language)
+        {
+            if (string.IsNullOrWhiteSpace(language)) return;
+            lock (_writeLock)
+            {
+                _data = _data with { Language = language.Trim() };
+                Write();
+            }
+        }
+
+        public string GetLogFormat()
+        {
+            lock (_writeLock) return _data.LogFormat;
+        }
+
+        public void SetLogFormat(string format)
+        {
+            if (string.IsNullOrWhiteSpace(format)) return;
+            lock (_writeLock)
+            {
+                _data = _data with { LogFormat = format.Trim() };
                 Write();
             }
         }

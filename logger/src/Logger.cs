@@ -65,30 +65,41 @@ namespace EasyLog
         private static Logger? s_instance;
         private static readonly object s_lock = new object();
 
-        private readonly string _outputFile;
+        // Cahier des charges: daily log file (one rotation per day). The
+        // constructor takes a directory; the actual file name is computed at
+        // every Log() call from today's date, so a long-running app crosses
+        // midnight cleanly without restart.
+        private readonly string _directory;
+        private readonly object _writeLock = new object();
 
-        private Logger(string outputFile)
+        private Logger(string directory)
         {
-            _outputFile = outputFile;
+            _directory = directory;
+            Directory.CreateDirectory(_directory);
         }
 
-        public static Logger Get(string outputFile)
+        public static Logger Get(string directory)
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null) s_instance = new Logger(outputFile);
+                    if (s_instance == null) s_instance = new Logger(directory);
                 }
             }
             return s_instance;
         }
 
+        public string CurrentLogFile => Path.Combine(_directory, $"{DateTime.Now:yyyy-MM-dd}.log");
+
         public void Log(string log)
         {
-            using (StreamWriter writer = new StreamWriter(_outputFile, true))
+            lock (_writeLock)
             {
-                writer.WriteLine(log);
+                using (StreamWriter writer = new StreamWriter(CurrentLogFile, true))
+                {
+                    writer.WriteLine(log);
+                }
             }
         }
     }
