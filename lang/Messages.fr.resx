@@ -247,7 +247,7 @@
     <value>Nom du processus à retirer :</value>
   </data>
   <data name="BusinessSoftwareDetectedSaveBlocked" xml:space="preserve">
-    <value>Logiciel métier détecté : sauvegarde complète bloquée.</value>
+    <value>Logiciel métier détecté : sauvegarde bloquée.</value>
   </data>
   <data name="NewJob" xml:space="preserve">
     <value>➕ Nouvelle Sauvegarde</value>
@@ -323,5 +323,8 @@
   </data>
   <data name="Finish" xml:space="preserve">
     <value>Terminer</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
   </data>
 </root>

@@ -48,8 +48,13 @@ namespace SaveManager
 		{
             if (saves.Length != progresses.Length) return false;
             SaveType effectiveType = saveType ?? SaveType.Complete;
-            if (effectiveType == SaveType.Complete && IsBusinessSoftwareRunning(config))
+            // 2.0: business software detected => any save type is blocked.
+            // The stop must be consigned in the daily log.
+            if (IsBusinessSoftwareRunning(config))
+            {
+                LogBusinessSoftwareStop(saves, config);
                 return false;
+            }
 
 			var savers = new List<Saver.Saver>();
 			for (int i = 0; i < saves.Length; i++)
@@ -57,6 +62,29 @@ namespace SaveManager
 			foreach (var saver in savers) saver.Start();
 			return true;
 		}
+
+        private static void LogBusinessSoftwareStop(SaveInfo[] saves, Config config)
+        {
+            var running = config.AppConfig == null
+                ? new List<string>()
+                : BusinessSoftwareMonitor.BusinessSoftwareMonitor.GetRunningBusinessSoftware(config.AppConfig.GetBusinessSoftware());
+            string detected = running.Count == 0 ? "unknown" : string.Join(",", running);
+            foreach (var save in saves)
+            {
+                config.Logger.Log(
+                    new EasyLog.LogInfo
+                    {
+                        DateTime = DateTime.Now,
+                        SaveName = save.SaveName,
+                        SourceFile = save.SourcePath,
+                        DestinationFile = save.DestinationPath,
+                        Action = "BUSINESS_SOFTWARE_STOP:" + detected,
+                        FileSize = 0,
+                        TransferTime = -1,
+                    }.Format(config.LogFormat)
+                );
+            }
+        }
 
         public static bool IsBusinessSoftwareRunning(Config config)
         {

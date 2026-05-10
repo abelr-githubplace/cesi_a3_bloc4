@@ -1,130 +1,119 @@
-﻿using EasySave.GUI.ViewModels.Base;
+using EasySave.GUI.ViewModels.Base;
 using EasySave.GUI.Helpers;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Input;
 using Microsoft.Win32;
-using System.IO;
-using System.Text.Json;
-using System;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Options : ViewModel
     {
-        private readonly string _configFilePath = "./gui_config.json";
+        private readonly AppConfig.AppConfig _appConfig;
 
-        private string _logFormat = "JSON";
+        // Cahier des charges 2.0: all user preferences live in the single
+        // AppConfig (config.json). The previous gui_config.json sibling has
+        // been removed — Options is now a thin view over AppConfig.
+        public Options()
+        {
+            _appConfig = AppConfig.AppConfig.Get(RuntimePaths.RuntimePaths.ConfigFile);
+
+            _logFormat = _appConfig.GetLogFormat();
+            _language = _appConfig.GetLanguage();
+            var watched = _appConfig.GetBusinessSoftware();
+            _businessSoftwareName = watched.Count > 0 ? watched[0] : string.Empty;
+            _extensionsToEncrypt = string.Join(", ", _appConfig.GetEncryptionExtensions());
+
+            BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
+
+            ApplyCulture(_language);
+        }
+
+        private string _logFormat;
         public string LogFormat
         {
             get => _logFormat;
-            set { _logFormat = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_logFormat == value) return;
+                _logFormat = value;
+                OnPropertyChanged();
+                _appConfig.SetLogFormat(value);
+            }
         }
 
-        private string _language = "FR";
+        private string _language;
         public string language
         {
             get => _language;
             set
             {
+                if (_language == value) return;
                 _language = value;
                 OnPropertyChanged();
-
-                if (value == "FR")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
-                else if (value == "EN")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
-
-                SaveSettings();
+                ApplyCulture(value);
+                _appConfig.SetLanguage(value);
             }
         }
 
-        private string _businessSoftwareName = string.Empty;
+        private string _businessSoftwareName;
         public string BusinessSoftwareName
         {
             get => _businessSoftwareName;
-            set { _businessSoftwareName = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_businessSoftwareName == value) return;
+                _businessSoftwareName = value;
+                OnPropertyChanged();
+                PersistBusinessSoftware(value);
+            }
         }
 
-        private string _extensionsToEncrypt = string.Empty;
+        private string _extensionsToEncrypt;
         public string ExtensionsToEncrypt
         {
             get => _extensionsToEncrypt;
-            set { _extensionsToEncrypt = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_extensionsToEncrypt == value) return;
+                _extensionsToEncrypt = value;
+                OnPropertyChanged();
+                var list = (value ?? string.Empty).Split(',')
+                    .Select(e => e.Trim())
+                    .Where(e => !string.IsNullOrEmpty(e));
+                _appConfig.SetEncryptionExtensions(list);
+            }
         }
 
         public ICommand BrowseSoftwareCommand { get; }
-
-        public Options()
-        {
-            BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
-            LoadSettings(); // Charge les paramètres au démarrage de la fenêtre
-        }
 
         private void BrowseSoftwareFile()
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Sélectionnez l'exécutable du logiciel métier",
-                Filter = "Logiciels (*.exe)|*.exe|Tous les fichiers (*.*)|*.*"
+                Title = "Select the business software executable",
+                Filter = "Applications (*.exe)|*.exe|All files (*.*)|*.*"
             };
 
             if (dialog.ShowDialog() == true)
-            {
                 BusinessSoftwareName = dialog.FileName;
-            }
         }
 
-
-        private class OptionsData
+        // The UI exposes a single slot today. AppConfig keeps a list under the
+        // hood (so 3.0 can extend the UI), so we keep the list in sync by
+        // replacing it on every edit.
+        private void PersistBusinessSoftware(string value)
         {
-            public string Language { get; set; } = "FR";
-            public string LogFormat { get; set; } = "JSON";
-            public string BusinessSoftwareName { get; set; } = string.Empty;
-            public string ExtensionsToEncrypt { get; set; } = string.Empty;
+            foreach (var p in _appConfig.GetBusinessSoftware().ToList())
+                _appConfig.RemoveBusinessSoftware(p);
+            if (!string.IsNullOrWhiteSpace(value))
+                _appConfig.AddBusinessSoftware(System.IO.Path.GetFileNameWithoutExtension(value));
         }
 
-        private void SaveSettings()
+        private static void ApplyCulture(string code)
         {
-            try
-            {
-                var data = new OptionsData
-                {
-                    Language = this.language,
-                    LogFormat = this.LogFormat,
-                    BusinessSoftwareName = this.BusinessSoftwareName,
-                    ExtensionsToEncrypt = this.ExtensionsToEncrypt
-                };
-
-                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_configFilePath, json);
-            }
-            catch (Exception) {}
-        }
-
-        private void LoadSettings()
-        {
-            try
-            {
-                if (File.Exists(_configFilePath))
-                {
-                    string json = File.ReadAllText(_configFilePath);
-                    var data = JsonSerializer.Deserialize<OptionsData>(json);
-
-                    if (data != null)
-                    {
-                        _logFormat = data.LogFormat ?? "JSON";
-                        _businessSoftwareName = data.BusinessSoftwareName ?? string.Empty;
-                        _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
-
-                        OnPropertyChanged(nameof(LogFormat));
-                        OnPropertyChanged(nameof(BusinessSoftwareName));
-                        OnPropertyChanged(nameof(ExtensionsToEncrypt));
-
-                        this.language = data.Language ?? "FR";
-                    }
-                }
-            }
-            catch (Exception) {}
+            if (code == "FR") TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
+            else if (code == "EN") TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
         }
     }
 }

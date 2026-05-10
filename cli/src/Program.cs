@@ -45,9 +45,9 @@ namespace EasySaveConsole
         {
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
 
-            var appConfig = AppConfig.AppConfig.Get("./config.json");
-            var logger = Logger.Get("./save.log");
-            var stateManager = StateManager.StateManager.Get("./state.json");
+            var appConfig = AppConfig.AppConfig.Get(RuntimePaths.RuntimePaths.ConfigFile);
+            var logger = Logger.Get(RuntimePaths.RuntimePaths.LogsDirectory);
+            var stateManager = StateManager.StateManager.Get(RuntimePaths.RuntimePaths.StateFile);
             List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
 
             Parser.ParsedCommand input_command = Parser.Parse(args);
@@ -123,8 +123,7 @@ namespace EasySaveConsole
 
             string end_message;
             if (success) end_message = $"{Messages.SaveSuccess}";
-            else if (command.SaveType != SaveManager.SaveType.Differential
-                     && SaveManager.SaveManager.IsBusinessSoftwareRunning(config))
+            else if (SaveManager.SaveManager.IsBusinessSoftwareRunning(config))
                 end_message = $"{Messages.BusinessSoftwareDetectedSaveBlocked}";
             else end_message = $"{Messages.SaveFailed}";
             Console.WriteLine($"\n--- {end_message} ---");
