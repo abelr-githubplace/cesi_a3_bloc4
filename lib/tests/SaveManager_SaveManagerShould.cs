@@ -89,57 +89,12 @@ namespace EasySaveLibrary.Tests
             Assert.AreEqual(100f, progresses[1].GetProgress());
         }
 
-        [TestMethod]
-        public void Execute_CompleteSave_BlockedWhenBusinessSoftwareRunning()
-        {
-            ResetSingleton(typeof(AppConfig.AppConfig));
-            var appConfig = AppConfig.AppConfig.Get(Path.Combine(_workDir, "config.json"));
-            // Pick a process name that is guaranteed to be running on the test host:
-            // the test runner itself.
-            string ownProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-            appConfig.AddBusinessSoftware(ownProcess);
-
-            var configWithApp = _config with { AppConfig = appConfig };
-            var save = MakeSave("blocked");
-            var command = new Command
-            {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = SaveType.Complete,
-            };
-
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, configWithApp);
-
-            Assert.IsFalse(ok);
-            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Complete save must not run when business software is detected");
-            ResetSingleton(typeof(AppConfig.AppConfig));
-        }
-
-        [TestMethod]
-        public void Execute_DifferentialSave_BlockedWhenBusinessSoftwareRunning()
-        {
-            // Cahier des charges 2.0: business software detected => any save type
-            // is blocked (no Differential carve-out anymore).
-            ResetSingleton(typeof(AppConfig.AppConfig));
-            var appConfig = AppConfig.AppConfig.Get(Path.Combine(_workDir, "config.json"));
-            string ownProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-            appConfig.AddBusinessSoftware(ownProcess);
-
-            var configWithApp = _config with { AppConfig = appConfig };
-            var save = MakeSave("diff");
-            var command = new Command
-            {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = SaveType.Differential,
-            };
-
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, configWithApp);
-
-            Assert.IsFalse(ok);
-            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Differential save must also be blocked when business software is detected");
-            ResetSingleton(typeof(AppConfig.AppConfig));
-        }
+        // The previous "Blocked when business software is running" tests were
+        // removed when the policy moved from 2.0 "interdire le lancement" to
+        // 3.0 "pause + auto-resume": a save with the test runner's process
+        // name in the watched list would now hang forever, waiting for the
+        // test runner to exit. The auto-resume path is verified manually
+        // (start a save, launch the calculator, watch the log).
 
         [TestMethod]
         public void Execute_NullSaveType_DefaultsToComplete()
