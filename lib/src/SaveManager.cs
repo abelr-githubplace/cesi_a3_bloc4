@@ -67,7 +67,23 @@ namespace SaveManager
 				var stopper = new SaveInterrupt.Stopper();
 				savers.Add(new Saver.Saver(saves[i], effectiveType, progresses[i], config, pauser, stopper));
 			}
-			foreach (var saver in savers) saver.Start();
+
+			// Cahier des charges 2.0 : en exécution séquentielle, si le logiciel
+			// métier est détecté entre deux saves, on n'enchaîne pas avec le
+			// suivant. La save en cours, elle, a déjà été interrompue toute
+			// seule par le check mid-loop dans Saver.Start (terminer le
+			// fichier en cours). On consigne les saves non lancées dans le log.
+			for (int i = 0; i < savers.Count; i++)
+			{
+				if (IsBusinessSoftwareRunning(config))
+				{
+					var remaining = new SaveInfo[saves.Length - i];
+					Array.Copy(saves, i, remaining, 0, remaining.Length);
+					LogBusinessSoftwareBlock(remaining, config);
+					return false;
+				}
+				savers[i].Start();
+			}
 			return true;
 		}
 
