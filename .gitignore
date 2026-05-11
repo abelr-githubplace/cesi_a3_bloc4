@@ -50,9 +50,8 @@ logger/obj
 logger/tests/bin
 logger/tests/obj
 
-# CryptoSoft (external binary, not versioned)
-CryptoSoft/
-
-# Crypto lib
+# Crypto
 crypto/bin
 crypto/obj
+crypto/tests/bin
+crypto/tests/obj

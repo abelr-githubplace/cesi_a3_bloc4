@@ -181,6 +181,9 @@ test: clean test-logger test-lib test-cli test-gui test-server test-remote
 test-logger: clean-logger ${DEBUG_LOGGER_PATH}
 	@-${TEST} logger/tests/
 
+test-crypto: clean-crypto ${DEBUG_CRYPTO_PATH}
+	@-${TEST} crypto/tests/
+
 test-lib: clean-lib ${DEBUG_LIBRARY_PATH}
 	@-${TEST} lib/tests/
 
