@@ -253,7 +253,7 @@
     <value>➕ Nouvelle Sauvegarde</value>
   </data>
   <data name="Options" xml:space="preserve">
-    <value>⚙️ Paramètre</value>
+    <value>⚙️ Paramètres</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Nom</value>
@@ -280,7 +280,7 @@
     <value>Supprimer</value>
   </data>
   <data name="RunSelected" xml:space="preserve">
-    <value>▶  Executer Sélectioner</value>
+    <value>▶  Executer Sélectionnés</value>
   </data>
   <data name="RunAll" xml:space="preserve">
     <value>▶▶  Executer Tous</value>
@@ -322,7 +322,7 @@
     <value>Ajouter</value>
   </data>
   <data name="Finish" xml:space="preserve">
-    <value>Terminer</value>
+    <value>Terminé</value>
   </data>
   <data name="Close" xml:space="preserve">
     <value>Fermer</value>
