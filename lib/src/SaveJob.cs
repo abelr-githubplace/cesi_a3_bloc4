@@ -33,16 +33,33 @@ namespace Job
             Priority = priority;
         }
 
-        protected long CopyFile()
+        // onProgress, if non-null, is invoked periodically during the copy
+        // with the number of bytes written so far (cumulative). Replaces the
+        // atomic File.Copy with a streaming loop so the GUI ProgressBar can
+        // tick during the transfer of very large files (e.g. a single 6 GB
+        // archive would otherwise jump from 0 to 100 in one shot).
+        protected long CopyFile(Action<long>? onProgress = null)
         {
             if (!File.Exists(SourceFile)) return 0;
 
-            // Create parent directory
             string? destDir = Path.GetDirectoryName(DestinationFile);
             if (destDir == null) return 0;
-            if (destDir != null && !Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
+            if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
 
-            File.Copy(SourceFile, DestinationFile, true);
+            const int BufferSize = 81920; // 80 KB — same value System.IO.Stream.CopyTo uses.
+            using (var src = new FileStream(SourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize))
+            using (var dst = new FileStream(DestinationFile, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize))
+            {
+                var buffer = new byte[BufferSize];
+                long totalCopied = 0;
+                int read;
+                while ((read = src.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    dst.Write(buffer, 0, read);
+                    totalCopied += read;
+                    onProgress?.Invoke(totalCopied);
+                }
+            }
             return new FileInfo(DestinationFile).Length;
         }
 
@@ -58,7 +75,7 @@ namespace Job
             }
         }
 
-        public abstract long Execute(EncryptionContext? ctx = null);
+        public abstract long Execute(EncryptionContext? ctx = null, Action<long>? onProgress = null);
 
         // Decrypt a copy of `path` to a sibling temp so we can compare or read
         // its plaintext bytes without disturbing the encrypted backup on disk.
@@ -80,10 +97,10 @@ namespace Job
         // as the source. If the destination is encrypted at rest, we have to
         // decrypt a temp copy first — otherwise we'd be hashing AES bytes against
         // plaintext source bytes and would always end up re-copying.
-        public override long Execute(EncryptionContext? ctx = null)
+        public override long Execute(EncryptionContext? ctx = null, Action<long>? onProgress = null)
         {
             if (!File.Exists(SourceFile)) return 0;
-            if (!File.Exists(DestinationFile)) return CopyFile();
+            if (!File.Exists(DestinationFile)) return CopyFile(onProgress);
 
             bool destEncrypted = ctx != null && ctx.ShouldEncrypt(DestinationFile);
             string compareTarget = DestinationFile;
@@ -97,9 +114,14 @@ namespace Job
 
                 string sourceHash = ComputeSha256(SourceFile);
                 string destHash = ComputeSha256(compareTarget);
-                if (sourceHash == destHash) return FileSize; // no-op, file unchanged
+                if (sourceHash == destHash) {
+                    // Unchanged file: still report 100% of this file so the
+                    // GUI ticks forward even when nothing was copied.
+                    onProgress?.Invoke(FileSize);
+                    return FileSize;
+                }
 
-                return CopyFile();
+                return CopyFile(onProgress);
             }
             finally
             {
@@ -317,9 +339,9 @@ namespace Job
             }
         }
 
-        public override long Execute(EncryptionContext? ctx = null)
+        public override long Execute(EncryptionContext? ctx = null, Action<long>? onProgress = null)
         {
-            if (!File.Exists(DestinationFile)) return CopyFile();
+            if (!File.Exists(DestinationFile)) return CopyFile(onProgress);
 
             // If the on-disk destination is encrypted, the diff has to be
             // generated against its plaintext, otherwise the rolling-hash
@@ -337,7 +359,10 @@ namespace Job
 
                 string sourceHash = ComputeSha256(SourceFile);
                 string destHash = ComputeSha256(oldRef);
-                if (sourceHash == destHash) return FileSize;
+                if (sourceHash == destHash) {
+                    onProgress?.Invoke(FileSize);
+                    return FileSize;
+                }
 
                 // Snapshot the prior destination (plaintext) as a sidecar diff
                 // before overwriting, so a future restore can reconstruct the
@@ -351,7 +376,7 @@ namespace Job
                 if (destEncrypted)
                     EasyCrypt.Crypter.EncryptFile(diffFile, ctx!.Key, ctx!.CryptoSoftPath);
 
-                return CopyFile();
+                return CopyFile(onProgress);
             }
             finally
             {

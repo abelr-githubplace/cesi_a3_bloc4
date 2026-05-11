@@ -68,6 +68,13 @@ namespace Saver
         public bool IsPaused => !_gate.IsSet;
         public bool IsStopped => _cts.IsCancellationRequested;
 
+        // Fired when the worker enters / leaves the "waiting for business
+        // software to stop" loop. The GUI uses these to flip a job's State
+        // label to "logiciel métier détecté" without confusing it with a
+        // user-initiated pause.
+        public event System.Action? BusinessSoftwarePauseStarted;
+        public event System.Action? BusinessSoftwarePauseEnded;
+
         // Internal listeners. Private nested classes so each Saver has its
         // own ISubscriber identity — the publisher dispatches by target
         // without needing a payload on Update().
@@ -199,6 +206,7 @@ namespace Saver
                 {
                     LogBusinessSoftwareInterrupt();
                     PersistRunningState(i, copiedTotalBytes, Status.Paused);
+                    BusinessSoftwarePauseStarted?.Invoke();
 
                     while (IsBusinessSoftwareDetected())
                     {
@@ -206,16 +214,40 @@ namespace Saver
                         try { Task.Delay(1000, _cts.Token).Wait(); }
                         catch (Exception) { break; }
                     }
-                    if (_cts.IsCancellationRequested) break;
+                    if (_cts.IsCancellationRequested)
+                    {
+                        BusinessSoftwarePauseEnded?.Invoke();
+                        break;
+                    }
 
                     LogBusinessSoftwareResume();
                     PersistRunningState(i, copiedTotalBytes, Status.Active);
+                    BusinessSoftwarePauseEnded?.Invoke();
                 }
 
                 var job = Jobs[i];
 
+                // Stream-aware progress: jobs invoke this with the cumulative
+                // bytes written for the current file. We add the bytes already
+                // committed by previous files to get the overall percent, and
+                // throttle Notify() to ~1% increments so a 6 GB file produces
+                // ~100 UI updates instead of tens of thousands.
+                long bytesAtFileStart = copiedTotalBytes;
+                int lastReportedPct = -1;
+                Action<long> onJobProgress = (bytesInFile) =>
+                {
+                    long total = bytesAtFileStart + bytesInFile;
+                    float pct = TotalSize <= 0 ? 100f : Math.Clamp(((float)total / (float)TotalSize) * 100f, 0f, 100f);
+                    int pctInt = (int)pct;
+                    if (pctInt > lastReportedPct)
+                    {
+                        lastReportedPct = pctInt;
+                        Progress.SetProgress(pct);
+                    }
+                };
+
                 var beginTime = DateTime.Now;
-                long copiedSize = job.Execute(BuildEncryptionContext());
+                long copiedSize = job.Execute(BuildEncryptionContext(), onJobProgress);
                 endTime = DateTime.Now;
 
                 if (copiedSize != job.FileSize) /* Error : does nothing for now, should be handled later on */;

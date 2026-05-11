@@ -148,7 +148,11 @@ namespace EasySave.GUI.ViewModels
                     DestinationPath = editorVM.TargetPath
                 };
 
-                SaveJobs.Add(new SaveJob(newSaveInfo));
+                var newJob = new SaveJob(newSaveInfo) { Type = editorVM.Type };
+                SaveJobs.Add(newJob);
+
+                // Persist to state.json so the new save survives a restart.
+                _stateManager.Save(BuildInitialState(newSaveInfo));
             }
         }
 
@@ -160,7 +164,26 @@ namespace EasySave.GUI.ViewModels
             var editorVM = new SaveEditor(jobToEdit);
             var window = new SaveEditorWindow { DataContext = editorVM };
 
-            if (window.ShowDialog() == true) { }
+            if (window.ShowDialog() == true)
+            {
+                // The old StateManager entry is keyed on the previous Name —
+                // remove it first so a rename doesn't leave a ghost entry.
+                _stateManager.Delete(jobToEdit.Name);
+
+                // Mutate the SaveJob in place so the DataGrid row refreshes
+                // (each setter raises OnPropertyChanged).
+                jobToEdit.Name = editorVM.Name;
+                jobToEdit.SourcePath = editorVM.SourcePath;
+                jobToEdit.TargetPath = editorVM.TargetPath;
+                jobToEdit.Type = editorVM.Type;
+
+                // SaveInfo is a record (immutable), so rebuild it with the
+                // updated fields and replace the SaveJob's Model reference
+                // via reflection of the public setter pattern: SaveJob
+                // exposes GetUpdatedModel() for this purpose.
+                var updated = jobToEdit.GetUpdatedModel();
+                _stateManager.Save(BuildInitialState(updated));
+            }
         }
 
         private void DeleteJob(object parameter)
@@ -168,9 +191,25 @@ namespace EasySave.GUI.ViewModels
             var job = parameter as SaveJob;
             if (job != null)
             {
+                // Persist the deletion so the entry doesn't reappear on next start.
+                _stateManager.Delete(job.Name);
                 SaveJobs.Remove(job);
             }
         }
+
+        // Build a SaveState for a freshly-added or just-edited save: Inactive
+        // status, no ActiveStateInfo, timestamp = now. The Saver will overwrite
+        // this with live progress data as soon as it starts running.
+        private SaveState BuildInitialState(SaveInfo info) => new SaveState
+        {
+            Id = info.SaveId,
+            Name = info.SaveName,
+            SourcePath = info.SourcePath,
+            DestinationPath = info.DestinationPath,
+            LastActionTime = DateTime.Now,
+            Status = Status.Inactive,
+            ActiveStateInfo = null,
+        };
 
         private void OpenOptions()
         {
@@ -273,6 +312,21 @@ namespace EasySave.GUI.ViewModels
                 // The Saver subscribes its two internal listeners to the
                 // Pauser and Stopper in its constructor.
                 var saver = new Saver.Saver(job.Model, saveType, progress, _config, pauser, stopper);
+
+                // Surface the "auto-paused by business software" transition to
+                // the user, so the State column shows a dedicated label instead
+                // of staying on "Running" while the worker is actually waiting.
+                // Distinct from the user-initiated pause label ("Break").
+                saver.BusinessSoftwarePauseStarted += () =>
+                {
+                    job.State = TranslationSource.Instance["BusinessPaused"];
+                };
+                saver.BusinessSoftwarePauseEnded += () =>
+                {
+                    // Only flip back to Running if Stop wasn't pressed during the wait.
+                    if (!saver.IsStopped)
+                        job.State = TranslationSource.Instance["Running"];
+                };
 
                 lock (_activeSavers)
                 {

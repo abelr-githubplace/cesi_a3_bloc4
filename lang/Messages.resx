@@ -327,4 +327,7 @@
   <data name="Close" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="BusinessPaused" xml:space="preserve">
+    <value>Business software detected</value>
+  </data>
 </root>
