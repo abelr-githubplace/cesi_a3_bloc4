@@ -15,7 +15,13 @@ namespace EasySave.GUI.ViewModels
             _sourcePath = model.SourcePath;
             _targetPath = model.DestinationPath;
         }
-
+        
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { _isSelected = value; OnPropertyChanged(); }
+        }
 
         private string _name;
         public string Name
@@ -59,16 +65,10 @@ namespace EasySave.GUI.ViewModels
             get => _type;
             set { _type = value; OnPropertyChanged(); }
         }
-
-        // --- Méthode utilitaire (Optionnelle) ---
-
-        // Si plus tard tu as besoin de renvoyer un objet SaveInfo mis à jour à ta lib
-        // (par exemple lors de l'édition d'une sauvegarde), tu peux utiliser cette méthode :
         public SaveInfo GetUpdatedModel()
         {
             return new SaveInfo
             {
-                // On recrée un objet SaveInfo proprement avec les nouvelles valeurs
                 SaveId = Model.SaveId,
                 SaveName = this.Name,
                 SourcePath = this.SourcePath,

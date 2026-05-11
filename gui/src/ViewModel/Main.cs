@@ -21,8 +21,7 @@ namespace EasySave.GUI.ViewModels
     {
         private StateManager.StateManager _stateManager;
         private Config _config;
-        private AppConfig.AppConfig _appConfig; // Gestionnaire du Logiciel Métier
-
+        private AppConfig.AppConfig _appConfig;
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
 
         private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
@@ -55,27 +54,46 @@ namespace EasySave.GUI.ViewModels
             {
                 Logger = logger,
                 StateManager = _stateManager,
-                LogFormat = EasyLog.LogFormat.JSON, // Par défaut
-                AppConfig = _appConfig              // On attache la gestion du logiciel métier
+                LogFormat = EasyLog.LogFormat.JSON,
+                AppConfig = _appConfig
             };
-
-            // On met à jour "_config" dès le démarrage avec les préférences JSON
             ApplySettingsFromOptions();
 
             SaveJobs = new ObservableCollection<SaveJob>();
             LoadJobs();
 
             AddJobCommand = new RelayCommand(o => AddJob());
+
             EditJobCommand = new RelayCommand(EditJob, o => SelectedJob != null);
             DeleteJobCommand = new RelayCommand(DeleteJob, o => SelectedJob != null);
+
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
-            RunSelectedJobCommand = new RelayCommand(o => RunJob(SelectedJob), o => SelectedJob != null);
+
+            RunSelectedJobCommand = new RelayCommand(ExecuteRunSelectedJobs, CanExecuteRunSelectedJobs);
+
             RunAllJobsCommand = new RelayCommand(o => RunAllJobs(), o => SaveJobs.Any());
 
             PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
             PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
             StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
         }
+
+        private void ExecuteRunSelectedJobs(object parameter)
+        {
+            var jobsToRun = SaveJobs.Where(job => job.IsSelected).ToList();
+
+            foreach (var job in jobsToRun)
+            {
+                RunJob(job);
+            }
+        }
+
+        private bool CanExecuteRunSelectedJobs(object parameter)
+        {
+            if (SaveJobs == null) return false;
+            return SaveJobs.Any(job => job.IsSelected);
+        }
+
         private void ApplySettingsFromOptions()
         {
             try
@@ -115,12 +133,10 @@ namespace EasySave.GUI.ViewModels
                                                       .Select(e => e.Trim())
                                                       .Where(e => !string.IsNullOrEmpty(e))
                                                       .ToList();
-
-                        // TODO: ajouter ExtensionsToEncrypt dans SaveManager.Config,assigner ici avec "_config = _config with { EncryptionExtensions = extensionList };"
                     }
                 }
             }
-            catch (Exception) {}
+            catch (Exception) { }
         }
 
         private void LoadJobs()
@@ -239,10 +255,12 @@ namespace EasySave.GUI.ViewModels
             if (job.State == TranslationSource.Instance["Running"]) return;
 
             job.State = TranslationSource.Instance["Running"];
+            job.Progress = 0f;
 
             await Task.Run(() =>
             {
                 var progress = new Saver.Progress();
+                var updater = new GuiProgressBar(job, progress);
 
                 var saveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential;
                 var saver = new Saver.Saver(job.Model, saveType, progress, _config);
@@ -262,6 +280,11 @@ namespace EasySave.GUI.ViewModels
                 if (job.State == TranslationSource.Instance["Running"])
                 {
                     job.State = saver.IsStopped ? TranslationSource.Instance["Stopped"] : TranslationSource.Instance["Finish"];
+
+                    if (job.State == TranslationSource.Instance["Finish"])
+                    {
+                        job.Progress = 100f;
+                    }
                 }
             });
         }

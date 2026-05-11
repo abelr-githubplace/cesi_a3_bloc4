@@ -4,10 +4,106 @@
         xmlns:lang="clr-namespace:EasySave.lang"
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OptionMenuTitle]}" 
-        Height="280" Width="450"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        Height="320" Width="500"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#f2fcff" Foreground="Black">
 
-    <Grid Margin="15">
+    <Window.Resources>
+        <SolidColorBrush x:Key="MainBlue" Color="#aadff0"/>
+        <SolidColorBrush x:Key="Background" Color="#f2fcff"/>
+        <SolidColorBrush x:Key="DarkerBlue" Color="#6e909b"/>
+        <SolidColorBrush x:Key="DarkestBlue" Color="#324146"/>
+        <SolidColorBrush x:Key="Black" Color="Black"/>
+        <SolidColorBrush x:Key="White" Color="White"/>
+        <SolidColorBrush x:Key="CTA" Color="#f0bbaa"/>
+
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="{StaticResource Black}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource White}"/>
+            <Setter Property="Foreground" Value="{StaticResource Black}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource DarkerBlue}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="3"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+            <Border x:Name="Border" Background="{StaticResource White}" BorderBrush="{StaticResource DarkerBlue}" BorderThickness="1" CornerRadius="3">
+                <Path x:Name="Arrow" Fill="{StaticResource Black}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" Data="M0,0 L8,0 L4,5 Z"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="{StaticResource MainBlue}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{StaticResource Black}"/>
+            <Setter Property="Background" Value="{StaticResource White}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton" Template="{StaticResource ComboBoxToggleButton}" Focusable="false" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press"/>
+                            <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="10,5,30,5" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                <Border x:Name="DropDownBorder" Background="{StaticResource White}" BorderThickness="1" BorderBrush="{StaticResource DarkerBlue}" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{StaticResource White}"/>
+            <Setter Property="Foreground" Value="{StaticResource Black}"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource MainBlue}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Black}"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource DarkerBlue}"/>
+                    <Setter Property="Foreground" Value="{StaticResource White}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource DarkerBlue}"/>
+            <Setter Property="Foreground" Value="{StaticResource White}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="4"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -17,40 +113,40 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="180"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ChooseLanguage]}"/>
-        <ComboBox Grid.Row="0" Grid.Column="1" SelectedValue="{Binding language}" SelectedValuePath="Content" Margin="0,0,0,10">
+        <ComboBox Grid.Row="0" Grid.Column="1" SelectedValue="{Binding language}" SelectedValuePath="Content" Margin="0,0,0,15">
             <ComboBoxItem Content="FR"/>
             <ComboBoxItem Content="EN"/>
         </ComboBox>
 
         <Label Grid.Row="1" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LogFormat]}"/>
-        <ComboBox Grid.Row="1" Grid.Column="1" SelectedValue="{Binding LogFormat}" SelectedValuePath="Content" Margin="0,0,0,10">
+        <ComboBox Grid.Row="1" Grid.Column="1" SelectedValue="{Binding LogFormat}" SelectedValuePath="Content" Margin="0,0,0,15">
             <ComboBoxItem Content="JSON"/>
             <ComboBoxItem Content="XML"/>
             <ComboBoxItem Content="TXT"/>
         </ComboBox>
 
         <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[BuisinessSoftware]}"/>
-        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
+        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="35"/>
+                <ColumnDefinition Width="40"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Text="{Binding BusinessSoftwareName, UpdateSourceTrigger=PropertyChanged}" 
-                     ToolTip="Ex: C:\Windows\System32\calc.exe" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <Button Grid.Column="1" Content="..." Command="{Binding BrowseSoftwareCommand}" Padding="0,-2,0,0"/>
+                     ToolTip="Ex: C:\Windows\System32\calc.exe" Margin="0,0,10,0"/>
+            <Button Grid.Column="1" Content="..." Command="{Binding BrowseSoftwareCommand}" Padding="5" />
         </Grid>
 
         <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ExtensionsToEncrypt]}"/>
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExtensionsToEncrypt}" 
-                 ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,10" VerticalAlignment="Center"/>
+                 ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,15"/>
 
-        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Fermer" Click="Close_Click" Width="75"/>
+        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Fermer" Click="Close_Click" MinWidth="100"/>
         </StackPanel>
     </Grid>
 </Window>
