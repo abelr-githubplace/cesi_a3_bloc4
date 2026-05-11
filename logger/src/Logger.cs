@@ -16,22 +16,27 @@ namespace EasyLog
         public required long FileSize { get; init; }        // bytes
         public required int TransferTime { get; init; }     // milliseconds
 
-        private string TextFormat() {
+        private string TextFormat()
+        {
             return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
                 $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms";
         }
 
-        private string XMLFormat() {
-            return $"<Date>{this.DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
-                $"<Name>{SaveName}</Name>" +
-                $"<Action>{Action}</Action>" +
-                $"<Source>{SourceFile}</Source>" +
-                $"<Target>{DestinationFile}</Target>" +
-                $"<FileSize>{FileSize}</FileSize>" +
-                $"<TransferTime>{TransferTime}</TransferTime>";
+        private string XMLFormat()
+        {
+            return $"<log>\n" +
+                $"  <Date>{this.DateTime:dd-MM-yyyy HH:mm:ss}</Date>\n" +
+                $"  <Name>{SaveName}</Name>\n" +
+                $"  <Action>{Action}</Action>\n" +
+                $"  <Source>{SourceFile}</Source>\n" +
+                $"  <Target>{DestinationFile}</Target>\n" +
+                $"  <FileSize>{FileSize}</FileSize>\n" +
+                $"  <TransferTime>{TransferTime}</TransferTime>\n" +
+                $"</log>";
         }
 
-        private string JSONFormat() {
+        private string JSONFormat()
+        {
             var JsonLog = new
             {
                 Date = this.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
@@ -45,8 +50,10 @@ namespace EasyLog
             return JsonSerializer.Serialize(JsonLog);
         }
 
-        public string Format(LogFormat format) {
-            switch (format) {
+        public string Format(LogFormat format)
+        {
+            switch (format)
+            {
                 case LogFormat.Text: return TextFormat();
                 case LogFormat.XML: return XMLFormat();
                 case LogFormat.JSON: return JSONFormat();
@@ -60,11 +67,19 @@ namespace EasyLog
         private static Logger? s_instance;
         private static readonly object s_lock = new object();
 
+        private static readonly object s_fileLock = new object();
+
         private readonly string _outputFile;
 
         private Logger(string outputFile)
         {
             _outputFile = outputFile;
+
+            string? directory = Path.GetDirectoryName(_outputFile);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
         }
 
         public static Logger Get(string outputFile)
@@ -78,12 +93,21 @@ namespace EasyLog
             }
             return s_instance;
         }
-
         public void Log(string log)
         {
-            using (StreamWriter writer = new StreamWriter(_outputFile, true))
+            lock (s_fileLock)
             {
-                writer.WriteLine(log);
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(_outputFile, true))
+                    {
+                        writer.WriteLine(log);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur d'écriture log : {ex.Message}");
+                }
             }
         }
     }
