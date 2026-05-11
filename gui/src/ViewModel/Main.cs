@@ -233,17 +233,9 @@ namespace EasySave.GUI.ViewModels
             if (job == null) return;
             if (job.State == TranslationSource.Instance["Running"]) return;
 
-            // Cahier des charges 2.0 : interdire le lancement si un logiciel
-            // métier tourne, et tracer l'arrêt dans le journal. Le check vit
-            // ici (et pas seulement dans SaveManager) parce que la GUI
-            // contourne SaveManager.Save en instanciant un Saver directement.
-            if (SaveManager.SaveManager.IsBusinessSoftwareRunning(_config))
-            {
-                SaveManager.SaveManager.LogBusinessSoftwareBlock(new[] { job.Model }, _config);
-                job.State = TranslationSource.Instance["Stopped"];
-                return;
-            }
-
+            // 3.0-style: no upfront block on business software. The Saver
+            // polls between files and auto-pauses/resumes itself, so the
+            // GUI launches every job regardless of detection state.
             job.State = TranslationSource.Instance["Running"];
 
             await Task.Run(() =>

@@ -189,14 +189,27 @@ namespace Saver
                 }
                 if (_cts.IsCancellationRequested) break;
 
-                // Cahier des charges 2.0 : "Dans le cas de travaux séquentiels,
-                // le logiciel doit terminer la sauvegarde du fichier en cours" —
-                // donc le check tombe entre fichiers, comme la pause.
-                if (i > 0 && IsBusinessSoftwareDetected())
+                // Business software pause point. 3.0-style auto-pause/resume:
+                // if a watched process is running, log + persist a Paused
+                // state, then poll every second until it stops, then log +
+                // persist a resume. The check sits between files so the
+                // in-progress file always completes (cahier des charges
+                // "terminer le fichier en cours").
+                if (IsBusinessSoftwareDetected())
                 {
                     LogBusinessSoftwareInterrupt();
-                    PersistRunningState(i, copiedTotalBytes, Status.Inactive);
-                    return;
+                    PersistRunningState(i, copiedTotalBytes, Status.Paused);
+
+                    while (IsBusinessSoftwareDetected())
+                    {
+                        if (_cts.IsCancellationRequested) break;
+                        try { Task.Delay(1000, _cts.Token).Wait(); }
+                        catch (Exception) { break; }
+                    }
+                    if (_cts.IsCancellationRequested) break;
+
+                    LogBusinessSoftwareResume();
+                    PersistRunningState(i, copiedTotalBytes, Status.Active);
                 }
 
                 var job = Jobs[i];
@@ -310,9 +323,25 @@ namespace Saver
                     SaveName = Name,
                     SourceFile = SourcePath,
                     DestinationFile = DestinationPath,
-                    Action = "BUSINESS_SOFTWARE_STOP:" + detected,
+                    Action = "BUSINESS_SOFTWARE_PAUSE:" + detected,
                     FileSize = 0,
                     TransferTime = -1,
+                }.Format(_config.LogFormat)
+            );
+        }
+
+        private void LogBusinessSoftwareResume()
+        {
+            _config.Logger.Log(
+                new EasyLog.LogInfo
+                {
+                    DateTime = DateTime.Now,
+                    SaveName = Name,
+                    SourceFile = SourcePath,
+                    DestinationFile = DestinationPath,
+                    Action = "BUSINESS_SOFTWARE_RESUME",
+                    FileSize = 0,
+                    TransferTime = 0,
                 }.Format(_config.LogFormat)
             );
         }

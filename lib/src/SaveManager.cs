@@ -48,13 +48,6 @@ namespace SaveManager
 		{
             if (saves.Length != progresses.Length) return false;
             SaveType effectiveType = saveType ?? SaveType.Complete;
-            // 2.0: business software detected => any save type is blocked.
-            // The stop must be consigned in the daily log.
-            if (IsBusinessSoftwareRunning(config))
-            {
-                LogBusinessSoftwareBlock(saves, config);
-                return false;
-            }
 
 			var savers = new List<Saver.Saver>();
 			for (int i = 0; i < saves.Length; i++)
@@ -68,22 +61,12 @@ namespace SaveManager
 				savers.Add(new Saver.Saver(saves[i], effectiveType, progresses[i], config, pauser, stopper));
 			}
 
-			// Cahier des charges 2.0 : en exécution séquentielle, si le logiciel
-			// métier est détecté entre deux saves, on n'enchaîne pas avec le
-			// suivant. La save en cours, elle, a déjà été interrompue toute
-			// seule par le check mid-loop dans Saver.Start (terminer le
-			// fichier en cours). On consigne les saves non lancées dans le log.
-			for (int i = 0; i < savers.Count; i++)
-			{
-				if (IsBusinessSoftwareRunning(config))
-				{
-					var remaining = new SaveInfo[saves.Length - i];
-					Array.Copy(saves, i, remaining, 0, remaining.Length);
-					LogBusinessSoftwareBlock(remaining, config);
-					return false;
-				}
-				savers[i].Start();
-			}
+			// 3.0-style: each Saver polls the business-software state between
+			// files and auto-pauses/resumes itself. The sequential foreach
+			// therefore blocks on a Saver only as long as that Saver is
+			// waiting for the business software to clear — the queue
+			// progresses naturally once it does.
+			foreach (var saver in savers) saver.Start();
 			return true;
 		}
 
