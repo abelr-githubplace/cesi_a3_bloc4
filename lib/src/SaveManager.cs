@@ -58,7 +58,15 @@ namespace SaveManager
 
 			var savers = new List<Saver.Saver>();
 			for (int i = 0; i < saves.Length; i++)
-				savers.Add(new Saver.Saver(saves[i], effectiveType, progresses[i], config));
+			{
+				// Synchronous in-process path: the caller doesn't need to control
+				// these savers, so each one gets throwaway publishers it can
+				// subscribe to. They're never fired, the worker just runs to
+				// completion.
+				var pauser = new SaveInterrupt.Pauser();
+				var stopper = new SaveInterrupt.Stopper();
+				savers.Add(new Saver.Saver(saves[i], effectiveType, progresses[i], config, pauser, stopper));
+			}
 			foreach (var saver in savers) saver.Start();
 			return true;
 		}
@@ -132,15 +140,22 @@ namespace SaveManager
 			return true;
 		}
 
-		// Non-blocking factory for callers that need control handles (Pause/Resume/Stop)
-		// while saves run on a background thread — the future GUI is the intended user.
-		public static Saver.Saver[] CreateSavers(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
+		// Non-blocking factory for callers (the GUI) that need control handles
+		// to Pause/Resume/Stop a save while it runs on a background thread.
+		// Each Saver is paired with its own Pauser and Stopper; the GUI keeps
+		// them around and fires signals when the user clicks the buttons.
+		public static (Saver.Saver, SaveInterrupt.Pauser, SaveInterrupt.Stopper)[] CreateSavers(SaveInfo[] saves, SaveType? saveType, Progress[] progresses, Config config)
 		{
-			if (saves.Length != progresses.Length) return Array.Empty<Saver.Saver>();
-			var savers = new Saver.Saver[saves.Length];
+			if (saves.Length != progresses.Length) return Array.Empty<(Saver.Saver, SaveInterrupt.Pauser, SaveInterrupt.Stopper)>();
+			var triples = new (Saver.Saver, SaveInterrupt.Pauser, SaveInterrupt.Stopper)[saves.Length];
 			for (int i = 0; i < saves.Length; i++)
-				savers[i] = new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config);
-			return savers;
+			{
+				var pauser = new SaveInterrupt.Pauser();
+				var stopper = new SaveInterrupt.Stopper();
+				var saver = new Saver.Saver(saves[i], saveType ?? SaveType.Complete, progresses[i], config, pauser, stopper);
+				triples[i] = (saver, pauser, stopper);
+			}
+			return triples;
 		}
 
 		public static Saver.Restorer[] CreateRestorers(SaveInfo[] saves, Progress[] progresses, Config? config = null)

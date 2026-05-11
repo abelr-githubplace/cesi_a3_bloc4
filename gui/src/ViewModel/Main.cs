@@ -22,7 +22,12 @@ namespace EasySave.GUI.ViewModels
         private AppConfig.AppConfig _appConfig;
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
 
-        private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
+        // Per-job interrupt handles. The Saver lives on the worker thread; the
+        // Pauser and Stopper are what the UI thread holds onto so the
+        // Play/Pause/Stop buttons can emit signals without ever touching the
+        // Saver directly.
+        private readonly Dictionary<SaveJob, (Saver.Saver Saver, SaveInterrupt.Pauser Pauser, SaveInterrupt.Stopper Stopper)> _activeSavers
+            = new Dictionary<SaveJob, (Saver.Saver, SaveInterrupt.Pauser, SaveInterrupt.Stopper)>();
 
         private SaveJob? _selectedJob;
         public SaveJob? SelectedJob
@@ -184,9 +189,12 @@ namespace EasySave.GUI.ViewModels
                 {
                     lock (_activeSavers)
                     {
-                        if (_activeSavers.TryGetValue(job, out var saver))
+                        if (_activeSavers.TryGetValue(job, out var entry))
                         {
-                            saver.Resume();
+                            // Resume signal goes through the observer chain:
+                            // pauser.Resume() -> Pauser.Notify()
+                            // -> PauseListener.Update() -> _gate.Set() inside the Saver.
+                            entry.Pauser.Resume();
                             job.State = TranslationSource.Instance["Running"];
                         }
                     }
@@ -204,9 +212,9 @@ namespace EasySave.GUI.ViewModels
             {
                 lock (_activeSavers)
                 {
-                    if (_activeSavers.TryGetValue(job, out var saver))
+                    if (_activeSavers.TryGetValue(job, out var entry))
                     {
-                        saver.Pause();
+                        entry.Pauser.Pause();
                         job.State = TranslationSource.Instance["Break"];
                     }
                 }
@@ -219,13 +227,28 @@ namespace EasySave.GUI.ViewModels
             {
                 lock (_activeSavers)
                 {
-                    if (_activeSavers.TryGetValue(job, out var saver))
+                    if (_activeSavers.TryGetValue(job, out var entry))
                     {
-                        saver.Stop();
+                        entry.Stopper.Stop();
                         job.State = TranslationSource.Instance["Stopped"];
                     }
                 }
             }
+        }
+
+        // Convenience: broadcast to every running save. Useful for a future
+        // "Pause all" / "Stop all" toolbar — firing a Pauser or a Stopper is
+        // just a Notify() so the cost is negligible.
+        public void PauseAll()
+        {
+            lock (_activeSavers)
+                foreach (var entry in _activeSavers.Values) entry.Pauser.Pause();
+        }
+
+        public void StopAll()
+        {
+            lock (_activeSavers)
+                foreach (var entry in _activeSavers.Values) entry.Stopper.Stop();
         }
 
         private async Task RunJob(SaveJob? job)
@@ -251,13 +274,17 @@ namespace EasySave.GUI.ViewModels
             {
                 var progress = new Saver.Progress();
                 var updater = new GuiProgressBar(job, progress);
+                var pauser = new SaveInterrupt.Pauser();
+                var stopper = new SaveInterrupt.Stopper();
 
                 var saveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential;
-                var saver = new Saver.Saver(job.Model, saveType, progress, _config);
+                // The Saver subscribes its two internal listeners to the
+                // Pauser and Stopper in its constructor.
+                var saver = new Saver.Saver(job.Model, saveType, progress, _config, pauser, stopper);
 
                 lock (_activeSavers)
                 {
-                    _activeSavers[job] = saver;
+                    _activeSavers[job] = (saver, pauser, stopper);
                 }
 
                 saver.Start();
