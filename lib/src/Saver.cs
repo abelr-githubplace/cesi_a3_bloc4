@@ -2,6 +2,7 @@ using SaveManager;
 using StateManager;
 using Job;
 using Observer;
+using SaveInterrupt;
 
 namespace Saver
 {
@@ -56,19 +57,51 @@ namespace Saver
         protected List<SaveJob> Jobs;
         private Config _config;
 
-        // gate is set => "go", reset => "paused". Stop cancels the token AND opens
-        // the gate, so a worker waiting on the gate immediately observes cancellation.
+        // Cooperative pause/stop primitives. ManualResetEventSlim is set ("go") by
+        // default and reset ("paused") by the PauseListener; Wait() suspends the
+        // worker thread for free instead of polling. The CTS is only used to wake
+        // a Wait() that's blocked in the paused state when a Stop arrives — it
+        // doesn't interrupt an in-progress file copy.
         private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
         public bool IsPaused => !_gate.IsSet;
         public bool IsStopped => _cts.IsCancellationRequested;
 
-        public void Pause() => _gate.Reset();
-        public void Resume() => _gate.Set();
-        public void Stop() { _cts.Cancel(); _gate.Set(); }
+        // Internal listeners. Private nested classes so each Saver has its
+        // own ISubscriber identity — the publisher dispatches by target
+        // without needing a payload on Update().
+        //
+        // The PauseListener doesn't toggle the gate blindly: it reads its
+        // Pauser's IsPaused flag and mirrors it. That way every Saver
+        // subscribed to the same Pauser stays in sync, regardless of when
+        // it was attached.
+        private class PauseListener : ISubscriber
+        {
+            private readonly Saver _owner;
+            private readonly Pauser _pauser;
+            public PauseListener(Saver owner, Pauser pauser) { _owner = owner; _pauser = pauser; }
+            public void Update()
+            {
+                if (_pauser.IsPaused) _owner._gate.Reset();
+                else _owner._gate.Set();
+            }
+        }
 
-        public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config)
+        private class StopListener : ISubscriber
+        {
+            private readonly Saver _owner;
+            public StopListener(Saver owner) { _owner = owner; }
+            public void Update()
+            {
+                _owner._cts.Cancel();
+                // Wake any worker currently sleeping in _gate.Wait() so it can
+                // observe cancellation and break out.
+                _owner._gate.Set();
+            }
+        }
+
+        public Saver(SaveInfo save, SaveType saveType, Progress progress, Config config, Pauser pauser, Stopper stopper)
         {
             Id = save.SaveId;
             Name = save.SaveName;
@@ -76,6 +109,14 @@ namespace Saver
             DestinationPath = save.DestinationPath;
             Progress = progress;
             _config = config;
+
+            // Plug the two internal listeners into the publishers. From now on
+            // pause/resume/stop are driven exclusively through the observer chain:
+            //   pauser.Pause()  -> Notify() -> PauseListener.Update() -> _gate.Reset()
+            //   pauser.Resume() -> Notify() -> PauseListener.Update() -> _gate.Set()
+            //   stopper.Stop()  -> Notify() -> StopListener.Update()  -> _cts.Cancel()
+            pauser.Subscribe(new PauseListener(this, pauser));
+            stopper.Subscribe(new StopListener(this));
 
             Jobs = new List<SaveJob>();
             FilesWithSizes = new Dictionary<string, long>();
@@ -304,6 +345,11 @@ namespace Saver
         }
     }
 
+    // Restorer is intentionally NOT wired into the observer-based pause/stop
+    // system for now. It runs straight through. When the team is ready to
+    // extend the Pause/Stop control surface to restores, the same pattern as
+    // Saver applies: take a Pauser and a Stopper in the ctor, subscribe two
+    // listeners, gate the loop between files.
     public class Restorer
     {
         public Guid Id { get; }
@@ -317,16 +363,6 @@ namespace Saver
         // Optional. When null, restore is a plain CopyBack with no decryption —
         // matches the legacy behavior for callers that don't care about crypto.
         private readonly Config? _config;
-
-        private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
-        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
-
-        public bool IsPaused => !_gate.IsSet;
-        public bool IsStopped => _cts.IsCancellationRequested;
-
-        public void Pause() => _gate.Reset();
-        public void Resume() => _gate.Set();
-        public void Stop() { _cts.Cancel(); _gate.Set(); }
 
         public Restorer(SaveInfo save, Progress progress) : this(save, progress, null) { }
 
@@ -381,13 +417,6 @@ namespace Saver
             long restoredTotalBytes = 0;
             for (int i = 0; i < Jobs.Count; i++)
             {
-                if (!_gate.IsSet)
-                {
-                    try { _gate.Wait(_cts.Token); }
-                    catch (OperationCanceledException) { break; }
-                }
-                if (_cts.IsCancellationRequested) break;
-
                 var job = Jobs[i];
                 long restored = job.Execute(BuildEncryptionContext());
                 restoredTotalBytes += restored;
