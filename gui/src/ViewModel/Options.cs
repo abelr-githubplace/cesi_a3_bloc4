@@ -6,6 +6,8 @@ using Microsoft.Win32;
 using System.IO;
 using System.Text.Json;
 using System;
+using System.Collections.ObjectModel;
+using System.Collections.Generic;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -38,11 +40,12 @@ namespace EasySave.GUI.ViewModels
             }
         }
 
-        private string _businessSoftwareName = string.Empty;
-        public string BusinessSoftwareName
+        // --- NOUVELLE COLLECTION POUR LES LOGICIELS METIERS ---
+        private ObservableCollection<string> _businessSoftwares = new ObservableCollection<string>();
+        public ObservableCollection<string> BusinessSoftwares
         {
-            get => _businessSoftwareName;
-            set { _businessSoftwareName = value; OnPropertyChanged(); SaveSettings(); }
+            get => _businessSoftwares;
+            set { _businessSoftwares = value; OnPropertyChanged(); SaveSettings(); }
         }
 
         private string _extensionsToEncrypt = string.Empty;
@@ -52,11 +55,28 @@ namespace EasySave.GUI.ViewModels
             set { _extensionsToEncrypt = value; OnPropertyChanged(); SaveSettings(); }
         }
 
+        // Ajout des propriétés manquantes du XAML
+        private string _priorityExtensions = string.Empty;
+        public string PriorityExtensions
+        {
+            get => _priorityExtensions;
+            set { _priorityExtensions = value; OnPropertyChanged(); SaveSettings(); }
+        }
+
+        private string _largeFileLimit = string.Empty;
+        public string LargeFileLimit
+        {
+            get => _largeFileLimit;
+            set { _largeFileLimit = value; OnPropertyChanged(); SaveSettings(); }
+        }
+
         public ICommand BrowseSoftwareCommand { get; }
+        public ICommand RemoveSoftwareCommand { get; } // Nouvelle commande
 
         public Options()
         {
             BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
+            RemoveSoftwareCommand = new RelayCommand(RemoveSoftware); // Initialisation de la commande
             LoadSettings();
         }
 
@@ -70,17 +90,32 @@ namespace EasySave.GUI.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                BusinessSoftwareName = dialog.FileName;
+                // Vérifie si le logiciel n'est pas déjà dans la liste
+                if (!BusinessSoftwares.Contains(dialog.FileName))
+                {
+                    BusinessSoftwares.Add(dialog.FileName);
+                    SaveSettings(); // Force la sauvegarde car l'ajout ne déclenche pas le 'set'
+                }
             }
         }
 
+        private void RemoveSoftware(object parameter)
+        {
+            if (parameter is string softwareToRemove && BusinessSoftwares.Contains(softwareToRemove))
+            {
+                BusinessSoftwares.Remove(softwareToRemove);
+                SaveSettings(); // Force la sauvegarde
+            }
+        }
 
         private class OptionsData
         {
             public string Language { get; set; } = "FR";
             public string LogFormat { get; set; } = "JSON";
-            public string BusinessSoftwareName { get; set; } = string.Empty;
+            public List<string> BusinessSoftwares { get; set; } = new List<string>();
             public string ExtensionsToEncrypt { get; set; } = string.Empty;
+            public string PriorityExtensions { get; set; } = string.Empty;
+            public string LargeFileLimit { get; set; } = string.Empty;
         }
 
         private void SaveSettings()
@@ -91,14 +126,16 @@ namespace EasySave.GUI.ViewModels
                 {
                     Language = this.language,
                     LogFormat = this.LogFormat,
-                    BusinessSoftwareName = this.BusinessSoftwareName,
-                    ExtensionsToEncrypt = this.ExtensionsToEncrypt
+                    BusinessSoftwares = new List<string>(this.BusinessSoftwares),
+                    ExtensionsToEncrypt = this.ExtensionsToEncrypt,
+                    PriorityExtensions = this.PriorityExtensions,
+                    LargeFileLimit = this.LargeFileLimit
                 };
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(_configFilePath, json);
             }
-            catch (Exception) {}
+            catch (Exception) { }
         }
 
         private void LoadSettings()
@@ -113,18 +150,31 @@ namespace EasySave.GUI.ViewModels
                     if (data != null)
                     {
                         _logFormat = data.LogFormat ?? "JSON";
-                        _businessSoftwareName = data.BusinessSoftwareName ?? string.Empty;
                         _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
+                        _priorityExtensions = data.PriorityExtensions ?? string.Empty;
+                        _largeFileLimit = data.LargeFileLimit ?? string.Empty;
+
+                        // Chargement de la liste
+                        if (data.BusinessSoftwares != null)
+                        {
+                            _businessSoftwares = new ObservableCollection<string>(data.BusinessSoftwares);
+                        }
+                        else
+                        {
+                            _businessSoftwares = new ObservableCollection<string>();
+                        }
 
                         OnPropertyChanged(nameof(LogFormat));
-                        OnPropertyChanged(nameof(BusinessSoftwareName));
                         OnPropertyChanged(nameof(ExtensionsToEncrypt));
+                        OnPropertyChanged(nameof(PriorityExtensions));
+                        OnPropertyChanged(nameof(LargeFileLimit));
+                        OnPropertyChanged(nameof(BusinessSoftwares)); // Important pour rafraîchir l'UI
 
                         this.language = data.Language ?? "FR";
                     }
                 }
             }
-            catch (Exception) {}
+            catch (Exception) { }
         }
     }
 }

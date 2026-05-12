@@ -1,6 +1,10 @@
 {
   "Language": "EN",
   "LogFormat": "JSON",
-  "BusinessSoftwareName": "C:\\Users\\ba733\\OneDrive\\Bureau\\Perso\\jeu\\Looping.exe",
-  "ExtensionsToEncrypt": ""
+  "BusinessSoftwares": [
+    "C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EALauncher.exe"
+  ],
+  "ExtensionsToEncrypt": "",
+  "PriorityExtensions": "",
+  "LargeFileLimit": ""
 }
