@@ -160,10 +160,10 @@
     <value>Sauvegarde en cours...</value>
   </data>
   <data name="SaveMenuDetails" xml:space="preserve">
-    <value>Tapper "1" pour l'emplacement de sauvegarde un,  "1;3" pour les emplacements un et trois ou "1-3" pour les emplacements de un à trois.</value>
+    <value>Tapez "1" pour l'emplacement de sauvegarde un, "1;3" pour les emplacements un et trois ou "1-3" pour les emplacements de un à trois.</value>
   </data>
   <data name="SaveMenuTitle" xml:space="preserve">
-    <value>Sur quelle(s) sauvegarde voulez vous faire cette action ?</value>
+    <value>Sur quelle(s) sauvegarde(s) voulez-vous effectuer cette action ?</value>
   </data>
   <data name="SaveTypeComplete" xml:space="preserve">
     <value>Sauvegarde complète</value>
@@ -172,7 +172,7 @@
     <value>Sauvegarde différentielle</value>
   </data>
   <data name="SaveTypeMenuTitle" xml:space="preserve">
-    <value>Quel type de sauvegarde voulez vous faire ?</value>
+    <value>Quel type de sauvegarde voulez-vous effectuer ?</value>
   </data>
   <data name="Saving" xml:space="preserve">
     <value>Sauvegarde en cours</value>
@@ -181,13 +181,13 @@
     <value>Bienvenue</value>
   </data>
   <data name="SaveMenuAskSaveName" xml:space="preserve">
-    <value>Comment souhaitez vous nommer cette sauvegarde ?</value>
+    <value>Comment souhaitez-vous nommer cette sauvegarde ?</value>
   </data>
   <data name="SaveMenuAskSaveSrc" xml:space="preserve">
-    <value>Que souhaitez vous sauvegarder ?</value>
+    <value>Que souhaitez-vous sauvegarder ?</value>
   </data>
   <data name="SaveMenuAskSaveDst" xml:space="preserve">
-    <value>Où souhaitez vous placer la sauvegarde ?</value>
+    <value>Où souhaitez-vous placer la sauvegarde ?</value>
   </data>
   <data name="SaveFailed" xml:space="preserve">
     <value>La sauvegarde n'a pas pu être effectuée.</value>
@@ -196,7 +196,7 @@
     <value>Informations sur la sauvegarde</value>
   </data>
   <data name="Error" xml:space="preserve">
-    <value>Erreur : pas de n° de sauvegarde. Utiliser  --help ou -h</value>
+    <value>Erreur : pas de n° de sauvegarde. Utiliser --help ou -h</value>
   </data>
   <data name="InvalidSaveIndex" xml:space="preserve">
     <value>Numéro invalide : veuillez entrer un nombre entre 1 et 5</value>
@@ -208,7 +208,7 @@
     <value>Texte</value>
   </data>
   <data name="LogFormatXml" xml:space="preserve">
-    <value>XML </value>
+    <value>XML</value>
   </data>
   <data name="LogFormatJson" xml:space="preserve">
     <value>JSON</value>
@@ -244,16 +244,19 @@
     <value>Nom du processus à ajouter (ex. Calculator.exe) :</value>
   </data>
   <data name="BusinessSoftwareAskRemove" xml:space="preserve">
-    <value>Nom du processus à retirer (ex. Calculator.exe):</value>
+    <value>Nom du processus à retirer (ex. Calculator.exe) :</value>
   </data>
   <data name="BusinessSoftwareDetectedSaveBlocked" xml:space="preserve">
     <value>Logiciel métier détecté : sauvegarde complète bloquée.</value>
+  </data>
+  <data name="BusinessSoftwareDetected" xml:space="preserve">
+    <value>Logiciel métier détecté</value>
   </data>
   <data name="NewJob" xml:space="preserve">
     <value>➕ Nouvelle Sauvegarde</value>
   </data>
   <data name="Options" xml:space="preserve">
-    <value>⚙️ Paramètre</value>
+    <value>⚙️ Paramètres</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Nom</value>
@@ -280,10 +283,10 @@
     <value>Supprimer</value>
   </data>
   <data name="RunSelected" xml:space="preserve">
-    <value>Exécuter Sélectioner</value>
+    <value>Exécuter la sélection</value>
   </data>
   <data name="RunAll" xml:space="preserve">
-    <value>Exécuter Tous</value>
+    <value>Tout exécuter</value>
   </data>
   <data name="ChooseLanguage" xml:space="preserve">
     <value>Choisir la langue :</value>
@@ -292,7 +295,7 @@
     <value>Format des logs :</value>
   </data>
   <data name="BuisinessSoftware" xml:space="preserve">
-    <value>Application Metier :</value>
+    <value>Application métier :</value>
   </data>
   <data name="ExtensionsToEncrypt" xml:space="preserve">
     <value>Extension à chiffrer :</value>
@@ -307,7 +310,7 @@
     <value>Éditeur de sauvegarde</value>
   </data>
   <data name="Running" xml:space="preserve">
-    <value>En Cours d'éxecution</value>
+    <value>En cours d'exécution</value>
   </data>
   <data name="Error1" xml:space="preserve">
     <value>Erreur</value>
@@ -343,7 +346,7 @@
     <value>Menu de chiffrement</value>
   </data>
   <data name="ExtensionsToEncryptMenuList" xml:space="preserve">
-    <value>Extensions qui seront chiffrées dans la sauvegardes :</value>
+    <value>Extensions qui seront chiffrées dans les sauvegardes :</value>
   </data>
   <data name="ExtensionsToEncryptMenuAdd" xml:space="preserve">
     <value>Ajouter une extension</value>
@@ -355,7 +358,7 @@
     <value>Extension à ajouter (ex. exe, txt, ...) :</value>
   </data>
   <data name="ExtensionsToEncryptAskRemove" xml:space="preserve">
-    <value>Extension à retirer (ex. exe, txt, ...):</value>
+    <value>Extension à retirer (ex. exe, txt, ...) :</value>
   </data>
   <data name="Pause" xml:space="preserve">
     <value>Pauser</value>

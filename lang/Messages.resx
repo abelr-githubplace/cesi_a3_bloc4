@@ -249,6 +249,9 @@
   <data name="BusinessSoftwareDetectedSaveBlocked" xml:space="preserve">
     <value>Business software detected: complete backup save blocked.</value>
   </data>
+  <data name="BusinessSoftwareDetected" xml:space="preserve">
+    <value>Business software detected</value>
+  </data>
   <data name="NewJob" xml:space="preserve">
     <value>➕ New Job</value>
   </data>
