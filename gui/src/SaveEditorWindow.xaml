@@ -95,17 +95,49 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Style.Resources>
-                <Style TargetType="Border">
-                    <Setter Property="CornerRadius" Value="4"/>
-                </Style>
-            </Style.Resources>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Black}"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{StaticResource MainBlue}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="CTAButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="{StaticResource CTA}"/>
             <Setter Property="Foreground" Value="{StaticResource Black}"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <!-- Désactiver si le champ Nom est vide -->
+                <DataTrigger Binding="{Binding Text, ElementName=NameTextBox}" Value="">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Opacity" Value="0.5"/>
+                </DataTrigger>
+                <!-- Désactiver si le champ Source est vide -->
+                <DataTrigger Binding="{Binding Text, ElementName=SourceTextBox}" Value="">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Opacity" Value="0.5"/>
+                </DataTrigger>
+                <!-- Désactiver si le champ Cible est vide -->
+                <DataTrigger Binding="{Binding Text, ElementName=TargetTextBox}" Value="">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Opacity" Value="0.5"/>
+                </DataTrigger>
+                <!-- Désactiver si aucun type n'est sélectionné -->
+                <DataTrigger Binding="{Binding SelectedItem, ElementName=TypeComboBox}" Value="{x:Null}">
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="Opacity" Value="0.5"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
@@ -124,23 +156,28 @@
             <ColumnDefinition Width="40"/>
         </Grid.ColumnDefinitions>
 
-        <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}"/>
-        <TextBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15" VerticalAlignment="Center"/>
+        <!-- Champ : Nom -->
+        <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}" ContentStringFormat="{}{0}"/>
+        <TextBox x:Name="NameTextBox" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15" VerticalAlignment="Center"/>
 
-        <Label Grid.Row="1" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Source]}"/>
-        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,15" VerticalAlignment="Center"/>
+        <!-- Champ : Source -->
+        <Label Grid.Row="1" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Source]}" ContentStringFormat="{}{0}"/>
+        <TextBox x:Name="SourceTextBox" Grid.Row="1" Grid.Column="1" Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,15" VerticalAlignment="Center"/>
         <Button Grid.Row="1" Grid.Column="2" Content="..." Command="{Binding BrowseSourceCommand}" Margin="0,0,0,15" Padding="5"/>
 
-        <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Target]}"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,15" VerticalAlignment="Center"/>
+        <!-- Champ : Cible -->
+        <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Target]}" ContentStringFormat="{}{0}"/>
+        <TextBox x:Name="TargetTextBox" Grid.Row="2" Grid.Column="1" Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,15" VerticalAlignment="Center"/>
         <Button Grid.Row="2" Grid.Column="2" Content="..." Command="{Binding BrowseTargetCommand}" Margin="0,0,0,15" Padding="5"/>
 
-        <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}"/>
-        <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Content" Margin="0,0,0,15">
+        <!-- Champ : Type -->
+        <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" ContentStringFormat="{}{0}"/>
+        <ComboBox x:Name="TypeComboBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Content" Margin="0,0,0,15">
             <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Complete]}"/>
             <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Differential]}"/>
         </ComboBox>
 
+        <!-- Boutons d'action -->
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[MainMenuExit]}" Click="Cancel_Click" MinWidth="100" Margin="0,0,10,0"/>
             <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[AddSave]}" Command="{Binding SaveCommand}" Click="Save_Click" Style="{StaticResource CTAButtonStyle}" MinWidth="120"/>
