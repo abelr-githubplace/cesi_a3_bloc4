@@ -4,6 +4,7 @@ using Actor;
 using State;
 using EasyLog;
 using CryptoSoftRunner;
+using BusinessSoftware;
 
 namespace Save
 {
@@ -22,16 +23,17 @@ namespace Save
         public bool IsPaused => !_gate.IsSet;
         public bool IsStopped => _cts.IsCancellationRequested;
 
-        // True while the worker is in the "wait for business software to stop"
-        // poll loop. The GUI consults this so a user-initiated Resume doesn't
-        // flip the label to "Running" while the save is in fact still parked.
-        public bool IsWaitingForBusinessSoftware { get; private set; }
+        // True while the worker is parked because the global watcher reported
+        // a business-software process. The GUI consults this so a user
+        // Resume doesn't flip the label to "Running" while the save is in
+        // fact still parked.
+        public bool IsWaitingForBusinessSoftware => !_bsGate.IsSet;
 
-        // Fired when the worker enters / leaves the "waiting for business
-        // software to stop" loop. The GUI uses these to flip a job's State
-        // label without confusing it with a user-initiated pause.
-        public event System.Action? BusinessSoftwarePauseStarted;
-        public event System.Action? BusinessSoftwarePauseEnded;
+        // Independent gate driven by the BusinessSoftwareWatcher callback.
+        // Set ("go") by default; reset ("wait") when the watcher reports a
+        // process is running. The worker waits on this between files, just
+        // like _gate handles user-driven pause.
+        private readonly ManualResetEventSlim _bsGate = new ManualResetEventSlim(true);
 
         public Saver(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, Config.ConfigManager configManager)
             : base(save, saveAction, progress, configManager)
@@ -73,22 +75,45 @@ namespace Save
         public void Stop()
         {
             _cts.Cancel();
-            // Wake any worker currently sleeping in _gate.Wait() so it can
-            // observe cancellation and break out.
+            // Wake any worker currently sleeping in _gate.Wait() or
+            // _bsGate.Wait() so it can observe cancellation and break out.
             _gate.Set();
+            _bsGate.Set();
         }
 
         public void Start(bool paused)
         {
             if (paused) _gate.Reset();
 
+            // Subscribe to the global business-software watcher. The callback
+            // toggles _bsGate so the worker only proceeds when no watched
+            // process is running. We also log the transitions so the daily
+            // log keeps a trace of every auto-pause/resume the worker hits.
+            bool wasRunning = false;
+            using var bsSubscription = BusinessSoftwareWatcher.Get(_configManager).Subscribe(running =>
+            {
+                if (running == wasRunning) return;
+                wasRunning = running;
+                if (running)
+                {
+                    _bsGate.Reset();
+                    LogBusinessSoftwareInterrupt();
+                }
+                else
+                {
+                    LogBusinessSoftwareResume();
+                    _bsGate.Set();
+                }
+            });
+
             long copiedTotalBytes = 0;
             var endTime = DateTime.Now;
 
             for (int i = 0; i < Jobs.Count; i++)
             {
-                // Pause point: between files. Cahier des charges 2.0 says the current
-                // file must finish before the worker can react to a pause/stop.
+                // User-driven pause point: between files. Cahier des charges 2.0
+                // says the current file must finish before the worker can react
+                // to a pause/stop.
                 if (!_gate.IsSet)
                 {
                     _configManager.State.Save(NewStateInfo(
@@ -102,33 +127,18 @@ namespace Save
                 }
                 if (_cts.IsCancellationRequested) break;
 
-                // Business software auto-pause. If a watched process is running,
-                // log + persist a Paused state, then poll every second until it
-                // stops, then log + persist a resume. The check sits between
-                // files so the in-progress file always completes.
-                if (IsBusinessSoftwareDetected())
+                // Business-software gate. Driven by the watcher callback
+                // above — we just block here without polling ourselves.
+                if (!_bsGate.IsSet)
                 {
-                    LogBusinessSoftwareInterrupt();
                     _configManager.State.Save(NewStateInfo(
                         DateTime.Now, Status.Paused,
                         NewActiveStateInfo(Jobs.Count - i, this.TotalSize - copiedTotalBytes, Jobs[i].SourceFile, Jobs[i].DestinationFile)
                     ));
-                    IsWaitingForBusinessSoftware = true;
-                    BusinessSoftwarePauseStarted?.Invoke();
-
-                    while (IsBusinessSoftwareDetected())
-                    {
-                        if (_cts.IsCancellationRequested) break;
-                        try { Task.Delay(1000, _cts.Token).Wait(); }
-                        catch (Exception) { break; }
-                    }
-
-                    IsWaitingForBusinessSoftware = false;
-                    BusinessSoftwarePauseEnded?.Invoke();
-                    if (_cts.IsCancellationRequested) break;
-
-                    LogBusinessSoftwareResume();
+                    try { _bsGate.Wait(_cts.Token); }
+                    catch (OperationCanceledException) { break; }
                 }
+                if (_cts.IsCancellationRequested) break;
 
                 var job = Jobs[i];
 
@@ -168,13 +178,6 @@ namespace Save
             if (extensions.Count == 0) return 0;
             if (!Crypter.ShouldEncrypt(destinationFile, extensions)) return 0;
             return Crypter.EncryptFile(destinationFile, _configManager.GetEncryptionKey(), _configManager.GetCryptoSoftPath());
-        }
-
-        private bool IsBusinessSoftwareDetected()
-        {
-            var watched = _configManager.GetBusinessSoftwares();
-            if (watched.Count == 0) return false;
-            return BusinessSoftware.BusinessSoftwareMonitor.IsAnyRunning(watched);
         }
 
         private void LogBusinessSoftwareInterrupt()

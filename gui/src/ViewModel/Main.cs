@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using EasySave.lang;
 using EasySave.GUI.Helpers;
 using Config;
+using BusinessSoftware;
 using System.IO;
 using System.Text.Json;
 
@@ -71,6 +72,11 @@ namespace EasySave.GUI.ViewModels
             _stateManager = _appConfig.State;
 
             ApplySettingsFromOptions();
+
+            // Single, global subscription: when the watcher flips, walk every
+            // active save and flip its UI state in lockstep. Saver-side, each
+            // Saver subscribes independently to gate its own loop.
+            BusinessSoftwareWatcher.Get(_appConfig).Subscribe(OnBusinessSoftwareChanged);
 
             SaveJobs = new ObservableCollection<SaveJob>();
             LoadJobs();
@@ -223,6 +229,30 @@ namespace EasySave.GUI.ViewModels
             }
         }
 
+        // Driven by the global BusinessSoftwareWatcher. Flip every currently
+        // active save's UI state. We only touch jobs that are in a state the
+        // watcher controls (Running ↔ BusinessSoftwareDetected) so user-driven
+        // Break/Stopped states stay where the user put them.
+        private void OnBusinessSoftwareChanged(bool running)
+        {
+            lock (_activeSavers)
+            {
+                foreach (var job in _activeSavers.Keys)
+                {
+                    if (running)
+                    {
+                        if (job.State == TranslationSource.Instance["Running"])
+                            job.State = TranslationSource.Instance["BusinessSoftwareDetected"];
+                    }
+                    else
+                    {
+                        if (job.State == TranslationSource.Instance["BusinessSoftwareDetected"])
+                            job.State = TranslationSource.Instance["Running"];
+                    }
+                }
+            }
+        }
+
         private static SaveState MakeInactiveState(SaveInfo info)
         {
             return new SaveState
@@ -321,31 +351,20 @@ namespace EasySave.GUI.ViewModels
                     : SaveManager.Action.DifferentialSave;
                 var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig);
 
-                // Flip the UI state label when the Saver enters/exits its
-                // business-software auto-pause. Don't override a user-driven
-                // Break/Stopped state set from the buttons.
-                System.Action onBsStart = () =>
-                {
-                    if (job.State == TranslationSource.Instance["Running"])
-                        job.State = TranslationSource.Instance["BusinessSoftwareDetected"];
-                };
-                System.Action onBsEnd = () =>
-                {
-                    if (job.State == TranslationSource.Instance["BusinessSoftwareDetected"])
-                        job.State = TranslationSource.Instance["Running"];
-                };
-                saver.BusinessSoftwarePauseStarted += onBsStart;
-                saver.BusinessSoftwarePauseEnded += onBsEnd;
-
                 lock (_activeSavers)
                 {
                     _activeSavers[job] = saver;
+                    // If the watcher already says business software is running
+                    // when this save is registered, reflect it in the UI now —
+                    // the global callback only fires on transitions.
+                    if (BusinessSoftwareWatcher.Get(_appConfig).IsAnyRunning
+                        && job.State == TranslationSource.Instance["Running"])
+                    {
+                        job.State = TranslationSource.Instance["BusinessSoftwareDetected"];
+                    }
                 }
 
                 saver.Start(false);
-
-                saver.BusinessSoftwarePauseStarted -= onBsStart;
-                saver.BusinessSoftwarePauseEnded -= onBsEnd;
 
                 lock (_activeSavers)
                 {
