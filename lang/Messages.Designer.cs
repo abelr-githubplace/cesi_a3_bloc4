@@ -160,6 +160,15 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Close.
+        /// </summary>
+        public static string Close {
+            get {
+                return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Complete.
         /// </summary>
         public static string Complete {
@@ -312,6 +321,15 @@ namespace EasySave.lang {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Large file threshold.
+        /// </summary>
+        public static string LargeFileThreshold {
+            get {
+                return ResourceManager.GetString("LargeFileThreshold", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Log Format :.
         /// </summary>
@@ -555,6 +573,15 @@ namespace EasySave.lang {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Priority extensions.
+        /// </summary>
+        public static string PriorityExtensions {
+            get {
+                return ResourceManager.GetString("PriorityExtensions", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Progess.
         /// </summary>

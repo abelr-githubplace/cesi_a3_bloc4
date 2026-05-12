@@ -57,7 +57,7 @@ namespace EasySave.GUI.ViewModels
         public Options()
         {
             BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
-            LoadSettings(); // Charge les paramètres au démarrage de la fenêtre
+            LoadSettings();
         }
 
         private void BrowseSoftwareFile()

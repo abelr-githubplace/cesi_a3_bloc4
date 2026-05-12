@@ -4,7 +4,7 @@
         xmlns:lang="clr-namespace:EasySave.lang"
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OptionMenuTitle]}" 
-        Height="320" Width="500"
+        Height="420" Width="500"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="#f2fcff" Foreground="Black">
 
@@ -95,16 +95,28 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="15,8"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Style.Resources>
-                <Style TargetType="Border">
-                    <Setter Property="CornerRadius" Value="4"/>
-                </Style>
-            </Style.Resources>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Black}"/>
+                                <Setter TargetName="BtnBorder" Property="Background" Value="{StaticResource MainBlue}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -145,8 +157,23 @@
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExtensionsToEncrypt}" 
                  ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,15"/>
 
-        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="Fermer" Click="Close_Click" MinWidth="100"/>
+        <Label Grid.Row="4" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[PriorityExtensions]}"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding PriorityExtensions}" 
+                 ToolTip="Ex: .iso, .mp4, .vhd" Margin="0,0,0,15"/>
+
+        <Label Grid.Row="5" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LargeFileThreshold]}"/>
+        <Grid Grid.Row="5" Grid.Column="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding LargeFileLimit}" ToolTip="Ex: 10240 (10 Mo)" Margin="0,0,10,0"
+                     PreviewTextInput="NumberValidationTextBox" InputScope="Number"/>
+            <Label Grid.Column="1" Content="Ko" Margin="0" VerticalAlignment="Center"/>
+        </Grid>
+
+        <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Close]}" Click="Close_Click" MinWidth="100"/>
         </StackPanel>
     </Grid>
 </Window>

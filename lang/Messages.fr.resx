@@ -298,7 +298,7 @@
     <value>Extension à chiffrer :</value>
   </data>
   <data name="Complete" xml:space="preserve">
-    <value>Complète</value>
+    <value>Complete</value>
   </data>
   <data name="Differential" xml:space="preserve">
     <value>Différentiel</value>
@@ -368,5 +368,14 @@
   </data>
   <data name="Stop" xml:space="preserve">
     <value>Arrêter</value>
+  </data>
+  <data name="PriorityExtensions" xml:space="preserve">
+    <value>Extensions prioritaire</value>
+  </data>
+  <data name="LargeFileThreshold" xml:space="preserve">
+    <value>Seuil de fichier volumineux</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
   </data>
 </root>
