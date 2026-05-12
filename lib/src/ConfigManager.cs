@@ -19,6 +19,14 @@ namespace Config
         public string EncryptionKey { get; init; } = "EasySaveDefaultKey";
         public string CryptoSoftPath { get; init; } = "";
 
+        // V3: only one file larger than this threshold (in KiB) may be in
+        // flight across the whole app at any time. Set to 0 or negative to
+        // disable the gate entirely. Default 512 MiB — small enough that
+        // multi-GB transfers don't saturate the network, large enough that
+        // typical "big" files (~100 MiB game assets, photo libraries) still
+        // run in parallel.
+        public int LargeFileThresholdKB { get; init; } = 524288;
+
         public static ConfigData DefaultConfig()
         {
             return new()
@@ -32,6 +40,7 @@ namespace Config
                 EncryptionExtensions = [],
                 EncryptionKey = "EasySaveDefaultKey",
                 CryptoSoftPath = "",
+                LargeFileThresholdKB = 524288,
             };
         }
     }
@@ -203,6 +212,17 @@ namespace Config
         public void SetCryptoSoftPath(string path)
         {
             lock (s_rwLock) { Config = Config with { CryptoSoftPath = path ?? "" }; }
+            Write();
+        }
+
+        public int GetLargeFileThresholdKB()
+        {
+            lock (s_rwLock) { return Config.LargeFileThresholdKB; }
+        }
+
+        public void SetLargeFileThresholdKB(int thresholdKB)
+        {
+            lock (s_rwLock) { Config = Config with { LargeFileThresholdKB = thresholdKB }; }
             Write();
         }
 

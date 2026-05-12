@@ -139,6 +139,15 @@ namespace Save
                     catch (OperationCanceledException) { return; }
                     if (_cts.IsCancellationRequested) return;
 
+                    // V3 large-file gate: serialize transfers of any file
+                    // bigger than the configured threshold across the whole
+                    // process. Re-read the threshold per file so a mid-save
+                    // config change takes effect on the next acquisition.
+                    int thresholdKB = _configManager.GetLargeFileThresholdKB();
+                    IDisposable largeFileScope;
+                    try { largeFileScope = LargeFileGate.AcquireIfLarge(fileJob.FileSize, thresholdKB, _cts.Token); }
+                    catch (OperationCanceledException) { return; }
+
                     currentFiles[fileJob.SourceFile] = fileJob.DestinationFile;
                     try
                     {
@@ -178,6 +187,10 @@ namespace Save
                     {
                         currentFiles.TryRemove(fileJob.SourceFile, out _);
                         throw;
+                    }
+                    finally
+                    {
+                        largeFileScope.Dispose();
                     }
                 });
             }

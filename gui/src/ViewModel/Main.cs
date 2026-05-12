@@ -163,6 +163,18 @@ namespace EasySave.GUI.ViewModels
                         _appConfig.RemoveEncryptionExtensions(_appConfig.GetEncryptionExtensions().ToList());
                         if (extensionList.Count > 0) _appConfig.AddEncryptionExtensions(extensionList);
                     }
+
+                    // LargeFileLimit comes in as a plain string from the GUI
+                    // (Options field). Parse it as KiB; ignore empty/invalid
+                    // input so the user's previous valid threshold survives.
+                    if (root.TryGetProperty("LargeFileLimit", out var sizeProp))
+                    {
+                        string raw = (sizeProp.GetString() ?? "").Trim();
+                        if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int kb) && kb > 0)
+                        {
+                            _appConfig.SetLargeFileThresholdKB(kb);
+                        }
+                    }
                 }
             }
             catch (Exception) { }
