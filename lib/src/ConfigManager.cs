@@ -16,6 +16,10 @@ namespace Config
         public required LogFormat LogFormat { get; init; }
         public required HashSet<string> BusinessSoftwares { get; init; }
         public required HashSet<string> EncryptionExtensions { get; init; }
+        // V3: a file whose extension is in this set is treated as priority.
+        // No non-priority file (in any job) may start until every priority
+        // file across every running save has begun copying.
+        public required HashSet<string> PriorityExtensions { get; init; }
         public string EncryptionKey { get; init; } = "EasySaveDefaultKey";
         public string CryptoSoftPath { get; init; } = "";
 
@@ -38,6 +42,7 @@ namespace Config
                 LogFormat = LogFormat.JSON,
                 BusinessSoftwares = [],
                 EncryptionExtensions = [],
+                PriorityExtensions = [],
                 EncryptionKey = "EasySaveDefaultKey",
                 CryptoSoftPath = "",
                 LargeFileThresholdKB = 524288,
@@ -224,6 +229,33 @@ namespace Config
         {
             lock (s_rwLock) { Config = Config with { LargeFileThresholdKB = thresholdKB }; }
             Write();
+        }
+
+        public IReadOnlyList<string> GetPriorityExtensions()
+        {
+            lock (s_rwLock) { return [..Config.PriorityExtensions]; }
+        }
+
+        public void AddPriorityExtensions(IEnumerable<string> extensions)
+        {
+            List<string> normed = NormalizeExtensions(extensions);
+            bool added = false;
+            foreach (var ext in normed)
+            {
+                lock (s_rwLock) { added |= Config.PriorityExtensions.Add(ext); }
+            }
+            if (added) Write();
+        }
+
+        public void RemovePriorityExtensions(IEnumerable<string> extensions)
+        {
+            List<string> normed = NormalizeExtensions(extensions);
+            bool removed = false;
+            foreach (var ext in normed)
+            {
+                lock (s_rwLock) { removed |= Config.PriorityExtensions.Remove(ext); }
+            }
+            if (removed) Write();
         }
 
         public void ModifyLogOutput(string output)

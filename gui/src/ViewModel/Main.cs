@@ -164,6 +164,19 @@ namespace EasySave.GUI.ViewModels
                         if (extensionList.Count > 0) _appConfig.AddEncryptionExtensions(extensionList);
                     }
 
+                    // Same flow as ExtensionsToEncrypt: parse a CSV string,
+                    // normalize, replace the persisted list.
+                    if (root.TryGetProperty("PriorityExtensions", out var prioProp))
+                    {
+                        string raw = prioProp.GetString() ?? "";
+                        var list = raw.Split(',')
+                                      .Select(e => e.Trim())
+                                      .Where(e => !string.IsNullOrEmpty(e))
+                                      .ToList();
+                        _appConfig.RemovePriorityExtensions(_appConfig.GetPriorityExtensions().ToList());
+                        if (list.Count > 0) _appConfig.AddPriorityExtensions(list);
+                    }
+
                     // LargeFileLimit comes in as a plain string from the GUI
                     // (Options field). Parse it as KiB; ignore empty/invalid
                     // input so the user's previous valid threshold survives.

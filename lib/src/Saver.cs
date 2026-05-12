@@ -113,14 +113,68 @@ namespace Save
                 }
             });
 
+            // V3 priority snapshot. Frozen for the whole Start() so the
+            // semantics of this save stay consistent even if the user edits
+            // the priority list mid-run. We register every priority file we
+            // *plan* to copy in the global gate now; non-priority workers of
+            // OTHER savers will wait until our priorities have all begun.
+            var prioritySet = new HashSet<string>(
+                _configManager.GetPriorityExtensions().Select(e => e.ToLowerInvariant()));
+            bool IsPriorityFile(FileJob fj)
+            {
+                if (prioritySet.Count == 0) return false;
+                var ext = Path.GetExtension(fj.SourceFile).ToLowerInvariant();
+                return !string.IsNullOrEmpty(ext) && prioritySet.Contains(ext);
+            }
+            int priorityCount = Jobs.Count(IsPriorityFile);
+            PriorityGate.AddPending(priorityCount);
+            int prioritiesConsumed = 0;
+
+            // Move priority files to the front of the queue so workers pick
+            // them up first. Without this, Parallel.ForEach could park every
+            // worker on the priority gate, waiting for priority files that
+            // are still later in the (unsorted) list — a deadlock partial,
+            // since those workers are the only ones that could process them.
+            Jobs.Sort((a, b) =>
+            {
+                bool aPrio = IsPriorityFile(a);
+                bool bPrio = IsPriorityFile(b);
+                if (aPrio == bPrio) return 0;
+                return aPrio ? -1 : 1;
+            });
+
             // Shared state across all workers of this job. Bytes and counts go
             // through Interlocked, the "currently in flight" registry is a
             // ConcurrentDictionary, state.json writes are serialized with a
             // lock so two workers don't produce interleaved snapshots.
             long copiedTotalBytes = 0;
             int filesProcessed = 0;
+            int lastReportedPct = -1;  // monotonic 0..100 to throttle UI updates
             var currentFiles = new ConcurrentDictionary<string, string>();
             var stateLock = new object();
+
+            // Per-chunk callback. Called from worker threads (potentially
+            // multiple at once) every 64 KB. We add to the global counter
+            // atomically and only push a Progress notification when the
+            // integer percentage actually changes — capping the UI to ~100
+            // updates per save no matter the file count or size.
+            Action<long> onProgress = (deltaBytes) =>
+            {
+                if (deltaBytes <= 0) return;
+                long newTotal = Interlocked.Add(ref copiedTotalBytes, deltaBytes);
+                if (TotalSize <= 0) { Progress.SetProgress(100f); return; }
+                float pct = Math.Clamp(((float)newTotal / (float)TotalSize) * 100f, 0f, 100f);
+                int pctInt = (int)pct;
+                // Monotone CAS: only the thread that successfully bumps the
+                // last reported pct fires SetProgress, others skip.
+                int previous = Volatile.Read(ref lastReportedPct);
+                while (pctInt > previous)
+                {
+                    int actual = Interlocked.CompareExchange(ref lastReportedPct, pctInt, previous);
+                    if (actual == previous) { Progress.SetProgress(pct); return; }
+                    previous = actual;
+                }
+            };
 
             var options = new ParallelOptions
             {
@@ -128,9 +182,16 @@ namespace Save
                 CancellationToken = _cts.Token,
             };
 
+            // NoBuffering = workers fetch one item at a time instead of
+            // grabbing a chunk of, say, 25 items upfront. Combined with the
+            // priority sort above, this guarantees the first N items fetched
+            // (one per worker) are all priority files when there are any.
+            var partitioner = System.Collections.Concurrent.Partitioner.Create(
+                Jobs, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering);
+
             try
             {
-                Parallel.ForEach(Jobs, options, fileJob =>
+                Parallel.ForEach(partitioner, options, fileJob =>
                 {
                     // Pause gates BEFORE starting a new file. Each worker
                     // checks its own gates so a Pause()/auto-pause applies to
@@ -138,6 +199,22 @@ namespace Save
                     try { _gate.Wait(_cts.Token); _bsGate.Wait(_cts.Token); }
                     catch (OperationCanceledException) { return; }
                     if (_cts.IsCancellationRequested) return;
+
+                    // Priority gate. A priority file leaves the pending pool
+                    // as soon as it begins copying (the cahier says "en
+                    // attente" = not yet started). A non-priority file must
+                    // wait until the global pending count reaches 0.
+                    bool isPriority = IsPriorityFile(fileJob);
+                    if (isPriority)
+                    {
+                        PriorityGate.MarkOneStarted();
+                        Interlocked.Increment(ref prioritiesConsumed);
+                    }
+                    else
+                    {
+                        try { PriorityGate.WaitForAllPending(_cts.Token); }
+                        catch (OperationCanceledException) { return; }
+                    }
 
                     // V3 large-file gate: serialize transfers of any file
                     // bigger than the configured threshold across the whole
@@ -152,15 +229,22 @@ namespace Save
                     try
                     {
                         var beginTime = DateTime.Now;
-                        long copiedSize = fileJob.Execute();
+                        long copiedSize;
+                        try { copiedSize = fileJob.Execute(_cts.Token, onProgress); }
+                        catch (OperationCanceledException)
+                        {
+                            // Mid-copy Stop. CopyChunked already removed the
+                            // partial destination file. Don't log / persist a
+                            // success state for this file — just bail out.
+                            currentFiles.TryRemove(fileJob.SourceFile, out _);
+                            return;
+                        }
                         var endTime = DateTime.Now;
 
-                        long newTotal = Interlocked.Add(ref copiedTotalBytes, copiedSize);
+                        // copiedTotalBytes was already incremented chunk by
+                        // chunk inside onProgress, so no Interlocked.Add here.
+                        long newTotal = Interlocked.Read(ref copiedTotalBytes);
                         int newCount = Interlocked.Increment(ref filesProcessed);
-
-                        float percent = TotalSize <= 0 ? 100f
-                            : Math.Clamp(((float)newTotal / (float)TotalSize) * 100f, 0f, 100f);
-                        Progress.SetProgress(percent);
 
                         int encryptionTime = TryEncrypt(fileJob.DestinationFile);
 
@@ -195,6 +279,15 @@ namespace Save
                 });
             }
             catch (OperationCanceledException) { /* expected on Stop */ }
+            finally
+            {
+                // Release any priority tickets we registered but never
+                // reached (Stop fired before some iterations could start).
+                // Without this, non-priority workers of other savers would
+                // be stuck waiting on a counter that never reaches 0.
+                int leftover = priorityCount - Volatile.Read(ref prioritiesConsumed);
+                if (leftover > 0) PriorityGate.MarkManyStarted(leftover);
+            }
 
             _configManager.State.Save(NewStateInfo(DateTime.Now, Status.Inactive, null));
         }

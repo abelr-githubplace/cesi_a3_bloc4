@@ -49,7 +49,11 @@ namespace Restore
                 var job = Jobs[i];
 
                 var beginTime = DateTime.Now;
-                long restored = job.Execute();
+                // Restorer doesn't expose Stop yet, so no cancellation source
+                // to plug in. Wire it up the day Restorer gets Pause/Stop.
+                // No-op progress callback: Restorer aggregates via its own
+                // restoredTotalBytes counter below.
+                long restored = job.Execute(CancellationToken.None, _ => { });
                 endTime = DateTime.Now;
 
                 var cryptoTime = 0; // TODO: add crypto
