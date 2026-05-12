@@ -16,6 +16,8 @@ namespace Config
         public required LogFormat LogFormat { get; init; }
         public required HashSet<string> BusinessSoftwares { get; init; }
         public required HashSet<string> EncryptionExtensions { get; init; }
+        public string EncryptionKey { get; init; } = "EasySaveDefaultKey";
+        public string CryptoSoftPath { get; init; } = "";
 
         public static ConfigData DefaultConfig()
         {
@@ -28,6 +30,8 @@ namespace Config
                 LogFormat = LogFormat.JSON,
                 BusinessSoftwares = [],
                 EncryptionExtensions = [],
+                EncryptionKey = "EasySaveDefaultKey",
+                CryptoSoftPath = "",
             };
         }
     }
@@ -177,6 +181,29 @@ namespace Config
                 if (seen.Add(trimmed)) normalized.Add(trimmed);
             }
             return normalized;
+        }
+
+        public string GetEncryptionKey()
+        {
+            lock (s_rwLock) { return Config.EncryptionKey ?? "EasySaveDefaultKey"; }
+        }
+
+        public void SetEncryptionKey(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            lock (s_rwLock) { Config = Config with { EncryptionKey = key }; }
+            Write();
+        }
+
+        public string GetCryptoSoftPath()
+        {
+            lock (s_rwLock) { return Config.CryptoSoftPath ?? ""; }
+        }
+
+        public void SetCryptoSoftPath(string path)
+        {
+            lock (s_rwLock) { Config = Config with { CryptoSoftPath = path ?? "" }; }
+            Write();
         }
 
         public void ModifyLogOutput(string output)
