@@ -12,7 +12,23 @@
   <ItemGroup>
     <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
     <ProjectReference Include="..\logger\EasyLog.csproj" />
+    <!-- Build CryptoSoft before the GUI but don't link against it: it's an
+         external executable launched out-of-process by CryptoSoftRunner. The
+         post-build target below copies the produced .exe next to the GUI so
+         AppContext.BaseDirectory + "CryptoSoft.exe" resolves at runtime. -->
+    <ProjectReference Include="..\CryptoSoft\CryptoSoft.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
   </ItemGroup>
+
+  <Target Name="CopyCryptoSoft" AfterTargets="Build">
+    <ItemGroup>
+      <_CryptoSoftBin Include="..\CryptoSoft\bin\$(Configuration)\net8.0\win-x64\CryptoSoft.exe" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_CryptoSoftBin)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('@(_CryptoSoftBin)')" />
+  </Target>
 
   <ItemGroup>
     <Compile Include="..\lang\Messages.Designer.cs" Link="Ressources\Messages.Designer.cs">
@@ -23,11 +39,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="..\lang\Messages.fr.resx" Link="Ressources\Messages.fr.resx" />
+    <EmbeddedResource Include="..\lang\Messages.fr.resx" Link="Ressources\Messages.fr.resx">
+      <LogicalName>EasySave.CLI.Ressources.Messages.fr.resources</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\lang\Messages.resx" Link="Ressources\Messages.resx">
       <CustomToolNamespace>EasySave.lang</CustomToolNamespace>
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Messages.Designer.cs</LastGenOutput>
+      <LogicalName>EasySave.CLI.Ressources.Messages.resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
