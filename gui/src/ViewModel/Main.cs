@@ -22,7 +22,29 @@ namespace EasySave.GUI.ViewModels
         private StateManager.StateManager _stateManager;
         private Config _config;
         private AppConfig.AppConfig _appConfig;
+
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
+        
+        private bool _isAllSelected;
+        public bool IsAllSelected
+        {
+            get => _isAllSelected;
+            set
+            {
+                if (_isAllSelected != value)
+                {
+                    _isAllSelected = value;
+                    OnPropertyChanged();
+                    if (SaveJobs != null)
+                    {
+                        foreach (var job in SaveJobs)
+                        {
+                            job.IsSelected = _isAllSelected;
+                        }
+                    }
+                }
+            }
+        }
 
         private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
 

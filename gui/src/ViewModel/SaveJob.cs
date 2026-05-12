@@ -15,7 +15,7 @@ namespace EasySave.GUI.ViewModels
             _sourcePath = model.SourcePath;
             _targetPath = model.DestinationPath;
         }
-        
+
         private bool _isSelected;
         public bool IsSelected
         {
@@ -65,6 +65,7 @@ namespace EasySave.GUI.ViewModels
             get => _type;
             set { _type = value; OnPropertyChanged(); }
         }
+
         public SaveInfo GetUpdatedModel()
         {
             return new SaveInfo
