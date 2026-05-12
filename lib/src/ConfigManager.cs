@@ -1,161 +1,211 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using EasyLog;
+using State;
 
-namespace ConfigManager
+namespace Config
 {
-    public enum LogFormat { Json, Xml }
-
-    public record AppConfig
+    public record ConfigData
     {
-        public string Language { get; init; } = "en-US";
-        public LogFormat LogFormat { get; init; } = LogFormat.Json;
-        public List<string> EncryptionExtensions { get; init; } = new List<string>();
-        public string BusinessSoftware { get; init; } = "";
-        public string LogDirectory { get; init; } = "./logs";
-        public string StateFilePath { get; init; } = "./state.json";
+        // Client-specific
+        public required string Lang { get; init; }
+        public required string LogOutput { get; init; }
+        public required string StateOutput { get; init; }
+
+        // General
+        public required LogFormat LogFormat { get; init; }
+        public required HashSet<string> BusinessSoftwares { get; init; }
+        public required HashSet<string> EncryptionExtensions { get; init; }
+
+        public static ConfigData DefaultConfig()
+        {
+            return new()
+            {
+                Lang = "en-US",
+                LogOutput = "./save.log",
+                StateOutput = "./state.json",
+
+                LogFormat = LogFormat.JSON,
+                BusinessSoftwares = [],
+                EncryptionExtensions = [],
+            };
+        }
     }
+    
 
     public sealed class ConfigManager
     {
-        private static ConfigManager? s_instance;
-        private static readonly object s_lock = new object();
-
-        private AppConfig _config;
-        private readonly string _outputFile;
-
-        private ConfigManager(string outputFile)
+        private const string _output = "./config.json";
+        private readonly static JsonSerializerOptions s_read_serializer = new()
         {
-            _outputFile = outputFile;
+            Converters = { new JsonStringEnumConverter() }
+        };
+        private readonly static JsonSerializerOptions s_write_serializer = new()
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new JsonStringEnumConverter() }
+        };
 
-            if (File.Exists(outputFile))
+        private static ConfigManager? s_instance;
+        private static readonly object s_lock = new();
+
+        public Logger Logger { get; init; }
+        public StateManager State { get; init; }
+
+        public ConfigData Config { get; private set; }
+        private static readonly object s_rwLock = new();
+
+        private ConfigManager()
+        {
+            Config = ConfigData.DefaultConfig();
+            Logger = Logger.Get(Config.LogOutput);
+            State = StateManager.Get(Config.StateOutput);
+
+            if (File.Exists(_output))
             {
-                string json = File.ReadAllText(outputFile);
-                if (string.IsNullOrWhiteSpace(json)) _config = new AppConfig();
-                else _config = JsonSerializer.Deserialize<AppConfig>(
-                    json,
-                    new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } }
-                ) ?? new AppConfig();
+                string json = File.ReadAllText(_output);
+                if (string.IsNullOrWhiteSpace(json)) Config = ConfigData.DefaultConfig();
+                else Config = JsonSerializer.Deserialize<ConfigData>(json, s_read_serializer)
+                    ?? ConfigData.DefaultConfig();
+                return;
             }
-            else
-            {
-                _config = new AppConfig();
-                Write();
-            }
+            Write();
         }
 
-        public static ConfigManager Get(string outputFile)
+        public static ConfigManager Get()
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null) s_instance = new ConfigManager(outputFile);
+                    s_instance ??= new ConfigManager();
                 }
             }
             return s_instance;
         }
 
-        public AppConfig GetConfig() => _config;
-
-        public void SetLanguage(string language)
+        public void SetLanguage(string lang)
         {
-            _config = _config with { Language = language };
+            lock(s_rwLock) { Config = Config with { Lang = lang }; }
             Write();
         }
 
         public void SetLogFormat(LogFormat format)
         {
-            _config = _config with { LogFormat = format };
+            lock(s_rwLock) { Config = Config with { LogFormat = format }; }
             Write();
         }
 
-        public void SetEncryptionExtensions(IEnumerable<string> extensions)
+        public LogFormat GetLogFormatConfig()
         {
-            _config = _config with { EncryptionExtensions = NormalizeExtensions(extensions) };
-            Write();
+            lock (s_rwLock) { return Config.LogFormat; }
         }
 
-        public void AddEncryptionExtension(string extension)
+        public IReadOnlyList<string> GetBusinessSoftwares()
         {
-            var normalized = NormalizeExtension(extension);
-            if (string.IsNullOrEmpty(normalized)) return;
-            if (_config.EncryptionExtensions.Contains(normalized)) return;
-            var list = new List<string>(_config.EncryptionExtensions) { normalized };
-            _config = _config with { EncryptionExtensions = list };
-            Write();
+            lock(s_rwLock) { return [..Config.BusinessSoftwares]; }
         }
 
-        public void RemoveEncryptionExtension(string extension)
+        public void AddBusinessSoftwares(IEnumerable<string> names)
         {
-            var normalized = NormalizeExtension(extension);
-            if (!_config.EncryptionExtensions.Contains(normalized)) return;
-            var list = new List<string>(_config.EncryptionExtensions);
-            list.Remove(normalized);
-            _config = _config with { EncryptionExtensions = list };
-            Write();
+            List<string> softwares = NormalizeProcessNames(names);
+            bool added = false;
+            lock (s_rwLock) {
+                foreach (var software in softwares) added |= Config.BusinessSoftwares.Add(software);
+            }
+            if (added) Write();
         }
 
-        public void SetBusinessSoftware(string name)
+        public void RemoveBusinessSoftwares(IEnumerable<string> names)
         {
-            _config = _config with { BusinessSoftware = name?.Trim() ?? "" };
-            Write();
+            List<string> softwares = NormalizeProcessNames(names);
+            bool removed = false;
+            lock (s_rwLock) {
+                foreach (var software in softwares) removed |= Config.BusinessSoftwares.Remove(software);
+            }
+            if (removed) Write();
         }
 
-        public void SetLogDirectory(string path)
+        private static List<string> NormalizeProcessNames(IEnumerable<string> names)
         {
-            _config = _config with { LogDirectory = path };
-            Write();
+            List<string> normalized = [];
+            foreach (var name in names) {
+                string trimmed = name.Trim();
+                if (trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) trimmed = trimmed[0..^4];
+                normalized.Add(trimmed);
+            }
+            return normalized;
         }
 
-        public void SetStateFilePath(string path)
+        public IReadOnlyList<string> GetEncryptionExtensions()
         {
-            _config = _config with { StateFilePath = path };
-            Write();
+            lock (s_rwLock) { return [..Config.EncryptionExtensions]; }
         }
 
-        public void Update(AppConfig config)
+        public void AddEncryptionExtensions(IEnumerable<string> extensions)
         {
-            _config = config with
+            List<string> normed_extensions = NormalizeExtensions(extensions);
+            bool added = false;
+            foreach (var extension in normed_extensions)
             {
-                EncryptionExtensions = NormalizeExtensions(config.EncryptionExtensions),
-                BusinessSoftware = config.BusinessSoftware?.Trim() ?? ""
-            };
-            Write();
+                lock(s_rwLock) { added |= Config.EncryptionExtensions.Add(extension); }
+            }
+            if (added) Write();
+        }
+
+        public void RemoveEncryptionExtensions(IEnumerable<string> extensions)
+        {
+            List<string> normed_extensions = NormalizeExtensions(extensions);
+            bool removed = false;
+            foreach (var extension in normed_extensions)
+            {
+                lock(s_rwLock) { removed |= Config.EncryptionExtensions.Remove(extension); }
+            }
+            if (removed) Write();
         }
 
         private static List<string> NormalizeExtensions(IEnumerable<string> extensions)
         {
             var seen = new HashSet<string>();
-            var result = new List<string>();
-            foreach (var ext in extensions)
+            var normalized = new List<string>();
+            foreach (var extension in extensions)
             {
-                var n = NormalizeExtension(ext);
-                if (string.IsNullOrEmpty(n)) continue;
-                if (seen.Add(n)) result.Add(n);
+                if (string.IsNullOrWhiteSpace(extension)) continue;
+                var trimmed = extension.Trim().ToLowerInvariant();
+                if (!trimmed.StartsWith('.')) trimmed = "." + trimmed;
+                if (seen.Add(trimmed)) normalized.Add(trimmed);
             }
-            return result;
+            return normalized;
         }
 
-        private static string NormalizeExtension(string extension)
+        public void ModifyLogOutput(string output)
         {
-            if (string.IsNullOrWhiteSpace(extension)) return "";
-            var trimmed = extension.Trim().ToLowerInvariant();
-            if (!trimmed.StartsWith(".")) trimmed = "." + trimmed;
-            return trimmed;
+            lock(s_rwLock)
+            {
+                Config = Config with { LogOutput = output };
+            }
+            Logger.ModifyOutput(output);
+            Write();
+        }
+
+        public void ModifyStateOutput(string output)
+        {
+            lock(s_rwLock)
+            {
+                Config = Config with { StateOutput = output };
+            }
+            State.ModifyOutput(output);
+            Write();
         }
 
         private void Write()
         {
-            var json = JsonSerializer.Serialize(
-                _config,
-                new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                    Converters = { new JsonStringEnumConverter() }
-                }
-            );
-            File.WriteAllText(_outputFile, json);
+            lock(s_rwLock)
+            {
+                var json = JsonSerializer.Serialize(Config, s_write_serializer);
+                File.WriteAllText(_output, json);
+            }
         }
     }
 }

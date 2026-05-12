@@ -14,7 +14,7 @@ namespace EasySaveConsole
 
             ProgramAction action = ProgramAction.CompleteSave; // Default action is complete save
             var i = 0;
-            while (args[i].StartsWith("-"))
+            while (args[i].StartsWith('-'))
             {
                 var new_action = ParseOption(args[i]);
                 switch (new_action)
@@ -33,7 +33,7 @@ namespace EasySaveConsole
         private static List<int> ParseRange(string range)
         {
             var str_ids = range.Split('-');
-            List<int> ids = new List<int>();
+            List<int> ids = [];
             if (str_ids.Length == 2 && int.TryParse(str_ids[0], out int start) && int.TryParse(str_ids[1], out int end))
             {
                 for (int i = Math.Min(start, end); i <= Math.Max(start, end); i++) ids.Add(i);
@@ -44,7 +44,7 @@ namespace EasySaveConsole
         private static List<int> ParseSequence(string sequence)
         {
             var str_ids = sequence.Split(';');
-            List<int> ids = new List<int>();
+            List<int> ids = [];
             foreach (var str_id in str_ids)
             {
                 if (int.TryParse(str_id, out int id)) ids.Add(id);
@@ -56,10 +56,10 @@ namespace EasySaveConsole
         {
             string input = arguments.Trim();
 
-            if (input.Contains(";")) return ParseSequence(input);
-            if (input.Contains("-")) return ParseRange(input);
+            if (input.Contains(';')) return ParseSequence(input);
+            if (input.Contains('-')) return ParseRange(input);
 
-            var ids = new List<int>();
+            List<int> ids = [];
             if (int.TryParse(input, out int id)) ids.Add(id);
             return ids;
         }

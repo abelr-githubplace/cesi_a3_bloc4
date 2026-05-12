@@ -1,6 +1,6 @@
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using StateManager;
+using State;
 
 namespace EasySaveLibrary.Tests
 {
@@ -29,7 +29,7 @@ namespace EasySaveLibrary.Tests
 
         private static void ResetSingleton()
         {
-            var field = typeof(StateManager.StateManager)
+            var field = typeof(StateManager)
                 .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic);
             field!.SetValue(null, null);
         }
@@ -53,7 +53,7 @@ namespace EasySaveLibrary.Tests
         {
             Assert.IsFalse(File.Exists(_stateFile));
 
-            StateManager.StateManager.Get(_stateFile);
+            StateManager.Get(_stateFile);
 
             Assert.IsTrue(File.Exists(_stateFile), "State file must be created when missing");
         }
@@ -61,8 +61,8 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Get_ReturnsSameInstance()
         {
-            var a = StateManager.StateManager.Get(_stateFile);
-            var b = StateManager.StateManager.Get(_stateFile);
+            var a = StateManager.Get(_stateFile);
+            var b = StateManager.Get(_stateFile);
 
             Assert.AreSame(a, b, "Get must return the singleton instance");
         }
@@ -70,7 +70,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Save_NewState_PersistsToDisk()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
+            var sm = StateManager.Get(_stateFile);
 
             sm.Save(BuildState(Guid.NewGuid(), "JobOne"));
 
@@ -81,7 +81,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Save_SameName_UpdatesExistingEntry()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
+            var sm = StateManager.Get(_stateFile);
             var id = Guid.NewGuid();
             sm.Save(BuildState(id, "Job"));
             sm.Save(BuildState(id, "Job") with { Status = Status.Active });
@@ -93,7 +93,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void GetSaves_ReturnsOneEntryPerSave()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
+            var sm = StateManager.Get(_stateFile);
             sm.Save(BuildState(Guid.NewGuid(), "A"));
             sm.Save(BuildState(Guid.NewGuid(), "B"));
 
@@ -109,11 +109,11 @@ namespace EasySaveLibrary.Tests
         public void Get_ExistingFile_LoadsPriorState()
         {
             var id = Guid.NewGuid();
-            var first = StateManager.StateManager.Get(_stateFile);
+            var first = StateManager.Get(_stateFile);
             first.Save(BuildState(id, "Persisted"));
 
             ResetSingleton();
-            var reloaded = StateManager.StateManager.Get(_stateFile);
+            var reloaded = StateManager.Get(_stateFile);
 
             var saves = reloaded.GetSaves();
             Assert.AreEqual(1, saves.Count);
@@ -133,7 +133,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Save_SameId_DifferentName_UpdatesExistingEntry()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
+            var sm = StateManager.Get(_stateFile);
             var id = Guid.NewGuid();
 
             sm.Save(BuildState(id, "OldName"));
@@ -148,7 +148,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Save_PersistsIdAsCanonicalGuidString()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
+            var sm = StateManager.Get(_stateFile);
             var id = Guid.NewGuid();
             sm.Save(BuildState(id, "Job"));
 
@@ -161,11 +161,11 @@ namespace EasySaveLibrary.Tests
         public void Get_ReloadedState_PreservesGuidExactly()
         {
             var id = Guid.NewGuid();
-            var first = StateManager.StateManager.Get(_stateFile);
+            var first = StateManager.Get(_stateFile);
             first.Save(BuildState(id, "Roundtrip"));
 
             ResetSingleton();
-            var reloaded = StateManager.StateManager.Get(_stateFile);
+            var reloaded = StateManager.Get(_stateFile);
 
             var save = reloaded.GetSaves().Single();
             Assert.AreEqual(id, save.SaveId);
@@ -175,50 +175,54 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Delete_ExistingState_RemovesEntryAndReturnsTrue()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
-            sm.Save(BuildState(1, "ToDelete"));
-            sm.Save(BuildState(2, "Keep"));
+            var sm = StateManager.Get(_stateFile);
+            var id1 = Guid.NewGuid();
+            var id2 = Guid.NewGuid();
+            sm.Save(BuildState(id1, "ToDelete"));
+            sm.Save(BuildState(id2, "Keep"));
 
-            bool removed = sm.Delete("ToDelete");
+            bool removed = sm.Delete(id1);
 
             Assert.IsTrue(removed);
-            var remaining = sm.GetSaves().Select(s => s.SaveName).ToArray();
-            CollectionAssert.AreEqual(new[] { "Keep" }, remaining);
+            var remaining = sm.GetSaves().Select(s => s.SaveId).ToArray();
+            CollectionAssert.AreEqual(new Guid[] { id2 }, remaining);
         }
 
         [TestMethod]
         public void Delete_UnknownState_ReturnsFalseAndDoesNotMutate()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
-            sm.Save(BuildState(1, "Only"));
+            var sm = StateManager.Get(_stateFile);
+            sm.Save(BuildState(Guid.NewGuid(), "Only"));
 
-            bool removed = sm.Delete("nope");
+            bool removed = sm.Delete(Guid.NewGuid());
 
             Assert.IsFalse(removed);
-            Assert.AreEqual(1, sm.GetSaves().Count);
+            Assert.HasCount(1, sm.GetSaves());
         }
 
         [TestMethod]
         public void Delete_PersistsToDisk()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
-            sm.Save(BuildState(1, "Persisted"));
-            sm.Delete("Persisted");
+            var sm = StateManager.Get(_stateFile);
+            var id = Guid.NewGuid();
+            sm.Save(BuildState(id, "Persisted"));
+            sm.Delete(id);
 
             ResetSingleton();
-            var reloaded = StateManager.StateManager.Get(_stateFile);
-            Assert.AreEqual(0, reloaded.GetSaves().Count);
+            var reloaded = StateManager.Get(_stateFile);
+            Assert.HasCount(0, reloaded.GetSaves());
         }
 
         [TestMethod]
         public void Find_ReturnsState_OrNullWhenAbsent()
         {
-            var sm = StateManager.StateManager.Get(_stateFile);
-            sm.Save(BuildState(42, "Hit"));
+            var sm = StateManager.Get(_stateFile);
+            var id = Guid.NewGuid();
+            sm.Save(BuildState(id, "Hit"));
 
-            Assert.IsNotNull(sm.Find("Hit"));
-            Assert.AreEqual(GuidFromInt(42), sm.Find("Hit")!.Id);
-            Assert.IsNull(sm.Find("Miss"));
+            Assert.IsNotNull(sm.Find(id));
+            Assert.AreEqual("Hit", sm.Find(id)!.Name);
+            Assert.IsNull(sm.Find(Guid.NewGuid()));
         }
     }
 }

@@ -231,7 +231,7 @@
   <data name="BusinessSoftwareMenuList" xml:space="preserve">
     <value>Watched processes:</value>
   </data>
-  <data name="BusinessSoftwareMenuEmpty" xml:space="preserve">
+  <data name="EmptyList" xml:space="preserve">
     <value>(none)</value>
   </data>
   <data name="BusinessSoftwareMenuAdd" xml:space="preserve">
@@ -241,10 +241,10 @@
     <value>Remove a process</value>
   </data>
   <data name="BusinessSoftwareAskAdd" xml:space="preserve">
-    <value>Process name to add (e.g. CalculatorApp):</value>
+    <value>Process name to add (e.g. Calculator.exe):</value>
   </data>
   <data name="BusinessSoftwareAskRemove" xml:space="preserve">
-    <value>Process name to remove:</value>
+    <value>Process name to remove (e.g. Calculator.exe):</value>
   </data>
   <data name="BusinessSoftwareDetectedSaveBlocked" xml:space="preserve">
     <value>Business software detected: complete backup save blocked.</value>
@@ -323,5 +323,38 @@
   </data>
   <data name="Finish" xml:space="preserve">
     <value>Finish</value>
+  </data>
+  <data name="OptionMenuLogOutput" xml:space="preserve">
+    <value>Log file</value>
+  </data>
+  <data name="OptionMenuStateOutput" xml:space="preserve">
+    <value>State file</value>
+  </data>
+  <data name="OptionMenuExtensionsToEncrypt" xml:space="preserve">
+    <value>Extensions to encrypt</value>
+  </data>
+  <data name="OptionMenuLogOutputQuestion" xml:space="preserve">
+    <value>Where should the logs be written?</value>
+  </data>
+  <data name="OptionMenuStateOutputQuestion" xml:space="preserve">
+    <value>Where should the state information be written?</value>
+  </data>
+  <data name="ExtensionsToEncryptMenuTitle" xml:space="preserve">
+    <value>Encryption menu</value>
+  </data>
+  <data name="ExtensionsToEncryptMenuList" xml:space="preserve">
+    <value>Extensions that will be encrypted in the backup:</value>
+  </data>
+  <data name="ExtensionsToEncryptMenuAdd" xml:space="preserve">
+    <value>Add an extension</value>
+  </data>
+  <data name="ExtensionsToEncryptMenuRemove" xml:space="preserve">
+    <value>Remove an extension</value>
+  </data>
+  <data name="ExtensionsToEncryptAskAdd" xml:space="preserve">
+    <value>Extension to add (e.g. exe, txt, ...):</value>
+  </data>
+  <data name="ExtensionsToEncryptAskRemove" xml:space="preserve">
+    <value>Extension to remove (e.g. exe, txt, ...):</value>
   </data>
 </root>

@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace StateManager
+namespace State
 {
     public enum Status { Active, Inactive, Paused }
 
@@ -29,43 +29,47 @@ namespace StateManager
 
     public sealed class StateManager
     {
-        private static StateManager s_instance;
-        private static readonly object s_lock = new object();
-
-        private List<SaveState> _states;
-
-        private readonly string _outputFile;
-
-        private StateManager(string outputFile)
+        private static JsonSerializerOptions s_read_serializer = new()
         {
-            _outputFile = outputFile;
+            Converters = { new JsonStringEnumConverter() }
+        };
+        private static JsonSerializerOptions s_write_serializer = new()
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            Converters = { new JsonStringEnumConverter() },
+        };
 
-            if (File.Exists(outputFile))
+        private static StateManager? s_instance;
+        private static readonly object s_lock = new();
+
+        private string _output;
+        private readonly List<SaveState> _states;
+        private static readonly object s_rwLock = new();
+
+        private StateManager(string output)
+        {
+            _output = output;
+
+            if (File.Exists(output))
             {
-                string json = File.ReadAllText(outputFile);
+                string json = File.ReadAllText(output);
                 if (string.IsNullOrEmpty(json)) _states = new List<SaveState>();
-                else _states = JsonSerializer.Deserialize<List<SaveState>>(
-                    json,
-                    new JsonSerializerOptions { Converters = { new JsonStringEnumConverter() } }
-                ) ?? new List<SaveState>();
+                else _states = JsonSerializer.Deserialize<List<SaveState>>(json, s_read_serializer)
+                    ?? new List<SaveState>();
+                return;
             }
-            else
-            {
-                using (File.Create(outputFile)) { }
-                _states = new List<SaveState>();
-            }
+            _states = new List<SaveState>();
+            Write();
         }
 
-        public static StateManager Get(string outputFile)
+        public static StateManager Get(string output)
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null)
-                    {
-                        s_instance = new StateManager(outputFile);
-                    }
+                    s_instance ??= new StateManager(output);
                 }
             }
             return s_instance;
@@ -86,51 +90,46 @@ namespace StateManager
             return saveInfos;
         }
 
-        private readonly object _writeLock = new object();
+        public void ModifyOutput(string output)
+        {
+            lock(s_rwLock) { _output = output; }
+        }
 
         public void Save(SaveState state)
         {
-            lock (_writeLock)
+            lock (s_rwLock)
             {
                 int existingIndex = _states.FindIndex(s => s.Id == state.Id);
                 if (existingIndex >= 0) _states[existingIndex] = state;
                 else _states.Add(state);
-                Write();
             }
+            Write();
         }
 
-        public bool Delete(string name)
+        public bool Delete(Guid id)
         {
-            lock (_writeLock)
+            lock (s_rwLock)
             {
-                int existingIndex = _states.FindIndex(s => s.Name == name);
+                int existingIndex = _states.FindIndex(s => s.Id == id);
                 if (existingIndex < 0) return false;
                 _states.RemoveAt(existingIndex);
-                Write();
-                return true;
             }
+            Write();
+            return true;
         }
 
-        public SaveState? Find(string name)
+        public SaveState? Find(Guid id)
         {
-            lock (_writeLock)
-            {
-                return _states.FirstOrDefault(s => s.Name == name);
-            }
+            lock (s_rwLock) { return _states.Find(s => s.Id == id); }
         }
 
         private void Write()
         {
-            var json = JsonSerializer.Serialize(
-                _states,
-                new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                    Converters = { new JsonStringEnumConverter() },
-                }
-            );
-            File.WriteAllText(_outputFile, json);
+            lock(s_rwLock)
+            {
+                var json = JsonSerializer.Serialize(_states, s_write_serializer);
+                File.WriteAllText(_output, json);
+            }
         }
     }
 }

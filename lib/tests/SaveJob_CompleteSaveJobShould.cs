@@ -27,7 +27,7 @@ namespace EasySaveLibrary.Tests
             string src = Path.Combine(_workDir, "missing.txt");
             string dst = Path.Combine(_workDir, "dst.txt");
 
-            var job = new CompleteSaveJob(src, dst, 0, Priority.Medium);
+            var job = new CompleteSaveFileJob(src, dst, 0, Priority.Low);
             long copied = job.Execute();
 
             Assert.AreEqual(0L, copied, "Missing source must yield zero copied bytes");
@@ -42,7 +42,7 @@ namespace EasySaveLibrary.Tests
             byte[] payload = System.Text.Encoding.UTF8.GetBytes("hello world");
             File.WriteAllBytes(src, payload);
 
-            var job = new CompleteSaveJob(src, dst, payload.Length, Priority.High);
+            var job = new CompleteSaveFileJob(src, dst, payload.Length, Priority.High);
             long copied = job.Execute();
 
             Assert.AreEqual(payload.Length, copied, "Copied length should match the source size");
@@ -57,7 +57,7 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(src, "new");
             File.WriteAllText(dst, "old-and-longer");
 
-            var job = new CompleteSaveJob(src, dst, 3, Priority.Low);
+            var job = new CompleteSaveFileJob(src, dst, 3, Priority.Low);
             job.Execute();
 
             Assert.AreEqual("new", File.ReadAllText(dst), "Existing destination must be overwritten");
@@ -66,7 +66,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Constructor_AssignsAllProperties()
         {
-            var job = new CompleteSaveJob("a", "b", 42, Priority.High);
+            var job = new CompleteSaveFileJob("a", "b", 42, Priority.High);
 
             Assert.AreEqual("a", job.SourceFile);
             Assert.AreEqual("b", job.DestinationFile);

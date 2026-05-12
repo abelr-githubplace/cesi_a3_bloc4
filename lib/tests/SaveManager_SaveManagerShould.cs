@@ -1,7 +1,9 @@
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SaveManager;
-using Saver;
+using State;
+using EasyLog;
+using Config;
 
 namespace EasySaveLibrary.Tests
 {
@@ -10,28 +12,23 @@ namespace EasySaveLibrary.Tests
     public class SaveManager_SaveManagerShould
     {
         private string _workDir = null!;
-        private Config _config = null!;
+        private ConfigManager _config = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _workDir = Path.Combine(Path.GetTempPath(), "easysave-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_workDir);
-            ResetSingleton(typeof(StateManager.StateManager));
-            ResetSingleton(typeof(EasyLog.Logger));
-            _config = new Config
-            {
-                Logger = EasyLog.Logger.Get(Path.Combine(_workDir, "save.log")),
-                StateManager = StateManager.StateManager.Get(Path.Combine(_workDir, "state.json")),
-                LogFormat = EasyLog.LogFormat.JSON,
-            };
+            ResetSingleton(typeof(StateManager));
+            ResetSingleton(typeof(Logger));
+            _config = ConfigManager.Get();
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            ResetSingleton(typeof(StateManager.StateManager));
-            ResetSingleton(typeof(EasyLog.Logger));
+            ResetSingleton(typeof(StateManager));
+            ResetSingleton(typeof(Logger));
             if (Directory.Exists(_workDir)) Directory.Delete(_workDir, true);
         }
 
@@ -60,29 +57,29 @@ namespace EasySaveLibrary.Tests
         {
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { MakeSave("only") },
+                SaveAction = SaveManager.Action.CompleteSave,
+                Saves = [MakeSave("only")],
             };
 
-            bool ok = SaveManager.SaveManager.Execute(command, new Progress[] { }, _config);
+            var res = SaveManager.SaveManager.Execute(command, [], _config);
 
-            Assert.IsFalse(ok, "Length mismatch between saves and progresses must abort");
+            Assert.IsTrue(res.IsErr, "Length mismatch between saves and progresses must abort");
         }
 
         [TestMethod]
         public void Execute_SaveAction_RunsAllSavesAndReturnsTrue()
         {
             var saves = new[] { MakeSave("a"), MakeSave("b") };
-            var progresses = new[] { new Progress(), new Progress() };
+            var progresses = new[] { new Progress.Progress(), new Progress.Progress() };
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
+                SaveAction = SaveManager.Action.CompleteSave,
                 Saves = saves,
             };
 
-            bool ok = SaveManager.SaveManager.Execute(command, progresses, _config);
+            var res = SaveManager.SaveManager.Execute(command, progresses, _config);
 
-            Assert.IsTrue(ok);
+            Assert.IsTrue(res.IsOk, $"{string.Join(" | ",res.UnwrapErr())}");
             Assert.IsTrue(File.Exists(Path.Combine(saves[0].DestinationPath, "f.txt")));
             Assert.IsTrue(File.Exists(Path.Combine(saves[1].DestinationPath, "f.txt")));
             Assert.AreEqual(100f, progresses[0].GetProgress());
@@ -92,68 +89,44 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Execute_CompleteSave_BlockedWhenBusinessSoftwareRunning()
         {
-            ResetSingleton(typeof(AppConfig.AppConfig));
-            var appConfig = AppConfig.AppConfig.Get(Path.Combine(_workDir, "config.json"));
-            // Pick a process name that is guaranteed to be running on the test host:
-            // the test runner itself.
+            ResetSingleton(typeof(ConfigManager));
+            var config = ConfigManager.Get();
             string ownProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-            appConfig.AddBusinessSoftware(ownProcess);
-
-            var configWithApp = _config with { AppConfig = appConfig };
+            config.AddBusinessSoftwares([ownProcess]);
             var save = MakeSave("blocked");
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = SaveType.Complete,
+                SaveAction = SaveManager.Action.CompleteSave,
+                Saves = [save],
             };
 
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, configWithApp);
+            var res = SaveManager.SaveManager.Execute(command, [new Progress.Progress()], config);
 
-            Assert.IsFalse(ok);
-            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Complete save must not run when business software is detected");
-            ResetSingleton(typeof(AppConfig.AppConfig));
+            Assert.IsTrue(res.IsOk, $"{string.Join(" | ", res.UnwrapErr())}");
+            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Save must not run when business software is detected");
+            ResetSingleton(typeof(ConfigManager));
         }
 
         [TestMethod]
-        public void Execute_DifferentialSave_NotBlockedWhenBusinessSoftwareRunning()
+        public void Execute_DifferentialSave_BlockedWhenBusinessSoftwareRunning()
         {
-            ResetSingleton(typeof(AppConfig.AppConfig));
-            var appConfig = AppConfig.AppConfig.Get(Path.Combine(_workDir, "config.json"));
+            ResetSingleton(typeof(ConfigManager));
+            var config = ConfigManager.Get();
             string ownProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-            appConfig.AddBusinessSoftware(ownProcess);
+            config.AddBusinessSoftwares([ownProcess]);
 
-            var configWithApp = _config with { AppConfig = appConfig };
             var save = MakeSave("diff");
             var command = new Command
             {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = SaveType.Differential,
+                SaveAction = SaveManager.Action.DifferentialSave,
+                Saves = [save],
             };
 
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, configWithApp);
+            var res = SaveManager.SaveManager.Execute(command, [new Progress.Progress()], config);
 
-            Assert.IsTrue(ok, "Differential saves must continue even with business software running");
-            Assert.IsTrue(File.Exists(Path.Combine(save.DestinationPath, "f.txt")));
-            ResetSingleton(typeof(AppConfig.AppConfig));
-        }
-
-        [TestMethod]
-        public void Execute_NullSaveType_DefaultsToComplete()
-        {
-            var save = MakeSave("default");
-            var command = new Command
-            {
-                SaveAction = SaveManager.Action.Save,
-                Saves = new[] { save },
-                SaveType = null,
-            };
-
-            bool ok = SaveManager.SaveManager.Execute(command, new[] { new Progress() }, _config);
-
-            Assert.IsTrue(ok);
-            Assert.IsTrue(File.Exists(Path.Combine(save.DestinationPath, "f.txt")));
+            Assert.IsTrue(res.IsOk, $"{string.Join(" | ", res.UnwrapErr())}");
+            Assert.IsFalse(File.Exists(Path.Combine(save.DestinationPath, "f.txt")), "Save must not run when business software is detected");
+            ResetSingleton(typeof(ConfigManager));
         }
     }
 }

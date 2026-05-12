@@ -29,7 +29,7 @@ namespace EasySaveLibrary.Tests
             byte[] payload = System.Text.Encoding.UTF8.GetBytes("differential");
             File.WriteAllBytes(src, payload);
 
-            var job = new DifferentialSaveJob(src, dst, payload.Length, Priority.Medium);
+            var job = new DifferentialSaveFileJob(src, dst, dst + ".diff", payload.Length, Priority.Low);
             long copied = job.Execute();
 
             Assert.AreEqual(payload.Length, copied);
@@ -46,7 +46,7 @@ namespace EasySaveLibrary.Tests
             File.WriteAllBytes(src, payload);
             File.WriteAllBytes(dst, payload);
 
-            var job = new DifferentialSaveJob(src, dst, payload.Length, Priority.Medium);
+            var job = new DifferentialSaveFileJob(src, dst, dst + ".diff", payload.Length, Priority.Low);
             long reported = job.Execute();
 
             Assert.AreEqual(payload.Length, reported, "Reported size should equal declared FileSize when up-to-date");
@@ -61,12 +61,12 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(dst, new string('A', 256));
             File.WriteAllText(src, new string('A', 128) + new string('B', 128));
 
-            var job = new DifferentialSaveJob(src, dst, new FileInfo(src).Length, Priority.Medium);
+            var job = new DifferentialSaveFileJob(src, dst, dst + ".diff", new FileInfo(src).Length, Priority.Low);
             job.Execute();
 
             string diff = dst + ".diff";
             Assert.IsTrue(File.Exists(diff), "A .diff file must be generated for differing content");
-            Assert.IsTrue(new FileInfo(diff).Length > 0, "Diff file must not be empty");
+            Assert.IsGreaterThan(0, new FileInfo(diff).Length, "Diff file must not be empty");
         }
 
         [TestMethod]
@@ -74,49 +74,41 @@ namespace EasySaveLibrary.Tests
         {
             string src = Path.Combine(_workDir, "src.txt");
             string dst = Path.Combine(_workDir, "dst.txt");
-            string original = new string('A', 256);
+            string original = new('A', 256);
             string updated = new string('A', 128) + new string('B', 128);
             File.WriteAllText(dst, original);
             File.WriteAllText(src, updated);
 
-            var job = new DifferentialSaveJob(src, dst, new FileInfo(src).Length, Priority.Medium);
+            var job = new DifferentialSaveFileJob(src, dst, dst + ".diff", new FileInfo(src).Length, Priority.Low);
             job.Execute();
 
-            Assert.AreEqual(updated, File.ReadAllText(dst),
-                "Destination must mirror the new source content after a differential save");
-            Assert.IsTrue(File.Exists(dst + ".diff"),
-                "A .diff sidecar must be produced so the prior version is restorable");
+            Assert.AreEqual(original, File.ReadAllText(dst), "Destination must not mirror the new source content after a differential save, differences are saved to a .diff file");
+            Assert.IsTrue(File.Exists(dst + ".diff"), "A .diff sidecar must be produced so the prior version is restorable");
         }
 
         [TestMethod]
         public void GenerateDelta_DiffStartsWithMagicHeader()
         {
-            string src = Path.Combine(_workDir, "src.bin");
-            string dst = Path.Combine(_workDir, "dst.bin");
-            string diff = Path.Combine(_workDir, "out.diff");
-            File.WriteAllBytes(dst, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 });
-            File.WriteAllBytes(src, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99, 99, 99, 99 });
+            byte[] dstBytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+            byte[] srcBytes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 99, 99, 99, 99];
 
-            DifferentialSaveJob.GenerateDelta(src, dst, diff);
+            byte[] diffBytes = XDelta.XDelta.Encode(srcBytes, dstBytes);
 
-            byte[] header = File.ReadAllBytes(diff);
-            Assert.IsTrue(header.Length >= 4, "Diff file must contain at least the magic header");
-            int magic = BitConverter.ToInt32(header, 0);
+            Assert.IsGreaterThanOrEqualTo(4, diffBytes.Length, "Diff file must contain at least the magic header");
+            int magic = BitConverter.ToInt32(diffBytes, 0);
             Assert.AreEqual(0x46464944, magic, "Magic header should be \"DIFF\"");
         }
 
         [TestMethod]
         public void GenerateDelta_TinyFiles_EmitSingleAddOp()
         {
-            string src = Path.Combine(_workDir, "src.bin");
-            string dst = Path.Combine(_workDir, "dst.bin");
-            string diff = Path.Combine(_workDir, "out.diff");
-            File.WriteAllBytes(dst, new byte[] { 1 });
-            File.WriteAllBytes(src, new byte[] { 9, 9, 9 });
+            byte[] srcBytes =[9, 9, 9];
+            byte[] dstBytes =[1];
 
-            DifferentialSaveJob.GenerateDelta(src, dst, diff);
+            byte[] diffBytes = XDelta.XDelta.Encode(srcBytes, dstBytes);
 
-            using var reader = new BinaryReader(File.OpenRead(diff));
+            using var ms = new MemoryStream(diffBytes);
+            using var reader = new BinaryReader(ms);
             int magic = reader.ReadInt32();
             int oldLen = reader.ReadInt32();
             int newLen = reader.ReadInt32();
@@ -134,17 +126,13 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void GenerateDelta_IdenticalLargeBuffers_EmitSingleCopyOp()
         {
-            string src = Path.Combine(_workDir, "src.bin");
-            string dst = Path.Combine(_workDir, "dst.bin");
-            string diff = Path.Combine(_workDir, "out.diff");
             byte[] payload = new byte[1024];
             for (int i = 0; i < payload.Length; i++) payload[i] = (byte)(i & 0xFF);
-            File.WriteAllBytes(src, payload);
-            File.WriteAllBytes(dst, payload);
 
-            DifferentialSaveJob.GenerateDelta(src, dst, diff);
+            byte[] diffBytes = XDelta.XDelta.Encode(payload, payload);
 
-            using var reader = new BinaryReader(File.OpenRead(diff));
+            using var ms = new MemoryStream(diffBytes);
+            using var reader = new BinaryReader(ms);
             reader.ReadInt32(); // magic
             reader.ReadInt32(); // oldLen
             reader.ReadInt32(); // newLen

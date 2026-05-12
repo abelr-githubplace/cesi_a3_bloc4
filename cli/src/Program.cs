@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using EasySave.lang;
 using EasyLog;
-using System.Data;
+using Config;
 
 namespace EasySaveConsole
 {
@@ -43,54 +43,45 @@ namespace EasySaveConsole
 
         public static void Main(string[] args)
         {
+            var config = ConfigManager.Get();
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
 
-            var appConfig = AppConfig.AppConfig.Get("./config.json");
-            var logger = Logger.Get("./save.log");
-            var stateManager = StateManager.StateManager.Get("./state.json");
-            List<SaveManager.SaveInfo> saveInfos = stateManager.GetSaves();
-
-            Parser.ParsedCommand input_command = Parser.Parse(args);
-            var config = new SaveManager.Config
-            {
-                Logger = logger,
-                StateManager = stateManager,
-                LogFormat = input_command.Format,
-                AppConfig = appConfig,
-            };
+            List<SaveManager.SaveInfo> saveInfos = config.State.GetSaves();
+            Parser.ParsedCommand input_command = Parser.Parse(args); // FIXME: add config change
 
             if (input_command.Action == ProgramAction.InteractiveMode)
             {
                 while (true)
                 {
-                    (SaveManager.Config new_config, ProgramCommand command) = App.MainMenu(config, saveInfos);
+                    ProgramCommand command = App.MainMenu(config, saveInfos);
                     if (command.Action == ProgramAction.Exit) break;
                     switch (command.Action)
                     {
                         case ProgramAction.Help: Console.WriteLine(_help); break;
                         case ProgramAction.Version: Console.WriteLine(_version); break;
-                        case ProgramAction.CompleteSave: Execute(command.Command, new_config); break;
-                        case ProgramAction.DifferentialSave: Execute(command.Command, new_config); break;
+                        case ProgramAction.CompleteSave: Execute(command.Command, config); break;
+                        case ProgramAction.DifferentialSave: Execute(command.Command, config); break;
                     }
-                    config = new_config;
                 }
                 return;
             }
 
-            ProgramCommand argCommand = new ProgramCommand { Action = input_command.Action };
+            ProgramCommand argCommand = new() { Action = input_command.Action };
             if (
                 (input_command.Action == ProgramAction.CompleteSave || input_command.Action == ProgramAction.DifferentialSave)
                 && input_command.SaveIds != null
                )
             {
                 SaveManager.SaveInfo[] saves = App.SaveInfosContext(input_command.SaveIds, saveInfos);
-                var saveType = input_command.Action == ProgramAction.DifferentialSave
-                    ? SaveManager.SaveType.Differential
-                    : SaveManager.SaveType.Complete;
                 argCommand = new ProgramCommand
                 {
                     Action = input_command.Action,
-                    Command = new SaveManager.Command { SaveAction = SaveManager.Action.Save, SaveType = saveType, Saves = saves }
+                    Command = new SaveManager.Command {
+                        SaveAction = input_command.Action == ProgramAction.DifferentialSave
+                            ? SaveManager.Action.DifferentialSave
+                            : SaveManager.Action.CompleteSave,
+                        Saves = saves,
+                    }
                 };
             }
 
@@ -104,28 +95,25 @@ namespace EasySaveConsole
             }
         }
 
-        static void Execute(SaveManager.Command command, SaveManager.Config config)
+        static void Execute(SaveManager.Command command, ConfigManager config)
         {
             try { Console.Clear(); } catch { }
-            var progresses = new List<Saver.Progress>();
+            var progresses = new List<Progress.Progress>();
             var bars = new List<ProgressBar>();
 
             for (int i = 0; i < command.Saves.Length; i++)
             {
-                Saver.Progress progress = new Saver.Progress();
+                Progress.Progress progress = new();
                 var bar = new ProgressBar(command.Saves[i].SaveName, i, progress);
                 progresses.Add(progress);
                 bars.Add(bar);
                 bar.Update(); // First render
             }
 
-            bool success = SaveManager.SaveManager.Execute(command, progresses.ToArray(), config);
+            var res = SaveManager.SaveManager.Execute(command, [..progresses], config);
 
             string end_message;
-            if (success) end_message = $"{Messages.SaveSuccess}";
-            else if (command.SaveType != SaveManager.SaveType.Differential
-                     && SaveManager.SaveManager.IsBusinessSoftwareRunning(config))
-                end_message = $"{Messages.BusinessSoftwareDetectedSaveBlocked}";
+            if (res.IsOk) end_message = $"{Messages.SaveSuccess}";
             else end_message = $"{Messages.SaveFailed}";
             Console.WriteLine($"\n--- {end_message} ---");
             if (!Console.IsInputRedirected) Console.ReadKey();

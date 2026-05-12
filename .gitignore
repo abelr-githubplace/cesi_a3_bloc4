@@ -41,6 +41,12 @@ lib/obj
 lib/tests/bin
 lib/tests/obj
 
+# Crypto
+crypto/bin
+crypto/obj
+crypto/tests/bin
+crypto/tests/obj
+
 # Logger
 logger/bin
 logger/obj

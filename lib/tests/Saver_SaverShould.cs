@@ -1,8 +1,10 @@
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SaveManager;
-using Saver;
-using StateManager;
+using Save;
+using Config;
+using State;
+using EasyLog;
 
 namespace EasySaveLibrary.Tests
 {
@@ -15,7 +17,7 @@ namespace EasySaveLibrary.Tests
         private string _dst = null!;
         private string _stateFile = null!;
         private string _logFile = null!;
-        private Config _config = null!;
+        private ConfigManager _config = null!;
 
         [TestInitialize]
         public void Setup()
@@ -28,22 +30,19 @@ namespace EasySaveLibrary.Tests
             _stateFile = Path.Combine(_workDir, "state.json");
             _logFile = Path.Combine(_workDir, "save.log");
 
-            ResetSingleton(typeof(StateManager.StateManager));
-            ResetSingleton(typeof(EasyLog.Logger));
+            ResetSingleton(typeof(StateManager));
+            ResetSingleton(typeof(Logger));
 
-            _config = new Config
-            {
-                Logger = EasyLog.Logger.Get(_logFile),
-                StateManager = StateManager.StateManager.Get(_stateFile),
-                LogFormat = EasyLog.LogFormat.JSON
-            };
+            _config = ConfigManager.Get();
+            _config.ModifyLogOutput(_logFile);
+            _config.ModifyStateOutput(_stateFile);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            ResetSingleton(typeof(StateManager.StateManager));
-            ResetSingleton(typeof(EasyLog.Logger));
+            ResetSingleton(typeof(StateManager));
+            ResetSingleton(typeof(Logger));
             if (Directory.Exists(_workDir)) Directory.Delete(_workDir, true);
         }
 
@@ -67,9 +66,9 @@ namespace EasySaveLibrary.Tests
             File.WriteAllText(Path.Combine(_src, "a.txt"), "AA");
             File.WriteAllText(Path.Combine(_src, "b.txt"), "BBB");
 
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress.Progress(), _config);
 
-            Assert.AreEqual(2, saver.FilesWithSizes.Count);
+            Assert.HasCount(2, saver.FilesWithSizes);
             Assert.AreEqual(5L, saver.TotalSize);
         }
 
@@ -79,9 +78,9 @@ namespace EasySaveLibrary.Tests
             string lone = Path.Combine(_workDir, "lone.txt");
             File.WriteAllText(lone, "hello");
 
-            var saver = new Saver.Saver(Info("Job", lone, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver(Info("Job", lone, _dst), SaveManager.Action.CompleteSave, new Progress.Progress(), _config);
 
-            Assert.AreEqual(1, saver.FilesWithSizes.Count);
+            Assert.HasCount(1, saver.FilesWithSizes);
             Assert.AreEqual(5L, saver.TotalSize);
         }
 
@@ -90,9 +89,9 @@ namespace EasySaveLibrary.Tests
         {
             string missing = Path.Combine(_workDir, "nope");
 
-            var saver = new Saver.Saver(Info("Job", missing, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver(Info("Job", missing, _dst), SaveManager.Action.CompleteSave, new Progress.Progress(), _config);
 
-            Assert.AreEqual(0, saver.FilesWithSizes.Count);
+            Assert.HasCount(0, saver.FilesWithSizes);
             Assert.AreEqual(0L, saver.TotalSize);
         }
 
@@ -101,10 +100,10 @@ namespace EasySaveLibrary.Tests
         {
             File.WriteAllText(Path.Combine(_src, "a.txt"), "first");
             File.WriteAllText(Path.Combine(_src, "b.txt"), "second");
-            var progress = new Progress();
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, progress, _config);
+            var progress = new Progress.Progress();
+            var saver = new Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, progress, _config);
 
-            saver.Start();
+            saver.Start(false);
 
             Assert.IsTrue(File.Exists(Path.Combine(_dst, "a.txt")));
             Assert.IsTrue(File.Exists(Path.Combine(_dst, "b.txt")));
@@ -114,40 +113,40 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Start_EmptySource_CompletesWithoutWritingDestination()
         {
-            var progress = new Progress();
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, progress, _config);
+            var progress = new Progress.Progress();
+            var saver = new Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, progress, _config);
 
-            saver.Start();
+            saver.Start(false);
 
             Assert.IsFalse(Directory.Exists(_dst), "No jobs means no destination should be created");
             string json = File.ReadAllText(_stateFile);
-            StringAssert.Contains(json, "Inactive", "Final state must still be persisted");
+            Assert.Contains("Inactive", json, "Final state must still be persisted");
         }
 
         [TestMethod]
         public void Start_CompleteSave_WritesLogEntries()
         {
             File.WriteAllText(Path.Combine(_src, "a.txt"), "first");
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress.Progress(), _config);
 
-            saver.Start();
+            saver.Start(false);
 
             Assert.IsTrue(File.Exists(_logFile));
             string log = File.ReadAllText(_logFile);
-            StringAssert.Contains(log, "Job");
-            StringAssert.Contains(log, "a.txt");
+            Assert.Contains("Job", log);
+            Assert.Contains("a.txt", log);
         }
 
         [TestMethod]
         public void Start_PersistsInactiveStateAtCompletion()
         {
             File.WriteAllText(Path.Combine(_src, "a.txt"), "x");
-            var saver = new Saver.Saver(Info("Job", _src, _dst), SaveType.Complete, new Progress(), _config);
+            var saver = new Saver(Info("Job", _src, _dst), SaveManager.Action.CompleteSave, new Progress.Progress(), _config);
 
-            saver.Start();
+            saver.Start(false);
 
             string json = File.ReadAllText(_stateFile);
-            StringAssert.Contains(json, "Inactive");
+            Assert.Contains("Inactive", json);
         }
     }
 }

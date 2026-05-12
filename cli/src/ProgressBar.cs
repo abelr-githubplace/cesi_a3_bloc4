@@ -2,11 +2,11 @@
 {
     public class ProgressBar : Observer.ISubscriber
     {
-        private int _position;
-        private string _saveName;
-        private Saver.Progress _progress;
+        private readonly int _position;
+        private readonly string _saveName;
+        private readonly Progress.Progress _progress;
 
-        public ProgressBar(string saveName, int position, Saver.Progress progress)
+        public ProgressBar(string saveName, int position, Progress.Progress progress)
         {
             _progress = progress;
             _position = position;
@@ -17,7 +17,6 @@
 
         public void Update()
         {
-            // No console attached (stdout redirected, test runner, etc.) — skip the UI.
             if (Console.IsOutputRedirected) return;
 
             try
@@ -27,15 +26,15 @@
                 int filledBlocks = (int)((progress / 100) * totalBlocks);
                 int emptyBlocks = totalBlocks - filledBlocks;
 
-                string filled = new string('█', filledBlocks);
-                string empty = new string('░', emptyBlocks);
+                string filled = new('█', filledBlocks);
+                string empty = new('░', emptyBlocks);
 
                 var previous_position = Console.GetCursorPosition();
                 Console.SetCursorPosition(0, Console.CursorTop + Console.WindowHeight - previous_position.Top - _position - 1);
                 Console.Write($"=> {_saveName} [{filled}{empty}] {progress,6:0.00}%");
                 Console.SetCursorPosition(previous_position.Left, previous_position.Top);
             }
-            catch (IOException) { }
+            catch { return; }
         }
     }
 }

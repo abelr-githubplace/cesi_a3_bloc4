@@ -1,5 +1,4 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Saver;
 using Observer;
 
 namespace EasySaveLibrary.Tests
@@ -16,14 +15,14 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void NewProgress_StartsAtZero()
         {
-            var progress = new Progress();
+            var progress = new Progress.Progress();
             Assert.AreEqual(0f, progress.GetProgress());
         }
 
         [TestMethod]
         public void SetProgress_UpdatesValueAndNotifiesSubscribers()
         {
-            var progress = new Progress();
+            var progress = new Progress.Progress();
             var sub = new CountingSubscriber();
             progress.Subscribe(sub);
 
@@ -36,7 +35,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Subscribe_DoesNotAddSameSubscriberTwice()
         {
-            var progress = new Progress();
+            var progress = new Progress.Progress();
             var sub = new CountingSubscriber();
 
             progress.Subscribe(sub);
@@ -49,7 +48,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Unsubscribe_StopsNotifications()
         {
-            var progress = new Progress();
+            var progress = new Progress.Progress();
             var sub = new CountingSubscriber();
             progress.Subscribe(sub);
             progress.Unsubscribe(sub);
@@ -62,7 +61,7 @@ namespace EasySaveLibrary.Tests
         [TestMethod]
         public void Notify_DispatchesToEverySubscriber()
         {
-            var progress = new Progress();
+            var progress = new Progress.Progress();
             var a = new CountingSubscriber();
             var b = new CountingSubscriber();
             progress.Subscribe(a);

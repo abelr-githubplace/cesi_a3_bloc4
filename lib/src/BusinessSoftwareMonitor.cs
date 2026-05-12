@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace BusinessSoftwareMonitor
+namespace BusinessSoftware
 {
     public static class BusinessSoftwareMonitor
     {

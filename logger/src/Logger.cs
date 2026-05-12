@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using System.Text.Json;
 
 namespace EasyLog
@@ -15,10 +13,12 @@ namespace EasyLog
         public required string Action { get; init; }
         public required long FileSize { get; init; }        // bytes
         public required int TransferTime { get; init; }     // milliseconds
+        public required int EncryptionTime { get; init; }     // milliseconds
 
         private string TextFormat() {
             return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
-                $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms";
+                $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms " +
+                $"encrypted in {EncryptionTime}ms";
         }
 
         private string XMLFormat() {
@@ -28,7 +28,8 @@ namespace EasyLog
                 $"<Source>{SourceFile}</Source>" +
                 $"<Target>{DestinationFile}</Target>" +
                 $"<FileSize>{FileSize}</FileSize>" +
-                $"<TransferTime>{TransferTime}</TransferTime>";
+                $"<TransferTime>{TransferTime}</TransferTime>" +
+                $"<EncryptionTime>{EncryptionTime}</EncryptionTime>";
         }
 
         private string JSONFormat() {
@@ -41,6 +42,7 @@ namespace EasyLog
                 Action = this.Action,
                 FileSize = this.FileSize,
                 TransferTime = this.TransferTime,
+                EncryptionTime = this.EncryptionTime,
             };
             return JsonSerializer.Serialize(JsonLog);
         }
@@ -58,22 +60,23 @@ namespace EasyLog
     public class Logger
     {
         private static Logger? s_instance;
-        private static readonly object s_lock = new object();
+        private static readonly object s_lock = new();
 
-        private readonly string _outputFile;
+        private string _output;
+        private static readonly object s_rwLock = new();
 
-        private Logger(string outputFile)
+        private Logger(string output)
         {
-            _outputFile = outputFile;
+            _output = output;
         }
 
-        public static Logger Get(string outputFile)
+        public static Logger Get(string output)
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    if (s_instance == null) s_instance = new Logger(outputFile);
+                    s_instance ??= new Logger(output);
                 }
             }
             return s_instance;
@@ -81,10 +84,16 @@ namespace EasyLog
 
         public void Log(string log)
         {
-            using (StreamWriter writer = new StreamWriter(_outputFile, true))
+            lock (s_rwLock)
             {
+                using StreamWriter writer = new(_output, true);
                 writer.WriteLine(log);
             }
+        }
+
+        public void ModifyOutput(string output)
+        {
+            lock(s_rwLock) { _output = output; }
         }
     }
 }
