@@ -126,16 +126,24 @@ namespace EasySave.GUI.ViewModels
                         }
                     }
 
-                    if (root.TryGetProperty("BusinessSoftwareName", out var processProp))
+                    // The Options window writes BusinessSoftwares as a JSON array
+                    // of full paths. ConfigManager wants bare process names (no
+                    // ".exe", no directory), since Process.GetProcessesByName
+                    // matches on that. We wipe the existing list each pass so a
+                    // remove in Options propagates without leaving stale entries.
+                    if (root.TryGetProperty("BusinessSoftwares", out var swArray)
+                        && swArray.ValueKind == JsonValueKind.Array)
                     {
-                        string processName = processProp.GetString() ?? "";
-                        if (!string.IsNullOrWhiteSpace(processName))
+                        var names = new List<string>();
+                        foreach (var item in swArray.EnumerateArray())
                         {
-                            _appConfig.RemoveBusinessSoftwares(_appConfig.GetBusinessSoftwares().ToList());
-
-                            string fileName = Path.GetFileNameWithoutExtension(processName);
-                            _appConfig.AddBusinessSoftwares(new[] { fileName });
+                            var path = item.GetString();
+                            if (string.IsNullOrWhiteSpace(path)) continue;
+                            names.Add(Path.GetFileNameWithoutExtension(path));
                         }
+
+                        _appConfig.RemoveBusinessSoftwares(_appConfig.GetBusinessSoftwares().ToList());
+                        if (names.Count > 0) _appConfig.AddBusinessSoftwares(names);
                     }
 
                     if (root.TryGetProperty("ExtensionsToEncrypt", out var extProp))
@@ -145,6 +153,9 @@ namespace EasySave.GUI.ViewModels
                                                       .Select(e => e.Trim())
                                                       .Where(e => !string.IsNullOrEmpty(e))
                                                       .ToList();
+
+                        _appConfig.RemoveEncryptionExtensions(_appConfig.GetEncryptionExtensions().ToList());
+                        if (extensionList.Count > 0) _appConfig.AddEncryptionExtensions(extensionList);
                     }
                 }
             }
@@ -176,7 +187,10 @@ namespace EasySave.GUI.ViewModels
                     DestinationPath = editorVM.TargetPath
                 };
 
-                SaveJobs.Add(new SaveJob(newSaveInfo));
+                _stateManager.Save(MakeInactiveState(newSaveInfo));
+                var job = new SaveJob(newSaveInfo);
+                if (!string.IsNullOrEmpty(editorVM.Type)) job.Type = editorVM.Type;
+                SaveJobs.Add(job);
             }
         }
 
@@ -188,7 +202,15 @@ namespace EasySave.GUI.ViewModels
             var editorVM = new SaveEditor(jobToEdit);
             var window = new SaveEditorWindow { DataContext = editorVM };
 
-            if (window.ShowDialog() == true) { }
+            if (window.ShowDialog() == true)
+            {
+                jobToEdit.Name = editorVM.Name;
+                jobToEdit.SourcePath = editorVM.SourcePath;
+                jobToEdit.TargetPath = editorVM.TargetPath;
+                if (!string.IsNullOrEmpty(editorVM.Type)) jobToEdit.Type = editorVM.Type;
+
+                _stateManager.Save(MakeInactiveState(jobToEdit.Model));
+            }
         }
 
         private void DeleteJob(object parameter)
@@ -196,9 +218,25 @@ namespace EasySave.GUI.ViewModels
             var job = parameter as SaveJob;
             if (job != null)
             {
+                _stateManager.Delete(job.Model.SaveId);
                 SaveJobs.Remove(job);
             }
         }
+
+        private static SaveState MakeInactiveState(SaveInfo info)
+        {
+            return new SaveState
+            {
+                Id = info.SaveId,
+                Name = info.SaveName,
+                SourcePath = info.SourcePath,
+                DestinationPath = info.DestinationPath,
+                LastActionTime = DateTime.Now,
+                Status = Status.Inactive,
+                ActiveStateInfo = null
+            };
+        }
+
 
         private void OpenOptions()
         {
@@ -209,17 +247,24 @@ namespace EasySave.GUI.ViewModels
             ApplySettingsFromOptions();
         }
 
-        // TODO: Pause/Resume/Stop on the new Saver are not wired yet. The
-        // buttons toggle the UI state but the underlying save keeps running.
-        // To restore real control, expose Pause/Resume/Stop on Save.Saver
-        // (e.g. via the Pauser/Stopper observer pattern from the crypto branch).
         private void PlayJob(object parameter)
         {
             if (parameter is SaveJob job)
             {
                 if (job.State == TranslationSource.Instance["Break"])
                 {
-                    job.State = TranslationSource.Instance["Running"];
+                    lock (_activeSavers)
+                    {
+                        if (_activeSavers.TryGetValue(job, out var saver))
+                        {
+                            saver.Resume();
+                            // If the worker is still parked in the business-software
+                            // wait loop, surface that — don't pretend it's running.
+                            job.State = saver.IsWaitingForBusinessSoftware
+                                ? TranslationSource.Instance["BusinessSoftwareDetected"]
+                                : TranslationSource.Instance["Running"];
+                        }
+                    }
                 }
                 else
                 {
@@ -232,7 +277,14 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                job.State = TranslationSource.Instance["Break"];
+                lock (_activeSavers)
+                {
+                    if (_activeSavers.TryGetValue(job, out var saver))
+                    {
+                        saver.Pause();
+                        job.State = TranslationSource.Instance["Break"];
+                    }
+                }
             }
         }
 
@@ -240,7 +292,14 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                job.State = TranslationSource.Instance["Stopped"];
+                lock (_activeSavers)
+                {
+                    if (_activeSavers.TryGetValue(job, out var saver))
+                    {
+                        saver.Stop();
+                        job.State = TranslationSource.Instance["Stopped"];
+                    }
+                }
             }
         }
 
@@ -262,6 +321,22 @@ namespace EasySave.GUI.ViewModels
                     : SaveManager.Action.DifferentialSave;
                 var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig);
 
+                // Flip the UI state label when the Saver enters/exits its
+                // business-software auto-pause. Don't override a user-driven
+                // Break/Stopped state set from the buttons.
+                System.Action onBsStart = () =>
+                {
+                    if (job.State == TranslationSource.Instance["Running"])
+                        job.State = TranslationSource.Instance["BusinessSoftwareDetected"];
+                };
+                System.Action onBsEnd = () =>
+                {
+                    if (job.State == TranslationSource.Instance["BusinessSoftwareDetected"])
+                        job.State = TranslationSource.Instance["Running"];
+                };
+                saver.BusinessSoftwarePauseStarted += onBsStart;
+                saver.BusinessSoftwarePauseEnded += onBsEnd;
+
                 lock (_activeSavers)
                 {
                     _activeSavers[job] = saver;
@@ -269,12 +344,19 @@ namespace EasySave.GUI.ViewModels
 
                 saver.Start(false);
 
+                saver.BusinessSoftwarePauseStarted -= onBsStart;
+                saver.BusinessSoftwarePauseEnded -= onBsEnd;
+
                 lock (_activeSavers)
                 {
                     _activeSavers.Remove(job);
                 }
 
-                if (job.State == TranslationSource.Instance["Running"])
+                if (saver.IsStopped)
+                {
+                    job.State = TranslationSource.Instance["Stopped"];
+                }
+                else if (job.State == TranslationSource.Instance["Running"])
                 {
                     job.State = TranslationSource.Instance["Finish"];
                     job.Progress = 100f;

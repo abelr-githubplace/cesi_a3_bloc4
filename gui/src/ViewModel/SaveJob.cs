@@ -5,12 +5,21 @@ namespace EasySave.GUI.ViewModels
 {
     public class SaveJob : ViewModel
     {
-        public SaveInfo Model { get; private set; }
+        // Computed from the editable fields so that edits in the UI flow through
+        // to the SaveInfo used by the Saver. Id stays stable across edits.
+        public SaveInfo Model => new SaveInfo
+        {
+            SaveId = _id,
+            SaveName = Name,
+            SourcePath = SourcePath,
+            DestinationPath = TargetPath
+        };
+
+        private readonly Guid _id;
 
         public SaveJob(SaveInfo model)
         {
-            Model = model;
-
+            _id = model.SaveId;
             _name = model.SaveName;
             _sourcePath = model.SourcePath;
             _targetPath = model.DestinationPath;
@@ -66,15 +75,6 @@ namespace EasySave.GUI.ViewModels
             set { _type = value; OnPropertyChanged(); }
         }
 
-        public SaveInfo GetUpdatedModel()
-        {
-            return new SaveInfo
-            {
-                SaveId = Model.SaveId,
-                SaveName = this.Name,
-                SourcePath = this.SourcePath,
-                DestinationPath = this.TargetPath
-            };
-        }
+        public SaveInfo GetUpdatedModel() => Model;
     }
 }
