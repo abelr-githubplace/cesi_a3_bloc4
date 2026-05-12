@@ -22,7 +22,7 @@ namespace EasySave.GUI.ViewModels
             set { _logFormat = value; OnPropertyChanged(); SaveSettings(); }
         }
 
-        private string _language = "FR";
+        private string _language = "EN";
         public string language
         {
             get => _language;
