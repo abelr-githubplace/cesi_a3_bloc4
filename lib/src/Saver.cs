@@ -312,7 +312,7 @@ namespace Saver
             var ctx = BuildEncryptionContext();
             if (ctx == null) return 0;
             if (!ctx.ShouldEncrypt(destinationFile)) return 0;
-            return EasyCrypt.Crypter.EncryptFile(destinationFile, ctx.Key, ctx.CryptoSoftPath);
+            return CryptoSoftRunner.Crypter.EncryptFile(destinationFile, ctx.Key, ctx.CryptoSoftPath);
         }
 
         // Single source of truth for "what does this Saver know about

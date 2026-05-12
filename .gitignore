@@ -55,3 +55,8 @@ crypto/bin
 crypto/obj
 crypto/tests/bin
 crypto/tests/obj
+
+# CryptoSoft (external binary — source versioned, build artifacts ignored)
+CryptoSoft/bin
+CryptoSoft/obj
+*.csproj.user

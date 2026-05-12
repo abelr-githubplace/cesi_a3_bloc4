@@ -15,7 +15,7 @@ namespace Job
         public string? CryptoSoftPath { get; init; }
 
         public bool ShouldEncrypt(string filePath)
-            => EasyCrypt.Crypter.ShouldEncrypt(filePath, Extensions);
+            => CryptoSoftRunner.Crypter.ShouldEncrypt(filePath, Extensions);
     }
 
     public abstract class SaveJob
@@ -84,7 +84,7 @@ namespace Job
         {
             string tmp = path + suffix;
             File.Copy(path, tmp, true);
-            EasyCrypt.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
+            CryptoSoftRunner.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
             return tmp;
         }
     }
@@ -374,7 +374,7 @@ namespace Job
                 // doesn't leak plaintext bytes when the rest of the backup is
                 // protected.
                 if (destEncrypted)
-                    EasyCrypt.Crypter.EncryptFile(diffFile, ctx!.Key, ctx!.CryptoSoftPath);
+                    CryptoSoftRunner.Crypter.EncryptFile(diffFile, ctx!.Key, ctx!.CryptoSoftPath);
 
                 return CopyFile(onProgress);
             }
@@ -485,7 +485,7 @@ namespace Job
         {
             string tmp = path + suffix;
             File.Copy(path, tmp, true);
-            EasyCrypt.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
+            CryptoSoftRunner.Crypter.DecryptFile(tmp, ctx.Key, ctx.CryptoSoftPath);
             return tmp;
         }
     }
@@ -503,7 +503,7 @@ namespace Job
             long copied = CopyBack();
             if (copied <= 0) return 0;
             if (ctx != null && ctx.ShouldEncrypt(SourceFile))
-                EasyCrypt.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
+                CryptoSoftRunner.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
             return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
         }
     }
@@ -526,7 +526,7 @@ namespace Job
                 long copied = CopyBack();
                 if (copied <= 0) return 0;
                 if (ctx != null && ctx.ShouldEncrypt(SourceFile))
-                    EasyCrypt.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
+                    CryptoSoftRunner.Crypter.DecryptFile(SourceFile, ctx.Key, ctx.CryptoSoftPath);
                 return File.Exists(SourceFile) ? new FileInfo(SourceFile).Length : 0;
             }
 
