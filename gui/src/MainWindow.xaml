@@ -6,7 +6,7 @@
         xmlns:lang="clr-namespace:EasySave.lang"
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         mc:Ignorable="d"
-        Title="EasySave 2.0" Height="500" Width="900"
+        Title="EasySave 3.0" Height="500" Width="900"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#f2fcff" Foreground="Black">
@@ -40,6 +40,14 @@
             <Setter Property="Background" Value="{StaticResource CTA}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{StaticResource Black}"/>
+        </Style>
+
+        <Style x:Key="OptionsButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource Black}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="LeftCenterTextStyle" TargetType="TextBlock">
@@ -79,7 +87,7 @@
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
             <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[NewJob]}" Command="{Binding AddJobCommand}" Margin="0,0,10,0" Style="{StaticResource CTAButtonStyle}"/>
-            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Options]}" Command="{Binding OpenOptionsCommand}"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Options]}" Command="{Binding OpenOptionsCommand}" Style="{StaticResource OptionsButtonStyle}"/>
         </StackPanel>
 
         <DataGrid Grid.Row="1" ItemsSource="{Binding SaveJobs}" SelectedItem="{Binding SelectedJob}" 
@@ -101,7 +109,6 @@
 
             <DataGrid.Columns>
                 <DataGridTemplateColumn Width="50">
-                    <!-- Ajout du HeaderTemplate pour le "Select All" -->
                     <DataGridTemplateColumn.HeaderTemplate>
                         <DataTemplate>
                             <CheckBox IsChecked="{Binding DataContext.IsAllSelected, RelativeSource={RelativeSource AncestorType=DataGrid}, UpdateSourceTrigger=PropertyChanged}" 
@@ -139,49 +146,55 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
 
+                                <!-- Restore / Rotate-Left -->
+                                <Button Background="{StaticResource Background}" Padding="5"
+                                        Command="{Binding DataContext.RestoreJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
+                                        CommandParameter="{Binding}" Margin="2"
+                                        ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Restore]}">
+                                    <Path Data="M88 256L232 256C241.7 256 250.5 250.2 254.2 241.2C257.9 232.2 255.9 221.9 249 215L202.3 168.3C277.6 109.7 386.6 115 455.8 184.2C530.8 259.2 530.8 380.7 455.8 455.7C380.8 530.7 259.3 530.7 184.3 455.7C174.1 445.5 165.3 434.4 157.9 422.7C148.4 407.8 128.6 403.4 113.7 412.9C98.8 422.4 94.4 442.2 103.9 457.1C113.7 472.7 125.4 487.5 139 501C239 601 401 601 501 501C601 401 601 239 501 139C406.8 44.7 257.3 39.3 156.7 122.8L105 71C98.1 64.2 87.8 62.1 78.8 65.8C69.8 69.5 64 78.3 64 88L64 232C64 245.3 74.7 256 88 256"
+                                          Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform" />
+                                </Button>
+                                
                                 <!-- Play -->
-                                <Button Background="Transparent" Padding="5"
+                                <Button Background="{StaticResource Background}" Padding="5"
                                         Command="{Binding DataContext.PlayJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
-                                    <Path Data="M 0,0 L 12,7 L 0,14 Z" Fill="{StaticResource Black}" Width="12" Height="14" Stretch="Uniform"/>
+                                        CommandParameter="{Binding}" Margin="2"
+                                        ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Play]}">
+                                    <Path Data="M 0,0 L 12,7 L 0,14 Z" Fill="{StaticResource Black}" Width="12" Height="14" Stretch="Uniform" />
                                 </Button>
 
                                 <!-- Pause -->
-                                <Button Background="Transparent" Padding="5"
+                                <Button Background="{StaticResource Background}" Padding="5"
                                         Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
+                                        CommandParameter="{Binding}" Margin="2"
+                                         ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Pause]}">
                                     <Path Data="M 0,0 H 4 V 14 H 0 Z M 8,0 H 12 V 14 H 8 Z" Fill="{StaticResource Black}" Width="12" Height="14" Stretch="Uniform"/>
                                 </Button>
 
                                 <!-- Stop -->
-                                <Button Background="Transparent" Padding="5"
+                                <Button Background="{StaticResource Background}" Padding="5"
                                         Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
+                                        CommandParameter="{Binding}" Margin="2"
+                                         ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Stop]}">
                                     <Path Data="M 0,0 H 14 V 14 H 0 Z" Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform"/>
                                 </Button>
 
-                                <!-- Restore / Rotate-Left -->
-                                <Button Background="Transparent" Padding="5"
-                                        Command="{Binding DataContext.RestoreJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
-                                    <Path Data="M 3,7 L 7,3 L 7,6 C 10.5,6 13.5,8.5 13.5,12 C 13.5,13.5 12.8,14.8 11.7,15.6 L 10.3,14 C 11,13.5 11.5,12.8 11.5,12 C 11.5,9.8 9.7,8 7.5,8 L 7,8 L 7,11 L 3,7 Z" 
-                                          Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform"/>
-                                </Button>
-
                                 <!-- Edit / Pen-to-Square -->
-                                <Button Background="Transparent" Padding="5"
+                                <Button Background="{StaticResource Background}" Padding="5"
                                         Command="{Binding DataContext.EditJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
-                                    <Path Data="M 11,2 L 13,4 L 5,12 L 3,12 L 3,10 L 11,2 Z M 11.5,0.5 L 14.5,3.5 L 13.5,4.5 L 10.5,1.5 L 11.5,0.5 Z M 1,2 L 8,2 L 6,4 L 3,4 L 3,13 L 12,13 L 12,10 L 14,8 L 14,14 C 14,14.5 13.5,15 13,15 L 2,15 C 1.5,15 1,14.5 1,14 L 1,3 C 1,2.5 1.5,2 2,2 Z" 
-                                          Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform"/>
+                                        CommandParameter="{Binding}" Margin="2"
+                                        ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Edit]}">
+                                    <Path Data="M535.6 85.7C513.7 63.8 478.3 63.8 456.4 85.7L432 110.1L529.9 208L554.3 183.6C576.2 161.7 576.2 126.3 554.3 104.4L535.6 85.7zM236.4 305.7C230.3 311.8 225.6 319.3 222.9 327.6L193.3 416.4C190.4 425 192.7 434.5 199.1 441C205.5 447.5 215 449.7 223.7 446.8L312.5 417.2C320.7 414.5 328.2 409.8 334.4 403.7L496 241.9L398.1 144L236.4 305.7zM160 128C107 128 64 171 64 224L64 480C64 533 107 576 160 576L416 576C469 576 512 533 512 480L512 384C512 366.3 497.7 352 480 352C462.3 352 448 366.3 448 384L448 480C448 497.7 433.7 512 416 512L160 512C142.3 512 128 497.7 128 480L128 224C128 206.3 142.3 192 160 192L256 192C273.7 192 288 177.7 288 160C288 142.3 273.7 128 256 128L160 128z"
+                                          Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform" />
                                 </Button>
 
                                 <!-- Delete / X-Mark -->
-                                <Button Background="Transparent" Padding="5"
+                                <Button Background="{StaticResource Background}" Padding="5"
                                         Command="{Binding DataContext.DeleteJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" 
-                                        CommandParameter="{Binding}" Margin="2">
-                                    <Path Data="M 1.5,0 L 6,4.5 L 10.5,0 L 12,1.5 L 7.5,6 L 12,10.5 L 10.5,12 L 6,7.5 L 1.5,12 L 0,10.5 L 4.5,6 L 0,1.5 Z" 
-                                          Fill="{StaticResource ErrorRed}" Width="12" Height="12" Stretch="Uniform"/>
+                                        CommandParameter="{Binding}" Margin="2"
+                                        ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delete]}">
+                                    <Path Data="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"
+                                          Fill="{StaticResource Black}" Width="12" Height="12" Stretch="Uniform" />
                                 </Button>
 
                             </StackPanel>
@@ -192,7 +205,7 @@
         </DataGrid>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunSelected]}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0"/>
+            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunSelected]}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0" Style="{StaticResource OptionsButtonStyle}"/>
             <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunAll]}" Command="{Binding RunAllJobsCommand}" Style="{StaticResource CTAButtonStyle}"/>
         </StackPanel>
     </Grid>

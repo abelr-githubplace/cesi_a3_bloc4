@@ -280,10 +280,10 @@
     <value>Delete</value>
   </data>
   <data name="RunSelected" xml:space="preserve">
-    <value>▶  Run Selected</value>
+    <value>Execute Selected</value>
   </data>
   <data name="RunAll" xml:space="preserve">
-    <value>▶▶  Run All</value>
+    <value>Execute All</value>
   </data>
   <data name="ChooseLanguage" xml:space="preserve">
     <value>Choose App Language :</value>
@@ -356,5 +356,17 @@
   </data>
   <data name="ExtensionsToEncryptAskRemove" xml:space="preserve">
     <value>Extension to remove (e.g. exe, txt, ...):</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Play" xml:space="preserve">
+    <value>Execute</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Restore</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
   </data>
 </root>

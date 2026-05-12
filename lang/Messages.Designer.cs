@@ -529,6 +529,24 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Pause.
+        /// </summary>
+        public static string Pause {
+            get {
+                return ResourceManager.GetString("Pause", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Execute.
+        /// </summary>
+        public static string Play {
+            get {
+                return ResourceManager.GetString("Play", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Press any key to exit....
         /// </summary>
         public static string PressToExit {
@@ -556,6 +574,15 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Restore.
+        /// </summary>
+        public static string Restore {
+            get {
+                return ResourceManager.GetString("Restore", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Return to previous menu.
         /// </summary>
         public static string ReturnToPreviousMenu {
@@ -565,7 +592,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ▶▶  Run All.
+        ///   Looks up a localized string similar to Execute All.
         /// </summary>
         public static string RunAll {
             get {
@@ -583,7 +610,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ▶  Run Selected.
+        ///   Looks up a localized string similar to Execute Selected.
         /// </summary>
         public static string RunSelected {
             get {
@@ -744,6 +771,15 @@ namespace EasySave.lang {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to Stop.
+        /// </summary>
+        public static string Stop {
+            get {
+                return ResourceManager.GetString("Stop", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Stopped.
         /// </summary>
