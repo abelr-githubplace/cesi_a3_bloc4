@@ -5,9 +5,9 @@ namespace EasySave.GUI.ViewModels
     public class GuiProgressBar : ISubscriber
     {
         private SaveJob _job;
-        private Saver.Progress _progressTracker;
+        private Progress.Progress _progressTracker;
 
-        public GuiProgressBar(SaveJob job, Saver.Progress progressTracker)
+        public GuiProgressBar(SaveJob job, Progress.Progress progressTracker)
         {
             _job = job;
             _progressTracker = progressTracker;
