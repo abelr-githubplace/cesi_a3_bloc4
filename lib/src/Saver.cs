@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using SaveManager;
 using Job;
 using Actor;
@@ -81,14 +82,20 @@ namespace Save
             _bsGate.Set();
         }
 
+        // V3: up to MaxWorkersPerJob files of the same job are copied in
+        // parallel. Fixed at 4 for now — the bottleneck is disk/network, not
+        // CPU, and going higher mostly thrashes the disk. Make paramétrable
+        // later if a client asks.
+        private const int MaxWorkersPerJob = 4;
+
         public void Start(bool paused)
         {
             if (paused) _gate.Reset();
 
             // Subscribe to the global business-software watcher. The callback
-            // toggles _bsGate so the worker only proceeds when no watched
-            // process is running. We also log the transitions so the daily
-            // log keeps a trace of every auto-pause/resume the worker hits.
+            // toggles _bsGate so workers only proceed when no watched process
+            // is running. We log the transitions so the daily log keeps a
+            // trace of every auto-pause/resume the job hits.
             bool wasRunning = false;
             using var bsSubscription = BusinessSoftwareWatcher.Get(_configManager).Subscribe(running =>
             {
@@ -106,67 +113,85 @@ namespace Save
                 }
             });
 
+            // Shared state across all workers of this job. Bytes and counts go
+            // through Interlocked, the "currently in flight" registry is a
+            // ConcurrentDictionary, state.json writes are serialized with a
+            // lock so two workers don't produce interleaved snapshots.
             long copiedTotalBytes = 0;
-            var endTime = DateTime.Now;
+            int filesProcessed = 0;
+            var currentFiles = new ConcurrentDictionary<string, string>();
+            var stateLock = new object();
 
-            for (int i = 0; i < Jobs.Count; i++)
+            var options = new ParallelOptions
             {
-                // User-driven pause point: between files. Cahier des charges 2.0
-                // says the current file must finish before the worker can react
-                // to a pause/stop.
-                if (!_gate.IsSet)
+                MaxDegreeOfParallelism = MaxWorkersPerJob,
+                CancellationToken = _cts.Token,
+            };
+
+            try
+            {
+                Parallel.ForEach(Jobs, options, fileJob =>
                 {
-                    _configManager.State.Save(NewStateInfo(
-                        DateTime.Now, Status.Paused,
-                        NewActiveStateInfo(Jobs.Count - i, this.TotalSize - copiedTotalBytes,
-                            i < Jobs.Count ? Jobs[i].SourceFile : "",
-                            i < Jobs.Count ? Jobs[i].DestinationFile : "")
-                    ));
-                    try { _gate.Wait(_cts.Token); }
-                    catch (OperationCanceledException) { break; }
-                }
-                if (_cts.IsCancellationRequested) break;
+                    // Pause gates BEFORE starting a new file. Each worker
+                    // checks its own gates so a Pause()/auto-pause applies to
+                    // every worker simultaneously.
+                    try { _gate.Wait(_cts.Token); _bsGate.Wait(_cts.Token); }
+                    catch (OperationCanceledException) { return; }
+                    if (_cts.IsCancellationRequested) return;
 
-                // Business-software gate. Driven by the watcher callback
-                // above — we just block here without polling ourselves.
-                if (!_bsGate.IsSet)
-                {
-                    _configManager.State.Save(NewStateInfo(
-                        DateTime.Now, Status.Paused,
-                        NewActiveStateInfo(Jobs.Count - i, this.TotalSize - copiedTotalBytes, Jobs[i].SourceFile, Jobs[i].DestinationFile)
-                    ));
-                    try { _bsGate.Wait(_cts.Token); }
-                    catch (OperationCanceledException) { break; }
-                }
-                if (_cts.IsCancellationRequested) break;
+                    currentFiles[fileJob.SourceFile] = fileJob.DestinationFile;
+                    try
+                    {
+                        var beginTime = DateTime.Now;
+                        long copiedSize = fileJob.Execute();
+                        var endTime = DateTime.Now;
 
-                var job = Jobs[i];
+                        long newTotal = Interlocked.Add(ref copiedTotalBytes, copiedSize);
+                        int newCount = Interlocked.Increment(ref filesProcessed);
 
-                var beginTime = DateTime.Now;
-                long copiedSize = job.Execute();
-                endTime = DateTime.Now;
+                        float percent = TotalSize <= 0 ? 100f
+                            : Math.Clamp(((float)newTotal / (float)TotalSize) * 100f, 0f, 100f);
+                        Progress.SetProgress(percent);
 
-                if (copiedSize != job.FileSize) /* Error : does nothing for now, should be handled later on */;
-                copiedTotalBytes += copiedSize;
+                        int encryptionTime = TryEncrypt(fileJob.DestinationFile);
 
-                float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)copiedTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
-                Progress.SetProgress(percent);
+                        _configManager.Logger.Log(
+                            NewLogInfo(DateTime.Now, fileJob.SourceFile, fileJob.DestinationFile,
+                                fileJob.FileSize, (endTime - beginTime).Milliseconds, encryptionTime)
+                                .Format(_configManager.GetLogFormatConfig())
+                        );
 
-                int encryptionTime = TryEncrypt(job.DestinationFile);
+                        currentFiles.TryRemove(fileJob.SourceFile, out _);
 
-                _configManager.Logger.Log(
-                    NewLogInfo(DateTime.Now, job.SourceFile, job.DestinationFile, job.FileSize, (endTime - beginTime).Milliseconds, encryptionTime)
-                        .Format(_configManager.GetLogFormatConfig())
-                );
-                _configManager.State.Save(
-                    NewStateInfo(
-                        endTime,
-                        Status.Active,
-                        NewActiveStateInfo(Jobs.Count - i, this.TotalSize - copiedTotalBytes, job.SourceFile, job.DestinationFile)
-                    )
-                );
+                        lock (stateLock)
+                        {
+                            _configManager.State.Save(NewStateInfo(
+                                endTime, Status.Active,
+                                NewActiveStateInfo(
+                                    Jobs.Count - newCount,
+                                    this.TotalSize - newTotal,
+                                    SnapshotCurrentFiles(currentFiles))
+                            ));
+                        }
+                    }
+                    catch
+                    {
+                        currentFiles.TryRemove(fileJob.SourceFile, out _);
+                        throw;
+                    }
+                });
             }
-            _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+            catch (OperationCanceledException) { /* expected on Stop */ }
+
+            _configManager.State.Save(NewStateInfo(DateTime.Now, Status.Inactive, null));
+        }
+
+        private static List<ActiveFileInfo> SnapshotCurrentFiles(ConcurrentDictionary<string, string> dict)
+        {
+            var list = new List<ActiveFileInfo>(dict.Count);
+            foreach (var kvp in dict)
+                list.Add(new ActiveFileInfo { Source = kvp.Key, Target = kvp.Value });
+            return list;
         }
 
         // Returns 0 if encryption is disabled or the file is out of scope,

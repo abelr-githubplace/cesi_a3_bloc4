@@ -77,7 +77,7 @@ namespace Actor
             };
         }
 
-        protected ActiveStateInfo NewActiveStateInfo(int jobsRemaining, long sizeRemaining, string source, string destination)
+        protected ActiveStateInfo NewActiveStateInfo(int jobsRemaining, long sizeRemaining, List<ActiveFileInfo> currentFiles)
         {
             return new ActiveStateInfo
             {
@@ -86,9 +86,16 @@ namespace Actor
                 FilesRemaining = jobsRemaining,
                 SizeRemaining = sizeRemaining,
                 Progress = this.Progress.GetProgress(),
-                CurrentSourceFile = source,
-                CurrentTargetFile = destination,
+                CurrentFiles = currentFiles,
             };
+        }
+
+        // Convenience overload for callers that have a single in-flight file
+        // (e.g. the sequential Restorer). Wraps it in a one-element list.
+        protected ActiveStateInfo NewActiveStateInfo(int jobsRemaining, long sizeRemaining, string source, string destination)
+        {
+            return NewActiveStateInfo(jobsRemaining, sizeRemaining,
+                new List<ActiveFileInfo> { new ActiveFileInfo { Source = source, Target = destination } });
         }
     }
 }

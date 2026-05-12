@@ -5,6 +5,15 @@ namespace State
 {
     public enum Status { Active, Inactive, Paused }
 
+    // One row per file currently being transferred. With V3 parallelism a
+    // single Saver can have multiple files in flight at once, so we publish a
+    // list rather than a single CurrentSourceFile/CurrentTargetFile pair.
+    public record ActiveFileInfo
+    {
+        public required string Source { get; init; }
+        public required string Target { get; init; }
+    }
+
     public record ActiveStateInfo
     {
         public required int TotalFiles { get; init; }
@@ -12,8 +21,7 @@ namespace State
         public required int FilesRemaining { get; init; }
         public required long SizeRemaining { get; init; }
         public required float Progress { get; init; }
-        public required string CurrentSourceFile { get; init; }
-        public required string CurrentTargetFile { get; init; }
+        public required List<ActiveFileInfo> CurrentFiles { get; init; }
     }
 
     public record SaveState
