@@ -114,25 +114,27 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="20">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
         <!-- Choix de la langue -->
         <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ChooseLanguage]}"/>
@@ -155,9 +157,12 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Text="{Binding LogOutput}" ToolTip="Ex: .\\save.log" Margin="0,0,10,0"/>
-            <Button Grid.Column="1" Content="..." Command="{Binding BrowseLogOutputCommand}" MinWidth="35" Padding="10,5"/>
+            <Button Grid.Column="1" Content="..." Command="{Binding BrowseLogOutputCommand}" MinWidth="35" Padding="10,5" Margin="0,0,10,0"/>
+            <Button Grid.Column="2" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OpenFolder]}"
+                    Command="{Binding OpenLogFolderCommand}" MinWidth="90" Padding="10,5"/>
         </Grid>
 
         <!-- Chemin du state.json -->
@@ -166,9 +171,12 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Text="{Binding StateOutput}" ToolTip="Ex: .\\state.json" Margin="0,0,10,0"/>
-            <Button Grid.Column="1" Content="..." Command="{Binding BrowseStateOutputCommand}" MinWidth="35" Padding="10,5"/>
+            <Button Grid.Column="1" Content="..." Command="{Binding BrowseStateOutputCommand}" MinWidth="35" Padding="10,5" Margin="0,0,10,0"/>
+            <Button Grid.Column="2" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OpenFolder]}"
+                    Command="{Binding OpenStateFolderCommand}" MinWidth="90" Padding="10,5"/>
         </Grid>
 
         <!-- Logiciels Métiers (Multiple) -->
@@ -284,39 +292,61 @@
             </StackPanel>
         </Grid>
 
-        <!-- Limite de fichier volumineux -->
-        <Label Grid.Row="7" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LargeFileThreshold]}"/>
+        <!-- Parallelisme -->
+        <Label Grid.Row="7" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ParallelWorkers]}"/>
         <Grid Grid.Row="7" Grid.Column="1" Margin="0,0,0,15">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Text="{Binding LargeFileLimit}" ToolTip="Ex: 10240 (10 Mo)" Margin="0,0,10,0"
-                     PreviewTextInput="NumberValidationTextBox" InputScope="Number"/>
-            <Label Grid.Column="1" Content="Ko" Margin="0" VerticalAlignment="Center"/>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Slider Grid.Row="0" Minimum="1" Maximum="8" TickFrequency="1" IsSnapToTickEnabled="True"
+                    Value="{Binding MaxWorkersPerJob}" Margin="0,0,0,5"/>
+            <TextBlock Grid.Row="1" Text="{Binding ParallelWorkersDisplay}" FontSize="12" Foreground="{StaticResource DarkerBlue}"/>
+        </Grid>
+
+        <!-- Limite de fichier volumineux -->
+        <Label Grid.Row="8" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LargeFileThreshold]}"/>
+        <Grid Grid.Row="8" Grid.Column="1" Margin="0,0,0,15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Slider Grid.Row="0" Minimum="0" Maximum="2048" TickFrequency="128" IsSnapToTickEnabled="False"
+                    Value="{Binding LargeFileThresholdMB}" Margin="0,0,0,5"/>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" Text="{Binding LargeFileThresholdMB, UpdateSourceTrigger=PropertyChanged}"
+                         PreviewTextInput="NumberValidationTextBox" InputScope="Number" />
+                <Label Grid.Column="1" Content="MB" Margin="8,0,10,0" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="{Binding LargeFileThresholdDisplay}" FontSize="12" Foreground="{StaticResource DarkerBlue}"/>
+            </Grid>
         </Grid>
 
         <!-- Mode de log (Local / Remote / Both) -->
-        <Label Grid.Row="8" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LogMode]}"/>
-        <ComboBox Grid.Row="8" Grid.Column="1" SelectedValue="{Binding LogMode}" SelectedValuePath="Content" Margin="0,0,0,15">
+        <Label Grid.Row="9" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LogMode]}"/>
+        <ComboBox Grid.Row="9" Grid.Column="1" SelectedValue="{Binding LogMode}" SelectedValuePath="Content" Margin="0,0,0,15">
             <ComboBoxItem Content="Local"/>
             <ComboBoxItem Content="Remote"/>
             <ComboBoxItem Content="Both"/>
         </ComboBox>
 
         <!-- Adresse du serveur de logs -->
-        <Label Grid.Row="9" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RemoteLogHost]}"/>
-        <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding RemoteLogHost}"
+        <Label Grid.Row="10" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RemoteLogHost]}"/>
+        <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding RemoteLogHost}"
                  ToolTip="Ex: 192.168.1.10" Margin="0,0,0,15"/>
 
         <!-- Port du serveur de logs -->
-        <Label Grid.Row="10" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RemoteLogPort]}"/>
-        <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding RemoteLogPort}"
+        <Label Grid.Row="11" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RemoteLogPort]}"/>
+        <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding RemoteLogPort}"
                  ToolTip="Ex: 9000" Margin="0,0,0,15"
                  PreviewTextInput="NumberValidationTextBox" InputScope="Number"/>
 
         <!-- Actions + toast -->
-        <Grid Grid.Row="11" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,0">
+        <Grid Grid.Row="12" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -333,5 +363,6 @@
                 <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Close]}" Click="Close_Click" MinWidth="100"/>
             </StackPanel>
         </Grid>
-    </Grid>
+        </Grid>
+    </ScrollViewer>
 </Window>

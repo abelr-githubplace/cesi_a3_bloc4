@@ -387,6 +387,18 @@
   <data name="ApplySuccess" xml:space="preserve">
     <value>Changes applied</value>
   </data>
+  <data name="OpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="ParallelWorkers" xml:space="preserve">
+    <value>Parallel workers</value>
+  </data>
+  <data name="ParallelWorkersHint" xml:space="preserve">
+    <value>Parallel workers: {0}</value>
+  </data>
+  <data name="LargeFileThresholdHint" xml:space="preserve">
+    <value>Threshold: {0} MB (0=disable)</value>
+  </data>
   <data name="RemoteLogEnabled" xml:space="preserve">
     <value>Remote logging enabled (Docker must be running)</value>
   </data>

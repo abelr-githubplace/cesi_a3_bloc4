@@ -83,11 +83,7 @@ namespace Save
             _bsGate.Set();
         }
 
-        // V3: up to MaxWorkersPerJob files of the same job are copied in
-        // parallel. Fixed at 4 for now — the bottleneck is disk/network, not
-        // CPU, and going higher mostly thrashes the disk. Make paramétrable
-        // later if a client asks.
-        private const int MaxWorkersPerJob = 4;
+        // V3: per-job parallelism cap comes from config (clamped there).
 
         public void Start(bool paused)
         {
@@ -204,9 +200,10 @@ namespace Save
                 return true;
             }
 
+            int maxWorkers = Math.Max(1, _configManager.GetMaxWorkersPerJob());
             var options = new ParallelOptions
             {
-                MaxDegreeOfParallelism = MaxWorkersPerJob,
+                MaxDegreeOfParallelism = maxWorkers,
                 CancellationToken = _cts.Token,
             };
 

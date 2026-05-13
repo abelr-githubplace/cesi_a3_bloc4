@@ -31,6 +31,10 @@ namespace Config
         // run in parallel.
         public int LargeFileThresholdKB { get; init; } = 524288;
 
+        // V3: per-job parallelism cap. Default 4 is a safe baseline for
+        // spinning disks and network shares. Clamp in ConfigManager.
+        public int MaxWorkersPerJob { get; init; } = 4;
+
         // V3: centralized log server. Local = file only, Remote = TCP server
         // only, Both = file + TCP. Default Local so existing installs keep
         // their current behaviour without any config migration.
@@ -59,6 +63,7 @@ namespace Config
                 EncryptionKey = "EasySaveDefaultKey",
                 CryptoSoftPath = "",
                 LargeFileThresholdKB = 524288,
+                MaxWorkersPerJob = 4,
                 LogMode = LogMode.Local,
                 RemoteLogHost = "localhost",
                 RemoteLogPort = 9000,
@@ -249,6 +254,18 @@ namespace Config
         public void SetLargeFileThresholdKB(int thresholdKB)
         {
             lock (s_rwLock) { Config = Config with { LargeFileThresholdKB = thresholdKB }; }
+            Write();
+        }
+
+        public int GetMaxWorkersPerJob()
+        {
+            lock (s_rwLock) { return Config.MaxWorkersPerJob; }
+        }
+
+        public void SetMaxWorkersPerJob(int workers)
+        {
+            int clamped = Math.Clamp(workers, 1, 8);
+            lock (s_rwLock) { Config = Config with { MaxWorkersPerJob = clamped }; }
             Write();
         }
 

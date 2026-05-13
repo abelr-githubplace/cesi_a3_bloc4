@@ -9,6 +9,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -149,16 +150,51 @@ namespace EasySave.GUI.ViewModels
             set { _newPriorityExtension = value; OnPropertyChanged(); }
         }
 
-        private string _largeFileLimit = string.Empty;
-        public string LargeFileLimit
+        private int _largeFileThresholdMB = 512;
+        public int LargeFileThresholdMB
         {
-            get => _largeFileLimit;
+            get => _largeFileThresholdMB;
             set
             {
-                if (_largeFileLimit == value) return;
-                _largeFileLimit = value;
+                if (_largeFileThresholdMB == value) return;
+                _largeFileThresholdMB = Math.Max(0, value);
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(LargeFileThresholdDisplay));
                 MarkDirty();
+            }
+        }
+
+        private int _maxWorkersPerJob = 4;
+        public int MaxWorkersPerJob
+        {
+            get => _maxWorkersPerJob;
+            set
+            {
+                if (_maxWorkersPerJob == value) return;
+                _maxWorkersPerJob = Math.Clamp(value, 1, 8);
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ParallelWorkersDisplay));
+                MarkDirty();
+            }
+        }
+
+        public string LargeFileThresholdDisplay
+        {
+            get
+            {
+                string template = TranslationSource.Instance["LargeFileThresholdHint"]
+                    ?? "Threshold: {0} MB (0=disable)";
+                return string.Format(template, LargeFileThresholdMB);
+            }
+        }
+
+        public string ParallelWorkersDisplay
+        {
+            get
+            {
+                string template = TranslationSource.Instance["ParallelWorkersHint"]
+                    ?? "Parallel workers: {0}";
+                return string.Format(template, MaxWorkersPerJob);
             }
         }
 
@@ -222,6 +258,8 @@ namespace EasySave.GUI.ViewModels
         public ICommand RemoveSoftwareCommand { get; }
         public ICommand BrowseLogOutputCommand { get; }
         public ICommand BrowseStateOutputCommand { get; }
+        public ICommand OpenLogFolderCommand { get; }
+        public ICommand OpenStateFolderCommand { get; }
         public ICommand AddEncryptionExtensionCommand { get; }
         public ICommand RemoveEncryptionExtensionCommand { get; }
         public ICommand AddPriorityExtensionCommand { get; }
@@ -234,6 +272,8 @@ namespace EasySave.GUI.ViewModels
             RemoveSoftwareCommand = new RelayCommand(RemoveSoftware);
             BrowseLogOutputCommand = new RelayCommand(o => BrowseLogOutput());
             BrowseStateOutputCommand = new RelayCommand(o => BrowseStateOutput());
+            OpenLogFolderCommand = new RelayCommand(o => OpenFolderForFile(LogOutput));
+            OpenStateFolderCommand = new RelayCommand(o => OpenFolderForFile(StateOutput));
             AddEncryptionExtensionCommand = new RelayCommand(o => AddEncryptionExtension());
             RemoveEncryptionExtensionCommand = new RelayCommand(RemoveEncryptionExtension);
             AddPriorityExtensionCommand = new RelayCommand(o => AddPriorityExtension());
@@ -298,6 +338,31 @@ namespace EasySave.GUI.ViewModels
             {
                 StateOutput = dialog.FileName;
             }
+        }
+
+        private static string ResolvePath(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return AppContext.BaseDirectory;
+            if (Path.IsPathRooted(raw)) return raw;
+            return Path.Combine(AppContext.BaseDirectory, raw);
+        }
+
+        private void OpenFolderForFile(string filePath)
+        {
+            try
+            {
+                string resolved = ResolvePath(filePath);
+                string? dir = Path.GetDirectoryName(resolved);
+                if (string.IsNullOrWhiteSpace(dir)) return;
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true,
+                });
+            }
+            catch (Exception) { }
         }
 
         private void AddEncryptionExtension()
@@ -397,6 +462,8 @@ namespace EasySave.GUI.ViewModels
             else if (value == "EN")
                 TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
             OnPropertyChanged(nameof(RemoteLogHint));
+            OnPropertyChanged(nameof(ParallelWorkersDisplay));
+            OnPropertyChanged(nameof(LargeFileThresholdDisplay));
         }
 
         private class OptionsData
@@ -407,6 +474,8 @@ namespace EasySave.GUI.ViewModels
             public List<string> EncryptionExtensions { get; set; } = new List<string>();
             public List<string> PriorityExtensions { get; set; } = new List<string>();
             public string LargeFileLimit { get; set; } = string.Empty;
+            public int LargeFileThresholdMB { get; set; } = 512;
+            public int MaxWorkersPerJob { get; set; } = 4;
             public string LogMode { get; set; } = "Local";
             public string RemoteLogHost { get; set; } = "localhost";
             public string RemoteLogPort { get; set; } = "9000";
@@ -425,7 +494,9 @@ namespace EasySave.GUI.ViewModels
                     BusinessSoftwares = new List<string>(this.BusinessSoftwares),
                     EncryptionExtensions = new List<string>(this.EncryptionExtensions),
                     PriorityExtensions = new List<string>(this.PriorityExtensions),
-                    LargeFileLimit = this.LargeFileLimit,
+                    LargeFileThresholdMB = this.LargeFileThresholdMB,
+                    LargeFileLimit = (this.LargeFileThresholdMB * 1024).ToString(),
+                    MaxWorkersPerJob = this.MaxWorkersPerJob,
                     LogMode = this.LogMode,
                     RemoteLogHost = this.RemoteLogHost,
                     RemoteLogPort = this.RemoteLogPort,
@@ -452,7 +523,13 @@ namespace EasySave.GUI.ViewModels
 
                     _logFormat = ReadString(root, "LogFormat", "JSON");
                     _language = ReadString(root, "Language", "FR");
-                    _largeFileLimit = ReadString(root, "LargeFileLimit", string.Empty);
+                    _largeFileThresholdMB = Math.Max(0, ReadInt(root, "LargeFileThresholdMB", 512));
+                    if (_largeFileThresholdMB <= 0)
+                    {
+                        int kbFallback = ReadInt(root, "LargeFileLimit", 0);
+                        _largeFileThresholdMB = kbFallback > 0 ? Math.Max(0, kbFallback / 1024) : 0;
+                    }
+                    _maxWorkersPerJob = Math.Clamp(ReadInt(root, "MaxWorkersPerJob", 4), 1, 8);
                     _logMode = ReadString(root, "LogMode", "Local");
                     _remoteLogHost = ReadString(root, "RemoteLogHost", "localhost");
                     _remoteLogPort = ReadString(root, "RemoteLogPort", "9000");
@@ -467,12 +544,15 @@ namespace EasySave.GUI.ViewModels
 
                     OnPropertyChanged(nameof(LogFormat));
                     OnPropertyChanged(nameof(language));
-                    OnPropertyChanged(nameof(LargeFileLimit));
+                    OnPropertyChanged(nameof(LargeFileThresholdMB));
+                    OnPropertyChanged(nameof(MaxWorkersPerJob));
                     OnPropertyChanged(nameof(LogMode));
                     OnPropertyChanged(nameof(RemoteLogHost));
                     OnPropertyChanged(nameof(RemoteLogPort));
                     OnPropertyChanged(nameof(IsRemoteLoggingEnabled));
                     OnPropertyChanged(nameof(RemoteLogHint));
+                    OnPropertyChanged(nameof(ParallelWorkersDisplay));
+                    OnPropertyChanged(nameof(LargeFileThresholdDisplay));
                     OnPropertyChanged(nameof(LogOutput));
                     OnPropertyChanged(nameof(StateOutput));
                     OnPropertyChanged(nameof(BusinessSoftwares));
@@ -491,6 +571,21 @@ namespace EasySave.GUI.ViewModels
             {
                 var value = prop.GetString();
                 if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
+            return fallback;
+        }
+
+        private static int ReadInt(JsonElement root, string property, int fallback)
+        {
+            if (root.TryGetProperty(property, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out int value))
+                    return value;
+                if (prop.ValueKind == JsonValueKind.String)
+                {
+                    var raw = prop.GetString();
+                    if (int.TryParse(raw, out int parsed)) return parsed;
+                }
             }
             return fallback;
         }

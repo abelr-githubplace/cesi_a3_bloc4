@@ -182,6 +182,21 @@ namespace EasySave.GUI.ViewModels
                         return null;
                     }
 
+                    static int? ReadInt(JsonElement root, string property)
+                    {
+                        if (root.TryGetProperty(property, out var prop))
+                        {
+                            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out int value))
+                                return value;
+                            if (prop.ValueKind == JsonValueKind.String)
+                            {
+                                var raw = prop.GetString();
+                                if (int.TryParse(raw, out int parsed)) return parsed;
+                            }
+                        }
+                        return null;
+                    }
+
                     if (root.TryGetProperty("LogFormat", out var formatProp))
                     {
                         string formatStr = formatProp.GetString() ?? "JSON";
@@ -244,15 +259,31 @@ namespace EasySave.GUI.ViewModels
                         if (priorityExtensions.Count > 0) _appConfig.AddPriorityExtensions(priorityExtensions);
                     }
 
-                    // LargeFileLimit comes in as a plain string from the GUI
-                    // (Options field). Parse it as KiB; ignore empty/invalid
-                    // input so the user's previous valid threshold survives.
-                    if (root.TryGetProperty("LargeFileLimit", out var sizeProp))
+                    // Large file threshold: prefer MB key, fallback to legacy KB.
+                    if (root.TryGetProperty("LargeFileThresholdMB", out _))
                     {
-                        string raw = (sizeProp.GetString() ?? "").Trim();
-                        if (!string.IsNullOrEmpty(raw) && int.TryParse(raw, out int kb) && kb > 0)
+                        int? mb = ReadInt(root, "LargeFileThresholdMB");
+                        if (mb.HasValue)
                         {
+                            int kb = Math.Max(0, mb.Value) * 1024;
                             _appConfig.SetLargeFileThresholdKB(kb);
+                        }
+                    }
+                    else if (root.TryGetProperty("LargeFileLimit", out _))
+                    {
+                        int? kb = ReadInt(root, "LargeFileLimit");
+                        if (kb.HasValue)
+                        {
+                            _appConfig.SetLargeFileThresholdKB(kb.Value);
+                        }
+                    }
+
+                    if (root.TryGetProperty("MaxWorkersPerJob", out _))
+                    {
+                        int? workers = ReadInt(root, "MaxWorkersPerJob");
+                        if (workers.HasValue)
+                        {
+                            _appConfig.SetMaxWorkersPerJob(workers.Value);
                         }
                     }
 

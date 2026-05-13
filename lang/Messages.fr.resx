@@ -387,6 +387,18 @@
   <data name="ApplySuccess" xml:space="preserve">
     <value>Changements appliqués</value>
   </data>
+  <data name="OpenFolder" xml:space="preserve">
+    <value>Ouvrir dossier</value>
+  </data>
+  <data name="ParallelWorkers" xml:space="preserve">
+    <value>Travailleurs paralleles</value>
+  </data>
+  <data name="ParallelWorkersHint" xml:space="preserve">
+    <value>Travailleurs paralleles: {0}</value>
+  </data>
+  <data name="LargeFileThresholdHint" xml:space="preserve">
+    <value>Seuil: {0} MB (0=desactive)</value>
+  </data>
   <data name="RemoteLogEnabled" xml:space="preserve">
     <value>Logs distants activés (Docker doit tourner)</value>
   </data>
