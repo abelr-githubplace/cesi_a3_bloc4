@@ -172,9 +172,9 @@
 
         <!-- Champ : Type -->
         <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" ContentStringFormat="{}{0}"/>
-        <ComboBox x:Name="TypeComboBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Content" Margin="0,0,0,15">
-            <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Complete]}"/>
-            <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Differential]}"/>
+        <ComboBox x:Name="TypeComboBox" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Tag" Margin="0,0,0,15">
+            <ComboBoxItem Tag="Complete"     Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Complete]}"/>
+            <ComboBoxItem Tag="Differential" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Differential]}"/>
         </ComboBox>
 
         <!-- Boutons d'action -->

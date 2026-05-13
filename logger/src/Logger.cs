@@ -1,8 +1,13 @@
+using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 
 namespace EasyLog
 {
     public enum LogFormat { Text, JSON, XML }
+
+    // Where log lines are sent. Remote = TCP server only. Both = file + TCP.
+    public enum LogMode { Local, Remote, Both }
 
     public record LogInfo
     {
@@ -57,12 +62,92 @@ namespace EasyLog
         }
     }
 
+    // Fire-and-forget TCP client. Connects lazily; reconnects on failure.
+    // Send errors are swallowed so a downed log server never blocks a save.
+    internal sealed class TcpLogClient : IDisposable
+    {
+        private readonly object _lock = new();
+        private TcpClient? _tcp;
+        private StreamWriter? _writer;
+        private string _host;
+        private int _port;
+
+        public TcpLogClient(string host, int port)
+        {
+            _host = host;
+            _port = port;
+        }
+
+        public void Reconfigure(string host, int port)
+        {
+            lock (_lock)
+            {
+                if (_host == host && _port == port) return;
+                _host = host;
+                _port = port;
+                DropConnection();
+            }
+        }
+
+        // Send without blocking the caller. If the connection fails the line is
+        // silently dropped — availability of the backup is not contingent on the
+        // log server being reachable.
+        public void SendAsync(string line)
+        {
+            // Capture so the Task closure doesn't race with Reconfigure.
+            string host;
+            int port;
+            lock (_lock) { host = _host; port = _port; }
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    lock (_lock)
+                    {
+                        EnsureConnected(host, port);
+                        _writer!.WriteLine(line);
+                        _writer.Flush();
+                    }
+                }
+                catch
+                {
+                    lock (_lock) { DropConnection(); }
+                }
+            });
+        }
+
+        private void EnsureConnected(string host, int port)
+        {
+            if (_tcp?.Connected == true) return;
+            DropConnection();
+            _tcp = new TcpClient();
+            _tcp.Connect(host, port);
+            _writer = new StreamWriter(_tcp.GetStream(), Encoding.UTF8) { AutoFlush = false };
+        }
+
+        private void DropConnection()
+        {
+            try { _writer?.Close(); } catch { }
+            try { _tcp?.Close(); } catch { }
+            _writer = null;
+            _tcp = null;
+        }
+
+        public void Dispose()
+        {
+            lock (_lock) { DropConnection(); }
+        }
+    }
+
     public class Logger
     {
         private static Logger? s_instance;
         private static readonly object s_lock = new();
 
         private string _output;
+        private LogMode _mode = LogMode.Local;
+        private TcpLogClient? _tcpClient;
         private static readonly object s_rwLock = new();
 
         private Logger(string output)
@@ -84,16 +169,47 @@ namespace EasyLog
 
         public void Log(string log)
         {
-            lock (s_rwLock)
+            LogMode mode;
+            TcpLogClient? tcp;
+            lock (s_rwLock) { mode = _mode; tcp = _tcpClient; }
+
+            if (mode == LogMode.Local || mode == LogMode.Both)
             {
-                using StreamWriter writer = new(_output, true);
-                writer.WriteLine(log);
+                lock (s_rwLock)
+                {
+                    using StreamWriter writer = new(_output, true);
+                    writer.WriteLine(log);
+                }
+            }
+
+            if ((mode == LogMode.Remote || mode == LogMode.Both) && tcp != null)
+            {
+                tcp.SendAsync(log);
             }
         }
 
         public void ModifyOutput(string output)
         {
             lock(s_rwLock) { _output = output; }
+        }
+
+        // Called by ConfigManager when the user changes log mode/endpoint.
+        public void SetRemoteConfig(LogMode mode, string host, int port)
+        {
+            lock (s_rwLock)
+            {
+                _mode = mode;
+                if (mode == LogMode.Local)
+                {
+                    _tcpClient?.Dispose();
+                    _tcpClient = null;
+                    return;
+                }
+                if (_tcpClient == null)
+                    _tcpClient = new TcpLogClient(host, port);
+                else
+                    _tcpClient.Reconfigure(host, port);
+            }
         }
     }
 }

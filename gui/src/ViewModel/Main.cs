@@ -188,6 +188,28 @@ namespace EasySave.GUI.ViewModels
                             _appConfig.SetLargeFileThresholdKB(kb);
                         }
                     }
+
+                    // Centralized log settings. LogMode must be one of the
+                    // enum values; ignore unrecognised strings so a typo in
+                    // gui_config.json doesn't crash the app.
+                    if (root.TryGetProperty("LogMode", out var modeProp))
+                    {
+                        string modeStr = modeProp.GetString() ?? "Local";
+                        if (Enum.TryParse<EasyLog.LogMode>(modeStr, true, out var logMode))
+                        {
+                            string host = "localhost";
+                            int port = 9000;
+                            if (root.TryGetProperty("RemoteLogHost", out var hostProp))
+                                host = hostProp.GetString() ?? "localhost";
+                            if (root.TryGetProperty("RemoteLogPort", out var portProp))
+                            {
+                                string rawPort = portProp.GetString() ?? "9000";
+                                if (int.TryParse(rawPort, out int p) && p > 0) port = p;
+                            }
+                            _appConfig.SetLogMode(logMode);
+                            _appConfig.SetRemoteLogEndpoint(host, port);
+                        }
+                    }
                 }
             }
             catch (Exception) { }
@@ -215,7 +237,8 @@ namespace EasySave.GUI.ViewModels
                     SaveId = Guid.NewGuid(),
                     SaveName = editorVM.Name,
                     SourcePath = editorVM.SourcePath,
-                    DestinationPath = editorVM.TargetPath
+                    DestinationPath = editorVM.TargetPath,
+                    SaveType = editorVM.Type
                 };
 
                 _stateManager.Save(MakeInactiveState(newSaveInfo));
@@ -288,7 +311,8 @@ namespace EasySave.GUI.ViewModels
                 DestinationPath = info.DestinationPath,
                 LastActionTime = DateTime.Now,
                 Status = Status.Inactive,
-                ActiveStateInfo = null
+                ActiveStateInfo = null,
+                SaveType = info.SaveType
             };
         }
 
@@ -371,7 +395,7 @@ namespace EasySave.GUI.ViewModels
                 var progress = new Progress.Progress();
                 var updater = new GuiProgressBar(job, progress);
 
-                var saveAction = job.Type == TranslationSource.Instance["Complete"]
+                var saveAction = job.Type == "Complete"
                     ? SaveManager.Action.CompleteSave
                     : SaveManager.Action.DifferentialSave;
                 var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig);

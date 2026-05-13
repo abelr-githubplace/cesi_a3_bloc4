@@ -15,7 +15,7 @@ namespace EasySave.GUI.ViewModels
         private string _targetPath;
         public string TargetPath { get => _targetPath; set { _targetPath = value; OnPropertyChanged(); } }
 
-        private string _type = "Complète";
+        private string _type = "Complete";
         public string Type { get => _type; set { _type = value; OnPropertyChanged(); } }
 
         public ICommand BrowseSourceCommand { get; }

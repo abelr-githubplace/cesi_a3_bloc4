@@ -149,32 +149,59 @@ namespace Save
             // lock so two workers don't produce interleaved snapshots.
             long copiedTotalBytes = 0;
             int filesProcessed = 0;
-            int lastReportedPct = -1;  // monotonic 0..100 to throttle UI updates
             var currentFiles = new ConcurrentDictionary<string, string>();
             var stateLock = new object();
 
+            // Time-based throttles. Progress UI capped at ~30 fps (33 ms)
+            // so the bar stays smooth even on small files where the CAS-on-
+            // integer-percent strategy made it look like discrete jumps.
+            // State.json capped at ~5 updates per second (200 ms) — the
+            // worst case is a save with thousands of tiny files, where
+            // unthrottled persistence would hammer the disk.
+            long lastProgressTicks = 0;
+            long lastStateWriteTicks = 0;
+            long progressIntervalTicks = TimeSpan.FromMilliseconds(33).Ticks;
+            long stateWriteIntervalTicks = TimeSpan.FromMilliseconds(200).Ticks;
+
             // Per-chunk callback. Called from worker threads (potentially
             // multiple at once) every 64 KB. We add to the global counter
-            // atomically and only push a Progress notification when the
-            // integer percentage actually changes — capping the UI to ~100
-            // updates per save no matter the file count or size.
+            // atomically, then throttle the actual UI notification to ~30
+            // updates per second using a CAS-on-timestamp pattern.
             Action<long> onProgress = (deltaBytes) =>
             {
                 if (deltaBytes <= 0) return;
                 long newTotal = Interlocked.Add(ref copiedTotalBytes, deltaBytes);
                 if (TotalSize <= 0) { Progress.SetProgress(100f); return; }
                 float pct = Math.Clamp(((float)newTotal / (float)TotalSize) * 100f, 0f, 100f);
-                int pctInt = (int)pct;
-                // Monotone CAS: only the thread that successfully bumps the
-                // last reported pct fires SetProgress, others skip.
-                int previous = Volatile.Read(ref lastReportedPct);
-                while (pctInt > previous)
-                {
-                    int actual = Interlocked.CompareExchange(ref lastReportedPct, pctInt, previous);
-                    if (actual == previous) { Progress.SetProgress(pct); return; }
-                    previous = actual;
-                }
+
+                long now = DateTime.Now.Ticks;
+                long previous = Volatile.Read(ref lastProgressTicks);
+                if (now - previous < progressIntervalTicks) return;
+                if (Interlocked.CompareExchange(ref lastProgressTicks, now, previous) != previous) return;
+                Progress.SetProgress(pct);
             };
+
+            // Same throttling pattern for state.json. Used both before and
+            // after a file's Execute so the snapshot reflects "what's in
+            // flight" at a steady rate without flooding the disk.
+            bool TryPersistActive()
+            {
+                long now = DateTime.Now.Ticks;
+                long previous = Volatile.Read(ref lastStateWriteTicks);
+                if (now - previous < stateWriteIntervalTicks) return false;
+                if (Interlocked.CompareExchange(ref lastStateWriteTicks, now, previous) != previous) return false;
+                lock (stateLock)
+                {
+                    _configManager.State.Save(NewStateInfo(
+                        DateTime.Now, Status.Active,
+                        NewActiveStateInfo(
+                            Jobs.Count - Volatile.Read(ref filesProcessed),
+                            this.TotalSize - Interlocked.Read(ref copiedTotalBytes),
+                            SnapshotCurrentFiles(currentFiles))
+                    ));
+                }
+                return true;
+            }
 
             var options = new ParallelOptions
             {
@@ -226,6 +253,11 @@ namespace Save
                     catch (OperationCanceledException) { return; }
 
                     currentFiles[fileJob.SourceFile] = fileJob.DestinationFile;
+                    // Snapshot the "in flight" file list BEFORE the long
+                    // Execute so the state file reflects what's currently
+                    // being copied, not what was copied minutes ago.
+                    TryPersistActive();
+
                     try
                     {
                         var beginTime = DateTime.Now;
@@ -243,8 +275,7 @@ namespace Save
 
                         // copiedTotalBytes was already incremented chunk by
                         // chunk inside onProgress, so no Interlocked.Add here.
-                        long newTotal = Interlocked.Read(ref copiedTotalBytes);
-                        int newCount = Interlocked.Increment(ref filesProcessed);
+                        Interlocked.Increment(ref filesProcessed);
 
                         int encryptionTime = TryEncrypt(fileJob.DestinationFile);
 
@@ -255,20 +286,17 @@ namespace Save
                         );
 
                         currentFiles.TryRemove(fileJob.SourceFile, out _);
-
-                        lock (stateLock)
-                        {
-                            _configManager.State.Save(NewStateInfo(
-                                endTime, Status.Active,
-                                NewActiveStateInfo(
-                                    Jobs.Count - newCount,
-                                    this.TotalSize - newTotal,
-                                    SnapshotCurrentFiles(currentFiles))
-                            ));
-                        }
+                        // Throttled persistence after each file too — covers
+                        // the counter (FilesRemaining) and removes the now-
+                        // finished file from CurrentFiles in the snapshot.
+                        TryPersistActive();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        // Log any unexpected exception so the save loop doesn't
+                        // die silently. AggregateException from Parallel will
+                        // wrap whatever escapes here, but at least we trace it.
+                        try { _configManager.Logger.Log($"[Saver error] {ex}"); } catch { }
                         currentFiles.TryRemove(fileJob.SourceFile, out _);
                         throw;
                     }
@@ -279,6 +307,14 @@ namespace Save
                 });
             }
             catch (OperationCanceledException) { /* expected on Stop */ }
+            catch (Exception ex)
+            {
+                // Don't let an unexpected worker exception kill the save loop
+                // silently — log it and continue to the cleanup below so the
+                // final Inactive state is still written and the priority gate
+                // is still released.
+                try { _configManager.Logger.Log($"[Saver Start error] {ex}"); } catch { }
+            }
             finally
             {
                 // Release any priority tickets we registered but never

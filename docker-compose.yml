@@ -1,0 +1,29 @@
+services:
+
+  # ── Log server ─────────────────────────────────────────────────────────────
+  # Listens on TCP 9000 and writes received log lines to /app/logs/<date>.log.
+  # Set LogMode=Remote (or Both) in the GUI/CLI options to forward logs here.
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "9000:9000"
+    volumes:
+      - server-logs:/app/logs
+    restart: unless-stopped
+
+  # ── Unit tests ──────────────────────────────────────────────────────────────
+  # Runs lib/tests and cli/tests then exits.
+  # Exit code mirrors the test result (0 = all pass, non-zero = failures).
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    # The lib tests default to LogMode=Local, so they don't need the server.
+    # Remove "profiles" below if you want tests to always start with compose up.
+    profiles:
+      - test
+
+volumes:
+  server-logs:

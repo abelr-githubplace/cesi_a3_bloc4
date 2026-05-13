@@ -12,7 +12,8 @@ namespace EasySave.GUI.ViewModels
             SaveId = _id,
             SaveName = Name,
             SourcePath = SourcePath,
-            DestinationPath = TargetPath
+            DestinationPath = TargetPath,
+            SaveType = _type
         };
 
         private readonly Guid _id;
@@ -23,6 +24,7 @@ namespace EasySave.GUI.ViewModels
             _name = model.SaveName;
             _sourcePath = model.SourcePath;
             _targetPath = model.DestinationPath;
+            _type = string.IsNullOrEmpty(model.SaveType) ? "Complete" : model.SaveType;
         }
 
         private bool _isSelected;
@@ -68,7 +70,7 @@ namespace EasySave.GUI.ViewModels
             set { _state = value; OnPropertyChanged(); }
         }
 
-        private string _type = "Complète";
+        private string _type = "Complete";
         public string Type
         {
             get => _type;

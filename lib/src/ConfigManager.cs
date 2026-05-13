@@ -31,13 +31,26 @@ namespace Config
         // run in parallel.
         public int LargeFileThresholdKB { get; init; } = 524288;
 
+        // V3: centralized log server. Local = file only, Remote = TCP server
+        // only, Both = file + TCP. Default Local so existing installs keep
+        // their current behaviour without any config migration.
+        public LogMode LogMode { get; init; } = LogMode.Local;
+        public string RemoteLogHost { get; init; } = "localhost";
+        public int RemoteLogPort { get; init; } = 9000;
+
         public static ConfigData DefaultConfig()
         {
+            // Anchor the defaults at AppContext.BaseDirectory (the folder
+            // containing the exe) rather than ".", which depends on the
+            // current working directory at launch. Without this, launching
+            // via `dotnet run` from one folder vs double-clicking the exe
+            // produces two completely different state.json locations.
+            string baseDir = AppContext.BaseDirectory;
             return new()
             {
                 Lang = "en-US",
-                LogOutput = "./save.log",
-                StateOutput = "./state.json",
+                LogOutput = Path.Combine(baseDir, "save.log"),
+                StateOutput = Path.Combine(baseDir, "state.json"),
 
                 LogFormat = LogFormat.JSON,
                 BusinessSoftwares = [],
@@ -46,6 +59,9 @@ namespace Config
                 EncryptionKey = "EasySaveDefaultKey",
                 CryptoSoftPath = "",
                 LargeFileThresholdKB = 524288,
+                LogMode = LogMode.Local,
+                RemoteLogHost = "localhost",
+                RemoteLogPort = 9000,
             };
         }
     }
@@ -53,7 +69,9 @@ namespace Config
 
     public sealed class ConfigManager
     {
-        private const string _output = "./config.json";
+        // Always next to the exe — independent of the working directory used
+        // to launch the process.
+        private static readonly string _output = Path.Combine(AppContext.BaseDirectory, "config.json");
         private readonly static JsonSerializerOptions s_read_serializer = new()
         {
             Converters = { new JsonStringEnumConverter() }
@@ -86,6 +104,9 @@ namespace Config
                 if (string.IsNullOrWhiteSpace(json)) Config = ConfigData.DefaultConfig();
                 else Config = JsonSerializer.Deserialize<ConfigData>(json, s_read_serializer)
                     ?? ConfigData.DefaultConfig();
+                // Apply persisted log mode so the Logger is configured on first use.
+                if (Config.LogMode != LogMode.Local)
+                    Logger.SetRemoteConfig(Config.LogMode, Config.RemoteLogHost, Config.RemoteLogPort);
                 return;
             }
             Write();
@@ -256,6 +277,35 @@ namespace Config
                 lock (s_rwLock) { removed |= Config.PriorityExtensions.Remove(ext); }
             }
             if (removed) Write();
+        }
+
+        public LogMode GetLogMode()
+        {
+            lock (s_rwLock) { return Config.LogMode; }
+        }
+
+        public string GetRemoteLogHost()
+        {
+            lock (s_rwLock) { return Config.RemoteLogHost; }
+        }
+
+        public int GetRemoteLogPort()
+        {
+            lock (s_rwLock) { return Config.RemoteLogPort; }
+        }
+
+        public void SetLogMode(LogMode mode)
+        {
+            lock (s_rwLock) { Config = Config with { LogMode = mode }; }
+            Logger.SetRemoteConfig(mode, Config.RemoteLogHost, Config.RemoteLogPort);
+            Write();
+        }
+
+        public void SetRemoteLogEndpoint(string host, int port)
+        {
+            lock (s_rwLock) { Config = Config with { RemoteLogHost = host, RemoteLogPort = port }; }
+            Logger.SetRemoteConfig(Config.LogMode, host, port);
+            Write();
         }
 
         public void ModifyLogOutput(string output)

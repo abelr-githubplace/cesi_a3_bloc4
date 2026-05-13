@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+**/.gitignore
+gui/
+CryptoSoft/
+tests/
+server/
+*.md
+*.sln

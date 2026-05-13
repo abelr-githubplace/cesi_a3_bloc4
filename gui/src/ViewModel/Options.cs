@@ -70,6 +70,28 @@ namespace EasySave.GUI.ViewModels
             set { _largeFileLimit = value; OnPropertyChanged(); SaveSettings(); }
         }
 
+        // Remote log settings
+        private string _logMode = "Local";
+        public string LogMode
+        {
+            get => _logMode;
+            set { _logMode = value; OnPropertyChanged(); SaveSettings(); }
+        }
+
+        private string _remoteLogHost = "localhost";
+        public string RemoteLogHost
+        {
+            get => _remoteLogHost;
+            set { _remoteLogHost = value; OnPropertyChanged(); SaveSettings(); }
+        }
+
+        private string _remoteLogPort = "9000";
+        public string RemoteLogPort
+        {
+            get => _remoteLogPort;
+            set { _remoteLogPort = value; OnPropertyChanged(); SaveSettings(); }
+        }
+
         public ICommand BrowseSoftwareCommand { get; }
         public ICommand RemoveSoftwareCommand { get; } // Nouvelle commande
 
@@ -116,6 +138,9 @@ namespace EasySave.GUI.ViewModels
             public string ExtensionsToEncrypt { get; set; } = string.Empty;
             public string PriorityExtensions { get; set; } = string.Empty;
             public string LargeFileLimit { get; set; } = string.Empty;
+            public string LogMode { get; set; } = "Local";
+            public string RemoteLogHost { get; set; } = "localhost";
+            public string RemoteLogPort { get; set; } = "9000";
         }
 
         private void SaveSettings()
@@ -129,7 +154,10 @@ namespace EasySave.GUI.ViewModels
                     BusinessSoftwares = new List<string>(this.BusinessSoftwares),
                     ExtensionsToEncrypt = this.ExtensionsToEncrypt,
                     PriorityExtensions = this.PriorityExtensions,
-                    LargeFileLimit = this.LargeFileLimit
+                    LargeFileLimit = this.LargeFileLimit,
+                    LogMode = this.LogMode,
+                    RemoteLogHost = this.RemoteLogHost,
+                    RemoteLogPort = this.RemoteLogPort
                 };
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -153,6 +181,9 @@ namespace EasySave.GUI.ViewModels
                         _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
                         _priorityExtensions = data.PriorityExtensions ?? string.Empty;
                         _largeFileLimit = data.LargeFileLimit ?? string.Empty;
+                        _logMode = data.LogMode ?? "Local";
+                        _remoteLogHost = data.RemoteLogHost ?? "localhost";
+                        _remoteLogPort = data.RemoteLogPort ?? "9000";
 
                         // Chargement de la liste
                         if (data.BusinessSoftwares != null)
@@ -168,6 +199,9 @@ namespace EasySave.GUI.ViewModels
                         OnPropertyChanged(nameof(ExtensionsToEncrypt));
                         OnPropertyChanged(nameof(PriorityExtensions));
                         OnPropertyChanged(nameof(LargeFileLimit));
+                        OnPropertyChanged(nameof(LogMode));
+                        OnPropertyChanged(nameof(RemoteLogHost));
+                        OnPropertyChanged(nameof(RemoteLogPort));
                         OnPropertyChanged(nameof(BusinessSoftwares)); // Important pour rafraîchir l'UI
 
                         this.language = data.Language ?? "FR";

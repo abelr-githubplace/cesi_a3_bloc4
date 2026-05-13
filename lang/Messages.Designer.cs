@@ -842,5 +842,32 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Welcome", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log mode :.
+        /// </summary>
+        public static string LogMode {
+            get {
+                return ResourceManager.GetString("LogMode", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log server address :.
+        /// </summary>
+        public static string RemoteLogHost {
+            get {
+                return ResourceManager.GetString("RemoteLogHost", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Log server port :.
+        /// </summary>
+        public static string RemoteLogPort {
+            get {
+                return ResourceManager.GetString("RemoteLogPort", resourceCulture);
+            }
+        }
     }
 }

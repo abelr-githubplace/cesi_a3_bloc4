@@ -18,6 +18,8 @@ namespace SaveManager
 		public required string SaveName { get; init; }
 		public required string SourcePath { get; init; }
 		public required string DestinationPath { get; init; }
+		// Canonical values: "Complete" or "Differential" (resource key names, not translated).
+		public string SaveType { get; init; } = "Complete";
 	}
 
 	public class SaveManager

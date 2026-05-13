@@ -1,0 +1,29 @@
+# Build context: repo root
+# Tests target net10.0 — use the preview SDK.
+# Once .NET 10 GA is released (Nov 2025) replace the tag with "10.0".
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS test
+
+WORKDIR /repo
+
+# ── Restore layer (cached as long as csproj files don't change) ──────────────
+COPY logger/EasyLog.csproj          ./logger/
+COPY lib/EasySaveLibrary.csproj     ./lib/
+COPY lib/tests/tests.csproj         ./lib/tests/
+COPY cli/EasySave.CLI.csproj        ./cli/
+COPY cli/tests/tests.csproj         ./cli/tests/
+COPY lang/                          ./lang/
+
+RUN dotnet restore lib/tests/tests.csproj && \
+    dotnet restore cli/tests/tests.csproj
+
+# ── Source ───────────────────────────────────────────────────────────────────
+COPY logger/src/   ./logger/src/
+COPY lib/src/      ./lib/src/
+COPY lib/tests/    ./lib/tests/
+COPY cli/src/      ./cli/src/
+COPY cli/tests/    ./cli/tests/
+
+# ── Run ──────────────────────────────────────────────────────────────────────
+ENTRYPOINT ["/bin/sh", "-c", \
+  "dotnet test lib/tests/tests.csproj --no-restore --logger 'console;verbosity=normal' && \
+   dotnet test cli/tests/tests.csproj --no-restore --logger 'console;verbosity=normal'"]

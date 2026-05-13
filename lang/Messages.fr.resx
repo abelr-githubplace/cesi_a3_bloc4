@@ -381,4 +381,13 @@
   <data name="Close" xml:space="preserve">
     <value>Fermer</value>
   </data>
+  <data name="LogMode" xml:space="preserve">
+    <value>Mode de log :</value>
+  </data>
+  <data name="RemoteLogHost" xml:space="preserve">
+    <value>Adresse du serveur de logs :</value>
+  </data>
+  <data name="RemoteLogPort" xml:space="preserve">
+    <value>Port du serveur de logs :</value>
+  </data>
 </root>

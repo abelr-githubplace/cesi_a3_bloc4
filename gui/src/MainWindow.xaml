@@ -12,6 +12,7 @@
         Background="#f2fcff" Foreground="Black">
 
     <Window.Resources>
+        <helpers:SaveTypeConverter x:Key="SaveTypeConverter"/>
         <SolidColorBrush x:Key="MainBlue" Color="#aadff0"/>
         <SolidColorBrush x:Key="Background" Color="#f2fcff"/>
         <SolidColorBrush x:Key="DarkerBlue" Color="#6e909b"/>
@@ -124,7 +125,7 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}" Binding="{Binding Name}" Width="2*" ElementStyle="{StaticResource LeftCenterTextStyle}"/>
-                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" Binding="{Binding Type}" Width="*" ElementStyle="{StaticResource LeftCenterTextStyle}"/>
+                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" Binding="{Binding Type, Converter={StaticResource SaveTypeConverter}}" Width="*" ElementStyle="{StaticResource LeftCenterTextStyle}"/>
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[State]}" Binding="{Binding State}" Width="1.5*" ElementStyle="{StaticResource LeftCenterTextStyle}"/>
 
                 <DataGridTemplateColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Progress]}" Width="3*">

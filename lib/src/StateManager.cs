@@ -33,6 +33,9 @@ namespace State
         public required DateTime LastActionTime { get; init; }
         public required Status Status { get; init; }
         public ActiveStateInfo? ActiveStateInfo { get; init; }
+        // Canonical: "Complete" or "Differential". Defaults to Complete so
+        // existing state.json files without this field keep their behaviour.
+        public string SaveType { get; init; } = "Complete";
     }
 
     public sealed class StateManager
@@ -92,7 +95,8 @@ namespace State
                     SaveId = state.Id,
                     SaveName = state.Name,
                     SourcePath = state.SourcePath,
-                    DestinationPath = state.DestinationPath
+                    DestinationPath = state.DestinationPath,
+                    SaveType = state.SaveType
                 });
             }
             return saveInfos;
