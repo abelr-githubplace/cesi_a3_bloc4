@@ -25,8 +25,6 @@
                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Name]}" Binding="{Binding Name}" Width="*"/>
-                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Source]}" Binding="{Binding SourcePath}" Width="2*"/>
-                <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Target]}" Binding="{Binding TargetPath}" Width="2*"/>
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Type]}" Binding="{Binding Type}" Width="*"/>
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[State]}" Binding="{Binding State}" Width="*"/>
                 <DataGridTextColumn Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Progress]}" Binding="{Binding Progress, StringFormat={}{0}%}" Width="*"/>
@@ -35,26 +33,20 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="▶" Command="{Binding DataContext.PlayJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
-                                <Button Content="⏸" Command="{Binding DataContext.PauseJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
-                                <Button Content="⏹" Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="Run" Command="{Binding DataContext.PlayJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="Stop" Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="Edit" Command="{Binding DataContext.EditJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
+                                <Button Content="Delete" Command="{Binding DataContext.DeleteJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-
             </DataGrid.Columns>
-            <DataGrid.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Edit]}" Command="{Binding EditJobCommand}" CommandParameter="{Binding SelectedJob}"/>
-                    <MenuItem Header="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delete]}" Command="{Binding DeleteJobCommand}" CommandParameter="{Binding SelectedJob}"/>
-                </ContextMenu>
-            </DataGrid.ContextMenu>
-        </DataGrid>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunSelected]}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
-            <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunAll]}" Command="{Binding RunAllJobsCommand}" Padding="10,5"/>
-        </StackPanel>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunSelected]}" Command="{Binding RunSelectedJobCommand}" Margin="0,0,10,0" Padding="10,5"/>
+                <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[RunAll]}" Command="{Binding RunAllJobsCommand}" Padding="10,5"/>
+            </StackPanel>
+        </DataGrid>
     </Grid>
 </Window>

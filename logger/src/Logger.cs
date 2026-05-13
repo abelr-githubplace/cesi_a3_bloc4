@@ -1,10 +1,72 @@
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace EasyLog
 {
     public enum LogFormat { Text, JSON, XML }
+    public abstract record IFormat
+    {
+        protected abstract string TextFormat();
+        protected abstract string XMLFormat();
+        protected abstract string JSONFormat();
 
-    public record LogInfo
+        public string Format(LogFormat format)
+        {
+            return format switch
+            {
+                LogFormat.Text => TextFormat(),
+                LogFormat.XML => XMLFormat(),
+                LogFormat.JSON => JSONFormat(),
+                _ => "",
+            };
+        }
+    }
+
+    public sealed record LogBusinessSoftwareInterrupt : IFormat
+    {
+        public required DateTime DateTime { get; init; }
+        public required string[] Softwares { get; init; }
+
+        protected override string TextFormat()
+        {
+            string soft = Softwares.Length switch
+            {
+                (var len) when len > 1 => $"{string.Join(" and ", Softwares)} are running : Pause all jobs",
+                (var len) when len > 0 => $"{Softwares[0]} is running : Pause all jobs",
+                _ => "No business software detected : Resume all jobs",
+            };
+            return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {soft}";
+        }
+
+        protected override string XMLFormat()
+        {
+            string soft = Softwares.Length switch
+            {
+                (var len) when len > 1 => $"{string.Join(" and ", Softwares)} are running",
+                (var len) when len > 0 => $"{Softwares[0]} is running",
+                _ => "No business software detected",
+            };
+            return $"<Date>{this.DateTime:dd-MM-yyyy HH:mm:ss}</Date><BusinessSoftware>{soft}</BusinessSoftware>";
+        }
+
+        protected override string JSONFormat()
+        {
+            var JsonLog = new
+            {
+                Date = this.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
+                BusinessSoftware = Softwares.Length switch {
+                    (var len) when len > 1 => $"{string.Join(" and ", Softwares)} are running",
+                    (var len) when len > 0 => $"{Softwares[0]} is running",
+                    _ => "No business software detected",
+                },
+            };
+            return JsonSerializer.Serialize(JsonLog);
+        }
+    }
+
+    public sealed record LogInfo : IFormat
     {
         public required DateTime DateTime { get; init; }
         public required string SaveName { get; init; }
@@ -15,13 +77,13 @@ namespace EasyLog
         public required int TransferTime { get; init; }     // milliseconds
         public required int EncryptionTime { get; init; }     // milliseconds
 
-        private string TextFormat() {
+        protected override string TextFormat() {
             return $"[{this.DateTime:dd-MM-yyyy HH:mm:ss}] {SaveName} > {Action} " +
                 $"from [{SourceFile}] to [{DestinationFile}] ({FileSize}B) in {TransferTime}ms " +
                 $"encrypted in {EncryptionTime}ms";
         }
 
-        private string XMLFormat() {
+        protected override string XMLFormat() {
             return $"<Date>{this.DateTime:dd-MM-yyyy HH:mm:ss}</Date>" +
                 $"<Name>{SaveName}</Name>" +
                 $"<Action>{Action}</Action>" +
@@ -32,28 +94,19 @@ namespace EasyLog
                 $"<EncryptionTime>{EncryptionTime}</EncryptionTime>";
         }
 
-        private string JSONFormat() {
+        protected override string JSONFormat() {
             var JsonLog = new
             {
                 Date = this.DateTime.ToString("dd-MM-yyyy HH:mm:ss"),
                 Name = SaveName,
                 Source = SourceFile,
                 Target = DestinationFile,
-                Action = this.Action,
-                FileSize = this.FileSize,
-                TransferTime = this.TransferTime,
-                EncryptionTime = this.EncryptionTime,
+                Action,
+                FileSize,
+                TransferTime,
+                EncryptionTime,
             };
             return JsonSerializer.Serialize(JsonLog);
-        }
-
-        public string Format(LogFormat format) {
-            switch (format) {
-                case LogFormat.Text: return TextFormat();
-                case LogFormat.XML: return XMLFormat();
-                case LogFormat.JSON: return JSONFormat();
-                default: return "";
-            }
         }
     }
 

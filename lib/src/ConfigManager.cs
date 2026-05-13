@@ -1,7 +1,8 @@
+using EasyLog;
+using Sanitize;
+using State;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using EasyLog;
-using State;
 
 namespace Config
 {
@@ -22,8 +23,8 @@ namespace Config
             return new()
             {
                 Lang = "en-US",
-                LogOutput = "./save.log",
-                StateOutput = "./state.json",
+                LogOutput = PathSanitizer.Sanitize("./save.log") ?? throw new Exception("default log file cannot be resolved"),
+                StateOutput = PathSanitizer.Sanitize("./state.json") ?? throw new Exception("default state file cannot be resolved"),
 
                 LogFormat = LogFormat.JSON,
                 BusinessSoftwares = [],
@@ -35,7 +36,7 @@ namespace Config
 
     public sealed class ConfigManager
     {
-        private const string _output = "./config.json";
+        private readonly string _output = PathSanitizer.Sanitize("./config.json") ?? throw new Exception("configuration file cannot be resolved");
         private readonly static JsonSerializerOptions s_read_serializer = new()
         {
             Converters = { new JsonStringEnumConverter() }
@@ -53,20 +54,20 @@ namespace Config
         public Logger Logger { get; init; }
         public StateManager State { get; init; }
 
-        public ConfigData Config { get; private set; }
+        private ConfigData _config;
         private static readonly object s_rwLock = new();
 
         private ConfigManager()
         {
-            Config = ConfigData.DefaultConfig();
-            Logger = Logger.Get(Config.LogOutput);
-            State = StateManager.Get(Config.StateOutput);
+            _config = ConfigData.DefaultConfig();
+            Logger = Logger.Get(_config.LogOutput);
+            State = StateManager.Get(_config.StateOutput);
 
             if (File.Exists(_output))
             {
                 string json = File.ReadAllText(_output);
-                if (string.IsNullOrWhiteSpace(json)) Config = ConfigData.DefaultConfig();
-                else Config = JsonSerializer.Deserialize<ConfigData>(json, s_read_serializer)
+                if (string.IsNullOrWhiteSpace(json)) _config = ConfigData.DefaultConfig();
+                else _config = JsonSerializer.Deserialize<ConfigData>(json, s_read_serializer)
                     ?? ConfigData.DefaultConfig();
                 return;
             }
@@ -85,26 +86,41 @@ namespace Config
             return s_instance;
         }
 
+        public string GetLanguageConfig()
+        {
+            lock(s_rwLock) { return _config.Lang; }
+        }
+
+        public string GetLogOutput()
+        {
+            lock(s_rwLock) { return _config.LogOutput; }
+        }
+
+        public string GetStateOutput()
+        {
+            lock(s_rwLock) { return _config.StateOutput; }
+        }
+
         public void SetLanguage(string lang)
         {
-            lock(s_rwLock) { Config = Config with { Lang = lang }; }
+            lock(s_rwLock) { _config = _config with { Lang = lang }; }
             Write();
         }
 
         public void SetLogFormat(LogFormat format)
         {
-            lock(s_rwLock) { Config = Config with { LogFormat = format }; }
+            lock(s_rwLock) { _config = _config with { LogFormat = format }; }
             Write();
         }
 
         public LogFormat GetLogFormatConfig()
         {
-            lock (s_rwLock) { return Config.LogFormat; }
+            lock (s_rwLock) { return _config.LogFormat; }
         }
 
         public IReadOnlyList<string> GetBusinessSoftwares()
         {
-            lock(s_rwLock) { return [..Config.BusinessSoftwares]; }
+            lock(s_rwLock) { return [.._config.BusinessSoftwares]; }
         }
 
         public void AddBusinessSoftwares(IEnumerable<string> names)
@@ -112,7 +128,7 @@ namespace Config
             List<string> softwares = NormalizeProcessNames(names);
             bool added = false;
             lock (s_rwLock) {
-                foreach (var software in softwares) added |= Config.BusinessSoftwares.Add(software);
+                foreach (var software in softwares) added |= _config.BusinessSoftwares.Add(software);
             }
             if (added) Write();
         }
@@ -122,7 +138,7 @@ namespace Config
             List<string> softwares = NormalizeProcessNames(names);
             bool removed = false;
             lock (s_rwLock) {
-                foreach (var software in softwares) removed |= Config.BusinessSoftwares.Remove(software);
+                foreach (var software in softwares) removed |= _config.BusinessSoftwares.Remove(software);
             }
             if (removed) Write();
         }
@@ -132,6 +148,7 @@ namespace Config
             List<string> normalized = [];
             foreach (var name in names) {
                 string trimmed = name.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
                 if (trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) trimmed = trimmed[0..^4];
                 normalized.Add(trimmed);
             }
@@ -140,7 +157,7 @@ namespace Config
 
         public IReadOnlyList<string> GetEncryptionExtensions()
         {
-            lock (s_rwLock) { return [..Config.EncryptionExtensions]; }
+            lock (s_rwLock) { return [.._config.EncryptionExtensions]; }
         }
 
         public void AddEncryptionExtensions(IEnumerable<string> extensions)
@@ -149,7 +166,7 @@ namespace Config
             bool added = false;
             foreach (var extension in normed_extensions)
             {
-                lock(s_rwLock) { added |= Config.EncryptionExtensions.Add(extension); }
+                lock(s_rwLock) { added |= _config.EncryptionExtensions.Add(extension); }
             }
             if (added) Write();
         }
@@ -160,7 +177,7 @@ namespace Config
             bool removed = false;
             foreach (var extension in normed_extensions)
             {
-                lock(s_rwLock) { removed |= Config.EncryptionExtensions.Remove(extension); }
+                lock(s_rwLock) { removed |= _config.EncryptionExtensions.Remove(extension); }
             }
             if (removed) Write();
         }
@@ -171,8 +188,8 @@ namespace Config
             var normalized = new List<string>();
             foreach (var extension in extensions)
             {
-                if (string.IsNullOrWhiteSpace(extension)) continue;
                 var trimmed = extension.Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(extension)) continue;
                 if (!trimmed.StartsWith('.')) trimmed = "." + trimmed;
                 if (seen.Add(trimmed)) normalized.Add(trimmed);
             }
@@ -183,7 +200,7 @@ namespace Config
         {
             lock(s_rwLock)
             {
-                Config = Config with { LogOutput = output };
+                _config = _config with { LogOutput = output };
             }
             Logger.ModifyOutput(output);
             Write();
@@ -193,7 +210,7 @@ namespace Config
         {
             lock(s_rwLock)
             {
-                Config = Config with { StateOutput = output };
+                _config = _config with { StateOutput = output };
             }
             State.ModifyOutput(output);
             Write();
@@ -203,7 +220,7 @@ namespace Config
         {
             lock(s_rwLock)
             {
-                var json = JsonSerializer.Serialize(Config, s_write_serializer);
+                var json = JsonSerializer.Serialize(_config, s_write_serializer);
                 File.WriteAllText(_output, json);
             }
         }

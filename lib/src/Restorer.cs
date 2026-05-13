@@ -8,8 +8,8 @@ namespace Restore
 {
     public sealed class Restorer : SaveActor
     {
-        public Restorer(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, ConfigManager configManager)
-            : base(save, saveAction, progress, configManager)
+        public Restorer(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress)
+            : base(save, saveAction, progress)
         {
             long totalSize = 0;
             if (File.Exists(DestinationPath) || Directory.Exists(DestinationPath))
@@ -60,11 +60,11 @@ namespace Restore
                 float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)restoredTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
                 Progress.SetProgress(percent);
 
-                _configManager.Logger.Log(
+                ConfigManager.Get().Logger.Log(
                     NewLogInfo(DateTime.Now, job.SourceFile, job.DestinationFile, job.FileSize, (endTime - beginTime).Milliseconds, cryptoTime)
-                        .Format(_configManager.GetLogFormatConfig())
+                        .Format(ConfigManager.Get().GetLogFormatConfig())
                 );
-                _configManager.State.Save(
+                ConfigManager.Get().State.Save(
                     NewStateInfo(
                         endTime,
                         Status.Active,
@@ -72,7 +72,7 @@ namespace Restore
                     )
                 );
             }
-            _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+            ConfigManager.Get().State.Save(NewStateInfo(endTime, Status.Inactive, null));
         }
     }
 }

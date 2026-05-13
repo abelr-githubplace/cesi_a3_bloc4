@@ -1,6 +1,7 @@
 using Result;
 using Save;
 using Restore;
+using Config;
 
 namespace SaveManager
 {
@@ -20,51 +21,44 @@ namespace SaveManager
 		public required string DestinationPath { get; init; }
 	}
 
-	public class SaveManager
+	public static class SaveManager
 	{
-		public static Result<Empty, IEnumerable<string>> Execute(Command command, Progress.Progress[] progresses, Config.ConfigManager configManager)
+		public static Result<Empty, IEnumerable<string>> Execute(Command command, Progress.Progress[] progresses)
 		{
 			return command.SaveAction switch
 			{
-				Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses, configManager),
-				Action.Restore => Restore(command.Saves, command.SaveAction, progresses, configManager),
-                Action.Delete => Delete(command.Saves, configManager),
+				Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses),
+				Action.Restore => Restore(command.Saves, command.SaveAction, progresses),
+                Action.Delete => Delete(command.Saves),
                 _ => new Err<Empty, IEnumerable<string>>(["Unsupported command, failed to execute"])
 			};
 		}
 
-		private static Result<Empty, IEnumerable<string>> Save(SaveInfo[] saves, Action saveAction, Progress.Progress[] progresses, Config.ConfigManager configManager)
+		private static Result<Empty, IEnumerable<string>> Save(SaveInfo[] saves, Action saveAction, Progress.Progress[] progresses)
 		{
             if (saves.Length != progresses.Length) return new Err<Empty, IEnumerable<string>>(["Number of progress instances do not match the number of saves"]);
 			List<Saver> savers = [];
-			for (int i = 0; i < saves.Length; i++) savers.Add(new Saver(saves[i], saveAction, progresses[i], configManager));
-			foreach (var saver in savers) saver.Start(IsBusinessSoftwareRunning(configManager));
+			for (int i = 0; i < saves.Length; i++) savers.Add(new Saver(saves[i], saveAction, progresses[i]));
+			foreach (var saver in savers) saver.Start();
 			return Empty.EmptyOk<IEnumerable<string>>();
 		}
 
-        private static bool IsBusinessSoftwareRunning(Config.ConfigManager configManager)
-        {
-            var watched = configManager.GetBusinessSoftwares();
-            if (watched.Count == 0) return false;
-            return BusinessSoftware.BusinessSoftwareMonitor.IsAnyRunning(watched);
-        }
-
-		private static Result<Empty, IEnumerable<string>> Restore(SaveInfo[] saves, Action saveAction, Progress.Progress[] progresses, Config.ConfigManager configManager)
+		private static Result<Empty, IEnumerable<string>> Restore(SaveInfo[] saves, Action saveAction, Progress.Progress[] progresses)
 		{
             if (saves.Length != progresses.Length) return new Err<Empty, IEnumerable<string>>(["Number of progress instances do not match the number of saves"]);
 
             List<Restorer> restorers = [];
-			for (int i = 0; i < saves.Length; i++) restorers.Add(new Restorer(saves[i], saveAction, progresses[i], configManager));
+			for (int i = 0; i < saves.Length; i++) restorers.Add(new Restorer(saves[i], saveAction, progresses[i]));
 			foreach (var r in restorers) r.Start();
             return Empty.EmptyOk<IEnumerable<string>>();
         }
 
-		private static Result<Empty, IEnumerable<string>> Delete(SaveInfo[] saves, Config.ConfigManager configManager)
+		private static Result<Empty, IEnumerable<string>> Delete(SaveInfo[] saves)
 		{
 			List<string> errors = [];
 			foreach (var save in saves)
 			{
-				bool removed = configManager.State.Delete(save.SaveId);
+				bool removed = ConfigManager.Get().State.Delete(save.SaveId);
 				if (!removed)
 				{
 					errors.Add($"Failed to remove {save.SaveName} ({save.SaveId})");

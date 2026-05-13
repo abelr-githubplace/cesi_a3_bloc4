@@ -6,31 +6,17 @@ using EasyLog;
 
 namespace Actor
 {
-    public abstract class SaveActor
+    public abstract class SaveActor(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress)
     {
-        public Guid Id { get; }
-        public string Name { get; }
-        public string SourcePath { get; }
-        public string DestinationPath { get; }
-        public SaveManager.Action SaveAction { get; }
-        public long TotalSize { get; init; }
-        public Dictionary<string, long> FilesWithSizes { get; }
-        public Progress.Progress Progress { get; }
-        protected readonly List<FileJob> Jobs;
-        protected readonly ConfigManager _configManager;
-
-        protected SaveActor(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, ConfigManager configManager)
-        {
-            Id = save.SaveId;
-            Name = save.SaveName;
-            SourcePath = save.SourcePath;
-            DestinationPath = save.DestinationPath;
-            SaveAction = saveAction;
-            Progress = progress;
-            _configManager = configManager;
-            Jobs = [];
-            FilesWithSizes = [];
-        }
+        public Guid Id { get; } = save.SaveId;
+        public string Name { get; } = save.SaveName;
+        public string SourcePath { get; } = save.SourcePath;
+        public string DestinationPath { get; } = save.DestinationPath;
+        public SaveManager.Action SaveAction { get; } = saveAction;
+        public long TotalSize { get; init; } = 0;
+        public Dictionary<string, long> FilesWithSizes { get; } = [];
+        public Progress.Progress Progress { get; } = progress;
+        protected readonly List<FileJob> Jobs = [];
 
         protected static bool IsFile(string path)
         {

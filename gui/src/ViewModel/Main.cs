@@ -1,32 +1,17 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
-using EasySave.GUI.ViewModels.Base;
-using EasySave.GUI.Views;
+using Config;
 using SaveManager;
-using StateManager;
-using EasyLog;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using EasySave.lang;
+using EasySave.GUI.Views;
 using EasySave.GUI.Helpers;
-using Saver;
-using System.IO;
-using System.Text.Json;
+using EasySave.GUI.ViewModels.Base;
+using BusinessSoftware;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Main : ViewModel
     {
-        private StateManager.StateManager _stateManager;
-        private Config _config;
-        private AppConfig.AppConfig _appConfig; // Gestionnaire du Logiciel Métier
-
         public ObservableCollection<SaveJob> SaveJobs { get; set; }
-
-        private readonly Dictionary<SaveJob, Saver.Saver> _activeSavers = new Dictionary<SaveJob, Saver.Saver>();
-
         private SaveJob? _selectedJob;
         public SaveJob? SelectedJob
         {
@@ -42,28 +27,14 @@ namespace EasySave.GUI.ViewModels
         public ICommand RunAllJobsCommand { get; }
 
         public ICommand PlayJobCommand { get; }
-        public ICommand PauseJobCommand { get; }
-        public ICommand StopJobCommand { get; }
 
         public Main()
         {
-            var logger = Logger.Get("./save.log");
-            _stateManager = StateManager.StateManager.Get("./state.json");
-            _appConfig = AppConfig.AppConfig.Get("./config.json");
-
-            _config = new Config
-            {
-                Logger = logger,
-                StateManager = _stateManager,
-                LogFormat = EasyLog.LogFormat.JSON, // Par défaut
-                AppConfig = _appConfig              // On attache la gestion du logiciel métier
-            };
-
-            // On met à jour "_config" dès le démarrage avec les préférences JSON
-            ApplySettingsFromOptions();
-
-            SaveJobs = new ObservableCollection<SaveJob>();
+            _selectedJob = null;
+            SaveJobs = [];
             LoadJobs();
+
+            var BSMonitor = BusinessSoftwareMonitor.Get();
 
             AddJobCommand = new RelayCommand(o => AddJob());
             EditJobCommand = new RelayCommand(EditJob, o => SelectedJob != null);
@@ -71,66 +42,13 @@ namespace EasySave.GUI.ViewModels
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
             RunSelectedJobCommand = new RelayCommand(o => RunJob(SelectedJob), o => SelectedJob != null);
             RunAllJobsCommand = new RelayCommand(o => RunAllJobs(), o => SaveJobs.Any());
-
             PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
-            PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
-            StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
         }
-        private void ApplySettingsFromOptions()
-        {
-            try
-            {
-                if (File.Exists("./gui_config.json"))
-                {
-                    string json = File.ReadAllText("./gui_config.json");
-                    var doc = JsonDocument.Parse(json);
-                    var root = doc.RootElement;
-
-                    if (root.TryGetProperty("LogFormat", out var formatProp))
-                    {
-                        string formatStr = formatProp.GetString() ?? "JSON";
-                        if (Enum.TryParse<EasyLog.LogFormat>(formatStr, true, out var logFormat))
-                        {
-                            _config = _config with { LogFormat = logFormat };
-                        }
-                    }
-
-                    if (root.TryGetProperty("BusinessSoftwareName", out var processProp))
-                    {
-                        string processName = processProp.GetString() ?? "";
-                        if (!string.IsNullOrWhiteSpace(processName))
-                        {
-                            foreach (var p in _appConfig.GetBusinessSoftware().ToList())
-                                _appConfig.RemoveBusinessSoftware(p);
-
-                            string fileName = Path.GetFileNameWithoutExtension(processName);
-                            _appConfig.AddBusinessSoftware(fileName);
-                        }
-                    }
-
-                    if (root.TryGetProperty("ExtensionsToEncrypt", out var extProp))
-                    {
-                        string extensions = extProp.GetString() ?? "";
-                        var extensionList = extensions.Split(',')
-                                                      .Select(e => e.Trim())
-                                                      .Where(e => !string.IsNullOrEmpty(e))
-                                                      .ToList();
-
-                        // TODO: ajouter ExtensionsToEncrypt dans SaveManager.Config,assigner ici avec "_config = _config with { EncryptionExtensions = extensionList };"
-                    }
-                }
-            }
-            catch (Exception) {}
-        }
-
         private void LoadJobs()
         {
             SaveJobs.Clear();
-            var saves = _stateManager.GetSaves();
-            foreach (var save in saves)
-            {
-                SaveJobs.Add(new SaveJob(save));
-            }
+            var saves = ConfigManager.Get().State.GetSaves();
+            foreach (var save in saves) SaveJobs.Add(new SaveJob(save));
         }
 
         private void AddJob()
@@ -147,131 +65,59 @@ namespace EasySave.GUI.ViewModels
                     SourcePath = editorVM.SourcePath,
                     DestinationPath = editorVM.TargetPath
                 };
-
                 SaveJobs.Add(new SaveJob(newSaveInfo));
             }
         }
 
-        private void EditJob(object parameter)
+        private void EditJob(object? parameter)
         {
-            var jobToEdit = parameter as SaveJob;
-            if (jobToEdit == null) return;
-
-            var editorVM = new SaveEditor(jobToEdit);
-            var window = new SaveEditorWindow { DataContext = editorVM };
-
-            if (window.ShowDialog() == true) { }
-        }
-
-        private void DeleteJob(object parameter)
-        {
-            var job = parameter as SaveJob;
-            if (job != null)
+            if (parameter is SaveJob job)
             {
-                SaveJobs.Remove(job);
+                var editorVM = new SaveEditor(job);
+                var window = new SaveEditorWindow { DataContext = editorVM };
+                if (window.ShowDialog() == true) { }
             }
         }
 
-        private void OpenOptions()
+        private void DeleteJob(object? parameter)
+        {
+            if (parameter is SaveJob job) SaveJobs.Remove(job);
+        }
+
+        private static void OpenOptions()
         {
             var optionsVM = new Options();
             var window = new OptionsWindow { DataContext = optionsVM };
             window.ShowDialog();
-
-            ApplySettingsFromOptions();
         }
 
-        private void PlayJob(object parameter)
+        private void PlayJob(object? parameter)
         {
-            if (parameter is SaveJob job)
-            {
-                if (job.State == TranslationSource.Instance["Break"])
-                {
-                    lock (_activeSavers)
-                    {
-                        if (_activeSavers.TryGetValue(job, out var saver))
-                        {
-                            saver.Resume();
-                            job.State = TranslationSource.Instance["Running"];
-                        }
-                    }
-                }
-                else
-                {
-                    RunJob(job);
-                }
-            }
+            if (parameter is SaveJob job) { RunJob(job); }
         }
 
-        private void PauseJob(object parameter)
-        {
-            if (parameter is SaveJob job)
-            {
-                lock (_activeSavers)
-                {
-                    if (_activeSavers.TryGetValue(job, out var saver))
-                    {
-                        saver.Pause();
-                        job.State = TranslationSource.Instance["Break"];
-                    }
-                }
-            }
-        }
-
-        private void StopJob(object parameter)
-        {
-            if (parameter is SaveJob job)
-            {
-                lock (_activeSavers)
-                {
-                    if (_activeSavers.TryGetValue(job, out var saver))
-                    {
-                        saver.Stop();
-                        job.State = TranslationSource.Instance["Stopped"];
-                    }
-                }
-            }
-        }
-
-        private async void RunJob(SaveJob? job)
+        private async static void RunJob(SaveJob? job)
         {
             if (job == null) return;
             if (job.State == TranslationSource.Instance["Running"]) return;
-
             job.State = TranslationSource.Instance["Running"];
 
             await Task.Run(() =>
             {
-                var progress = new Saver.Progress();
-
-                var saveType = job.Type == TranslationSource.Instance["Complete"] ? SaveType.Complete : SaveType.Differential;
-                var saver = new Saver.Saver(job.Model, saveType, progress, _config);
-
-                lock (_activeSavers)
+                Progress.Progress progress = new();
+                Command command = new()
                 {
-                    _activeSavers[job] = saver;
-                }
-
-                saver.Start();
-
-                lock (_activeSavers)
-                {
-                    _activeSavers.Remove(job);
-                }
-
-                if (job.State == TranslationSource.Instance["Running"])
-                {
-                    job.State = saver.IsStopped ? TranslationSource.Instance["Stopped"] : TranslationSource.Instance["Finish"];
-                }
+                    SaveAction = job.Type == TranslationSource.Instance["Complete"] ? SaveManager.Action.CompleteSave : SaveManager.Action.DifferentialSave,
+                    Saves = [job.Model],
+                };
+                var res = SaveManager.SaveManager.Execute(command, [progress]);
+                // FIXME: Check res
             });
         }
 
         private void RunAllJobs()
         {
-            foreach (var job in SaveJobs)
-            {
-                RunJob(job);
-            }
+            foreach (var job in SaveJobs) RunJob(job);
         }
     }
 }

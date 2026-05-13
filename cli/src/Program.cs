@@ -24,8 +24,7 @@ namespace EasySaveConsole
 
     class Program
     {
-        private const string _default_lang = "en-US";
-        private const string _version = "EasySave v1.1";
+        private const string _version = "EasySave v2.0";
         private const string _help = "Usage: EasySave.exe [OPTIONS] [ARGUMENTS]\n" +
             "\n" +
             "OPTIONS:\n" +
@@ -44,7 +43,7 @@ namespace EasySaveConsole
         public static void Main(string[] args)
         {
             var config = ConfigManager.Get();
-            Thread.CurrentThread.CurrentUICulture = new CultureInfo(_default_lang);
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(config.GetLanguageConfig());
 
             List<SaveManager.SaveInfo> saveInfos = config.State.GetSaves();
             Parser.ParsedCommand input_command = Parser.Parse(args); // FIXME: add config change
@@ -53,14 +52,14 @@ namespace EasySaveConsole
             {
                 while (true)
                 {
-                    ProgramCommand command = App.MainMenu(config, saveInfos);
+                    ProgramCommand command = App.MainMenu(saveInfos);
                     if (command.Action == ProgramAction.Exit) break;
                     switch (command.Action)
                     {
                         case ProgramAction.Help: Console.WriteLine(_help); break;
                         case ProgramAction.Version: Console.WriteLine(_version); break;
-                        case ProgramAction.CompleteSave: Execute(command.Command, config); break;
-                        case ProgramAction.DifferentialSave: Execute(command.Command, config); break;
+                        case ProgramAction.CompleteSave: Execute(command.Command); break;
+                        case ProgramAction.DifferentialSave: Execute(command.Command); break;
                     }
                 }
                 return;
@@ -89,13 +88,13 @@ namespace EasySaveConsole
             {
                 case ProgramAction.Help: Console.WriteLine(_help); break;
                 case ProgramAction.Version: Console.WriteLine(_version); break;
-                case ProgramAction.CompleteSave: Execute(argCommand.Command, config); break;
-                case ProgramAction.DifferentialSave: Execute(argCommand.Command, config); break;
+                case ProgramAction.CompleteSave: Execute(argCommand.Command); break;
+                case ProgramAction.DifferentialSave: Execute(argCommand.Command); break;
                 default: break;
             }
         }
 
-        static void Execute(SaveManager.Command command, ConfigManager config)
+        static void Execute(SaveManager.Command command)
         {
             try { Console.Clear(); } catch { }
             var progresses = new List<Progress.Progress>();
@@ -110,7 +109,7 @@ namespace EasySaveConsole
                 bar.Update(); // First render
             }
 
-            var res = SaveManager.SaveManager.Execute(command, [..progresses], config);
+            var res = SaveManager.SaveManager.Execute(command, [..progresses]);
 
             string end_message;
             if (res.IsOk) end_message = $"{Messages.SaveSuccess}";

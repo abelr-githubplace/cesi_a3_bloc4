@@ -19,4 +19,8 @@
     <ProjectReference Include="..\logger\EasyLog.csproj" />
   </ItemGroup>
 
+    <ItemGroup>
+	    <PackageReference Include="System.Management" Version="10.0.8" />
+    </ItemGroup>
+
 </Project>

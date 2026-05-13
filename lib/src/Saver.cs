@@ -2,6 +2,8 @@ using SaveManager;
 using Job;
 using Actor;
 using State;
+using BusinessSoftware;
+using Config;
 
 namespace Save
 {
@@ -9,10 +11,9 @@ namespace Save
 
     public class Saver : SaveActor
     {
-        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, Config.ConfigManager configManager)
-            : base(save, saveAction, progress, configManager)
+        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress)
+            : base(save, saveAction, progress)
         {
-
             long totalSize = 0;
             if (File.Exists(SourcePath) || Directory.Exists(SourcePath))
             {
@@ -36,7 +37,7 @@ namespace Save
             TotalSize = totalSize;
         }
 
-        private FileJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
+        private static FileJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
         {
             var default_priority = Priority.Low;
             return saveType == SaveType.Differential
@@ -44,13 +45,15 @@ namespace Save
                 : new CompleteSaveFileJob(sourceFile, destFile, fileSize, default_priority);
         }
 
-        public void Start(bool paused)
+        public void Start()
         {
             long copiedTotalBytes = 0;
             var endTime = DateTime.Now;
 
             for (int i = 0; i < Jobs.Count; i++)
             {
+                BusinessSoftwareMonitor.BusinessRunningEvent.Wait();
+
                 var job = Jobs[i];
 
                 var beginTime = DateTime.Now;
@@ -65,11 +68,11 @@ namespace Save
                 float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)copiedTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
                 Progress.SetProgress(percent);
 
-                _configManager.Logger.Log(
+                ConfigManager.Get().Logger.Log(
                     NewLogInfo(DateTime.Now, job.SourceFile, job.DestinationFile, job.FileSize, (endTime - beginTime).Milliseconds, cryptoTime)
-                        .Format(_configManager.GetLogFormatConfig())
+                        .Format(ConfigManager.Get().GetLogFormatConfig())
                 );
-                _configManager.State.Save(
+                ConfigManager.Get().State.Save(
                     NewStateInfo(
                         endTime,
                         Status.Active,
@@ -77,7 +80,7 @@ namespace Save
                     )
                 );
             }
-            _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+            ConfigManager.Get().State.Save(NewStateInfo(endTime, Status.Inactive, null));
         }
     }
 }

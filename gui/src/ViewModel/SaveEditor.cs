@@ -1,6 +1,7 @@
 ﻿using System.Windows.Input;
 using EasySave.GUI.ViewModels.Base;
 using Microsoft.Win32;
+using Sanitize;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -45,7 +46,7 @@ namespace EasySave.GUI.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                SourcePath = dialog.FileName;
+                SourcePath = PathSanitizer.Sanitize(dialog.FileName);
             }
         }
 
@@ -58,7 +59,7 @@ namespace EasySave.GUI.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                TargetPath = dialog.FolderName;
+                TargetPath = PathSanitizer.Sanitize(dialog.FolderName);
             }
         }
     }

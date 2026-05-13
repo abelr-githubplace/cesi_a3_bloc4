@@ -1,130 +1,75 @@
-﻿using EasySave.GUI.ViewModels.Base;
-using EasySave.GUI.Helpers;
-using System.Globalization;
-using System.Windows.Input;
+﻿using Config;
+using EasySave.GUI.ViewModels.Base;
 using Microsoft.Win32;
-using System.IO;
-using System.Text.Json;
-using System;
+using Sanitize;
+using System.Windows.Input;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Options : ViewModel
     {
-        private readonly string _configFilePath = "./gui_config.json";
-
-        private string _logFormat = "JSON";
-        public string LogFormat
-        {
-            get => _logFormat;
-            set { _logFormat = value; OnPropertyChanged(); SaveSettings(); }
-        }
-
-        private string _language = "FR";
-        public string language
-        {
-            get => _language;
-            set
-            {
-                _language = value;
-                OnPropertyChanged();
-
-                if (value == "FR")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
-                else if (value == "EN")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
-
-                SaveSettings();
-            }
-        }
-
-        private string _businessSoftwareName = string.Empty;
-        public string BusinessSoftwareName
-        {
-            get => _businessSoftwareName;
-            set { _businessSoftwareName = value; OnPropertyChanged(); SaveSettings(); }
-        }
-
-        private string _extensionsToEncrypt = string.Empty;
-        public string ExtensionsToEncrypt
-        {
-            get => _extensionsToEncrypt;
-            set { _extensionsToEncrypt = value; OnPropertyChanged(); SaveSettings(); }
-        }
-
-        public ICommand BrowseSoftwareCommand { get; }
+        public ICommand SetLanguage_ { get; }
+        public ICommand SetLogFormat_ { get; }
+        public ICommand SetLogOutput_ { get; }
+        public ICommand SetStateOutput_ { get; }
+        public ICommand BrowseBusinessSoftwares_ { get; }
+        public ICommand BrowseEncryptionExtensions_ { get; }
 
         public Options()
         {
-            BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
-            LoadSettings(); // Charge les paramètres au démarrage de la fenêtre
+            SetLanguage_ = new RelayCommand(SetLanguage);
+            SetLogFormat_ = new RelayCommand(SetLogFormat);
+            SetLogOutput_ = new RelayCommand(SetLogOutput);
+            SetStateOutput_ = new RelayCommand(SetStateOutput);
+            BrowseBusinessSoftwares_ = new RelayCommand(o => BrowseBusinessSoftwares());
+            BrowseEncryptionExtensions_ = new RelayCommand(BrowseEncryptionExtensions);
         }
 
-        private void BrowseSoftwareFile()
+        private static void SetLanguage(object? parameter)
         {
+            if (parameter is string lang) ConfigManager.Get().SetLanguage(lang);
+        }
+        
+        private static void SetLogFormat(object? parameter)
+        {
+            if (parameter is EasyLog.LogFormat format) ConfigManager.Get().SetLogFormat(format);
+        }
+
+        private static void SetLogOutput(object? parameter)
+        {
+            if (parameter is string output)
+            {
+                var path = PathSanitizer.Sanitize(output);
+                if (path == null) return;
+                ConfigManager.Get().ModifyLogOutput(path);
+            }
+        }
+
+        private static void SetStateOutput(object? parameter)
+        {
+            if (parameter is string output)
+            {
+                var path = PathSanitizer.Sanitize(output);
+                if (path == null) return;
+                ConfigManager.Get().ModifyStateOutput(path);
+            }
+        }
+
+        private static void BrowseBusinessSoftwares()
+        {
+            string[] softwares = [];
             var dialog = new OpenFileDialog
             {
                 Title = "Sélectionnez l'exécutable du logiciel métier",
                 Filter = "Logiciels (*.exe)|*.exe|Tous les fichiers (*.*)|*.*"
             };
-
-            if (dialog.ShowDialog() == true)
-            {
-                BusinessSoftwareName = dialog.FileName;
-            }
+            if (dialog.ShowDialog() == true) { softwares = [dialog.FileName]; }
+            ConfigManager.Get().AddBusinessSoftwares(softwares);
         }
-
-
-        private class OptionsData
+   
+        private static void BrowseEncryptionExtensions(object? parameter)
         {
-            public string Language { get; set; } = "FR";
-            public string LogFormat { get; set; } = "JSON";
-            public string BusinessSoftwareName { get; set; } = string.Empty;
-            public string ExtensionsToEncrypt { get; set; } = string.Empty;
-        }
-
-        private void SaveSettings()
-        {
-            try
-            {
-                var data = new OptionsData
-                {
-                    Language = this.language,
-                    LogFormat = this.LogFormat,
-                    BusinessSoftwareName = this.BusinessSoftwareName,
-                    ExtensionsToEncrypt = this.ExtensionsToEncrypt
-                };
-
-                string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_configFilePath, json);
-            }
-            catch (Exception) {}
-        }
-
-        private void LoadSettings()
-        {
-            try
-            {
-                if (File.Exists(_configFilePath))
-                {
-                    string json = File.ReadAllText(_configFilePath);
-                    var data = JsonSerializer.Deserialize<OptionsData>(json);
-
-                    if (data != null)
-                    {
-                        _logFormat = data.LogFormat ?? "JSON";
-                        _businessSoftwareName = data.BusinessSoftwareName ?? string.Empty;
-                        _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
-
-                        OnPropertyChanged(nameof(LogFormat));
-                        OnPropertyChanged(nameof(BusinessSoftwareName));
-                        OnPropertyChanged(nameof(ExtensionsToEncrypt));
-
-                        this.language = data.Language ?? "FR";
-                    }
-                }
-            }
-            catch (Exception) {}
+            if (parameter is IEnumerable<string> extensions) ConfigManager.Get().AddBusinessSoftwares(extensions);
         }
     }
 }
