@@ -325,7 +325,7 @@
     <value>Add</value>
   </data>
   <data name="Finish" xml:space="preserve">
-    <value>Finish</value>
+    <value>Finished</value>
   </data>
   <data name="OptionMenuLogOutput" xml:space="preserve">
     <value>Log file</value>

@@ -10,7 +10,10 @@ namespace EasySave.GUI.Helpers
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is string key && !string.IsNullOrEmpty(key))
-                return TranslationSource.Instance[key];
+            {
+                try { return TranslationSource.Instance[key]; }
+                catch { return key; }
+            }
             return value ?? string.Empty;
         }
 

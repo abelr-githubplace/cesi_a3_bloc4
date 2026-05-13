@@ -42,10 +42,13 @@ lib/tests/bin
 lib/tests/obj
 
 # Crypto
+CryptoSoft/bin
+CryptoSoft/obj
 crypto/bin
 crypto/obj
-crypto/tests/bin
-crypto/tests/obj
+
+# Runtime config / logs
+config.json
 
 # Logger
 logger/bin

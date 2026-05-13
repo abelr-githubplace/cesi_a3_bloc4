@@ -19,7 +19,7 @@ namespace EasySave.lang {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "18.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Messages {
@@ -39,7 +39,7 @@ namespace EasySave.lang {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasySave.CLI.Ressources.Messages", typeof(Messages).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("EasySave.GUI.Ressources.Messages", typeof(Messages).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -106,6 +106,15 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Business software detected.
+        /// </summary>
+        public static string BusinessSoftwareDetected {
+            get {
+                return ResourceManager.GetString("BusinessSoftwareDetected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Business software detected: complete backup save blocked..
         /// </summary>
         public static string BusinessSoftwareDetectedSaveBlocked {
@@ -167,7 +176,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Close", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Complete.
         /// </summary>
@@ -295,7 +304,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Finish.
+        ///   Looks up a localized string similar to Finished.
         /// </summary>
         public static string Finish {
             get {
@@ -329,7 +338,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("LargeFileThreshold", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Log Format :.
         /// </summary>
@@ -381,6 +390,15 @@ namespace EasySave.lang {
         public static string LogFormatXml {
             get {
                 return ResourceManager.GetString("LogFormatXml", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log mode :.
+        /// </summary>
+        public static string LogMode {
+            get {
+                return ResourceManager.GetString("LogMode", resourceCulture);
             }
         }
         
@@ -554,7 +572,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Pause", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Execute.
         /// </summary>
@@ -563,7 +581,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Play", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Press any key to exit....
         /// </summary>
@@ -581,7 +599,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("PriorityExtensions", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Progess.
         /// </summary>
@@ -601,6 +619,24 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Log server address :.
+        /// </summary>
+        public static string RemoteLogHost {
+            get {
+                return ResourceManager.GetString("RemoteLogHost", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Log server port :.
+        /// </summary>
+        public static string RemoteLogPort {
+            get {
+                return ResourceManager.GetString("RemoteLogPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Restore.
         /// </summary>
         public static string Restore {
@@ -608,7 +644,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Restore", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Return to previous menu.
         /// </summary>
@@ -806,7 +842,7 @@ namespace EasySave.lang {
                 return ResourceManager.GetString("Stop", resourceCulture);
             }
         }
-
+        
         /// <summary>
         ///   Looks up a localized string similar to Stopped.
         /// </summary>
@@ -840,33 +876,6 @@ namespace EasySave.lang {
         public static string Welcome {
             get {
                 return ResourceManager.GetString("Welcome", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Log mode :.
-        /// </summary>
-        public static string LogMode {
-            get {
-                return ResourceManager.GetString("LogMode", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Log server address :.
-        /// </summary>
-        public static string RemoteLogHost {
-            get {
-                return ResourceManager.GetString("RemoteLogHost", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Log server port :.
-        /// </summary>
-        public static string RemoteLogPort {
-            get {
-                return ResourceManager.GetString("RemoteLogPort", resourceCulture);
             }
         }
     }
