@@ -83,8 +83,8 @@
                     <Setter Property="Foreground" Value="{StaticResource Black}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource DarkerBlue}"/>
-                    <Setter Property="Foreground" Value="{StaticResource White}"/>
+                    <Setter Property="Background" Value="{StaticResource MainBlue}"/>
+                    <Setter Property="Foreground" Value="{StaticResource Black}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>

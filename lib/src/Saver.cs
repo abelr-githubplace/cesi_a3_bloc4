@@ -19,7 +19,7 @@ namespace Save
         // blocked in the paused state when a Stop arrives — it doesn't interrupt
         // an in-progress file copy.
         private readonly ManualResetEventSlim _gate = new ManualResetEventSlim(true);
-        private readonly CancellationTokenSource _cts = new CancellationTokenSource();
+        private readonly CancellationTokenSource _cts;
 
         public bool IsPaused => !_gate.IsSet;
         public bool IsStopped => _cts.IsCancellationRequested;
@@ -36,9 +36,10 @@ namespace Save
         // like _gate handles user-driven pause.
         private readonly ManualResetEventSlim _bsGate = new ManualResetEventSlim(true);
 
-        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, Config.ConfigManager configManager)
+        public Saver(SaveInfo save, SaveManager.Action saveAction, Progress.Progress progress, Config.ConfigManager configManager, CancellationTokenSource? cts = null)
             : base(save, saveAction, progress, configManager)
         {
+            _cts = cts ?? new CancellationTokenSource();
 
             long totalSize = 0;
             if (File.Exists(SourcePath) || Directory.Exists(SourcePath))

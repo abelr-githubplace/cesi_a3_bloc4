@@ -1,5 +1,6 @@
 ﻿using Actor;
 using Config;
+using CryptoSoftRunner;
 using Job;
 using SaveManager;
 using State;
@@ -12,22 +13,43 @@ namespace Restore
             : base(save, saveAction, progress, configManager)
         {
             long totalSize = 0;
-            if (File.Exists(DestinationPath) || Directory.Exists(DestinationPath))
-            {
-                foreach (string file in GetAllFilesFullName(DestinationPath).Where(f => !f.EndsWith(".diff", StringComparison.Ordinal)))
-                {
-                    // Populate File to FileSize hashmap
-                    long fileSize = new FileInfo(file).Length;
-                    FilesWithSizes[file] = fileSize;
 
-                    // Create save jobs
-                    string relativePath = File.Exists(DestinationPath) ? Path.GetFileName(file) : Path.GetRelativePath(DestinationPath, file);
-                    string sourceFile = Path.Combine(SourcePath, relativePath);
-                    FileJob job = CreateJob(sourceFile, file, fileSize);
-                    Jobs.Add(job);
-                    totalSize += fileSize;
-                }
+            // Determine which files in the backup belong to THIS save.
+            // Saver wrote: if source was a single FILE → backup is DestinationPath\filename
+            //              if source was a DIRECTORY  → backup is DestinationPath\relative\...
+            // We mirror that logic to enumerate only the relevant files.
+            IEnumerable<string> backupFiles;
+            bool sourceWasFile = !Directory.Exists(SourcePath);   // dir deleted or was a file
+
+            if (sourceWasFile)
+            {
+                // Single-file save: only the one file whose name matches the source filename.
+                string expected = Path.Combine(DestinationPath, Path.GetFileName(SourcePath));
+                backupFiles = File.Exists(expected) ? [expected] : [];
             }
+            else
+            {
+                backupFiles = Directory.Exists(DestinationPath)
+                    ? Directory.EnumerateFiles(DestinationPath, "*", SearchOption.AllDirectories)
+                    : [];
+            }
+
+            foreach (string file in backupFiles.Where(f => !f.EndsWith(".diff", StringComparison.Ordinal)))
+            {
+                long fileSize = new FileInfo(file).Length;
+                FilesWithSizes[file] = fileSize;
+
+                // Mirror Saver: single-file → restore to SourcePath directly;
+                // directory → restore to the relative path within SourcePath.
+                string sourceFile = sourceWasFile
+                    ? SourcePath
+                    : Path.Combine(SourcePath, Path.GetRelativePath(DestinationPath, file));
+
+                FileJob job = CreateJob(sourceFile, file, fileSize);
+                Jobs.Add(job);
+                totalSize += fileSize;
+            }
+
             TotalSize = totalSize;
         }
 
@@ -56,7 +78,7 @@ namespace Restore
                 long restored = job.Execute(CancellationToken.None, _ => { });
                 endTime = DateTime.Now;
 
-                var cryptoTime = 0; // TODO: add crypto
+                var cryptoTime = TryDecrypt(job.SourceFile);
 
                 if (restored != job.FileSize) /* Error : does nothing for now, should be handled later on */;
                 restoredTotalBytes += restored;
@@ -77,6 +99,14 @@ namespace Restore
                 );
             }
             _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+        }
+
+        private int TryDecrypt(string restoredFile)
+        {
+            var extensions = _configManager.GetEncryptionExtensions();
+            if (extensions.Count == 0) return 0;
+            if (!Crypter.ShouldEncrypt(restoredFile, extensions)) return 0;
+            return Crypter.DecryptFile(restoredFile, _configManager.GetEncryptionKey(), _configManager.GetCryptoSoftPath());
         }
     }
 }

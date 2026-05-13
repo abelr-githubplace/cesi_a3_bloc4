@@ -47,6 +47,8 @@ namespace EasySave.GUI.ViewModels
         }
 
         private readonly Dictionary<SaveJob, Save.Saver> _activeSavers = new Dictionary<SaveJob, Save.Saver>();
+        // Registered before Saver construction so Stop() works even during file enumeration.
+        private readonly Dictionary<SaveJob, CancellationTokenSource> _activeCts = new Dictionary<SaveJob, CancellationTokenSource>();
 
         private SaveJob? _selectedJob;
         public SaveJob? SelectedJob
@@ -65,6 +67,7 @@ namespace EasySave.GUI.ViewModels
         public ICommand PlayJobCommand { get; }
         public ICommand PauseJobCommand { get; }
         public ICommand StopJobCommand { get; }
+        public ICommand RestoreJobCommand { get; }
 
         public Main()
         {
@@ -95,6 +98,7 @@ namespace EasySave.GUI.ViewModels
             PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
             PauseJobCommand = new RelayCommand(PauseJob, o => o is SaveJob);
             StopJobCommand = new RelayCommand(StopJob, o => o is SaveJob);
+            RestoreJobCommand = new RelayCommand(RestoreJob, o => o is SaveJob);
         }
 
         private void ExecuteRunSelectedJobs(object parameter)
@@ -371,12 +375,27 @@ namespace EasySave.GUI.ViewModels
         {
             if (parameter is SaveJob job)
             {
-                lock (_activeSavers)
+                // Cancel the token immediately — works even if the Saver is
+                // still being constructed (enumerating source files). When
+                // Start() is eventually called on a cancelled token, every
+                // worker exits before touching the first file.
+                bool found = false;
+                lock (_activeCts)
                 {
-                    if (_activeSavers.TryGetValue(job, out var saver))
+                    if (_activeCts.TryGetValue(job, out var cts))
                     {
-                        saver.Stop();
-                        job.State = TranslationSource.Instance["Stopped"];
+                        cts.Cancel();
+                        found = true;
+                    }
+                }
+                if (found)
+                {
+                    job.State = TranslationSource.Instance["Stopped"];
+                    // Also wake gate/bsGate if Start() is already running.
+                    lock (_activeSavers)
+                    {
+                        if (_activeSavers.TryGetValue(job, out var saver))
+                            saver.Stop();
                     }
                 }
             }
@@ -390,6 +409,11 @@ namespace EasySave.GUI.ViewModels
             job.State = TranslationSource.Instance["Running"];
             job.Progress = 0f;
 
+            // Register the CTS BEFORE entering Task.Run so that a Stop() click
+            // during file enumeration (Saver constructor) is not silently dropped.
+            var cts = new CancellationTokenSource();
+            lock (_activeCts) { _activeCts[job] = cts; }
+
             await Task.Run(() =>
             {
                 var progress = new Progress.Progress();
@@ -398,7 +422,7 @@ namespace EasySave.GUI.ViewModels
                 var saveAction = job.Type == "Complete"
                     ? SaveManager.Action.CompleteSave
                     : SaveManager.Action.DifferentialSave;
-                var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig);
+                var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig, cts);
 
                 lock (_activeSavers)
                 {
@@ -419,6 +443,10 @@ namespace EasySave.GUI.ViewModels
                 {
                     _activeSavers.Remove(job);
                 }
+                lock (_activeCts)
+                {
+                    _activeCts.Remove(job);
+                }
 
                 if (saver.IsStopped)
                 {
@@ -438,6 +466,27 @@ namespace EasySave.GUI.ViewModels
             {
                 RunJob(job);
             }
+        }
+
+        private async void RestoreJob(object parameter)
+        {
+            if (parameter is not SaveJob job) return;
+            if (job.State == TranslationSource.Instance["Running"]) return;
+
+            job.State = TranslationSource.Instance["Running"];
+            job.Progress = 0f;
+
+            await Task.Run(() =>
+            {
+                var progress = new Progress.Progress();
+                var updater = new GuiProgressBar(job, progress);
+
+                var restorer = new Restore.Restorer(job.Model, SaveManager.Action.Restore, progress, _appConfig);
+                restorer.Start();
+
+                job.State = TranslationSource.Instance["Finish"];
+                job.Progress = 100f;
+            });
         }
     }
 }
