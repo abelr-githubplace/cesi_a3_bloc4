@@ -66,39 +66,60 @@ namespace Restore
             long restoredTotalBytes = 0;
             var endTime = DateTime.Now;
 
-            for (int i = 0; i < Jobs.Count; i++)
+            try
             {
-                var job = Jobs[i];
+                for (int i = 0; i < Jobs.Count; i++)
+                {
+                    var job = Jobs[i];
 
-                var beginTime = DateTime.Now;
-                // Restorer doesn't expose Stop yet, so no cancellation source
-                // to plug in. Wire it up the day Restorer gets Pause/Stop.
-                // No-op progress callback: Restorer aggregates via its own
-                // restoredTotalBytes counter below.
-                long restored = job.Execute(CancellationToken.None, _ => { });
-                endTime = DateTime.Now;
+                    try
+                    {
+                        var beginTime = DateTime.Now;
+                        // Restorer doesn't expose Stop yet, so no cancellation source
+                        // to plug in. Wire it up the day Restorer gets Pause/Stop.
+                        // No-op progress callback: Restorer aggregates via its own
+                        // restoredTotalBytes counter below.
+                        long restored = job.Execute(CancellationToken.None, _ => { });
+                        endTime = DateTime.Now;
 
-                var cryptoTime = TryDecrypt(job.SourceFile);
+                        var cryptoTime = TryDecrypt(job.SourceFile);
 
-                if (restored != job.FileSize) /* Error : does nothing for now, should be handled later on */;
-                restoredTotalBytes += restored;
+                        if (restored != job.FileSize)
+                        {
+                            /* Error : does nothing for now, should be handled later on */
+                        }
+                        restoredTotalBytes += restored;
 
-                float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)restoredTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
-                Progress.SetProgress(percent);
+                        float percent = TotalSize <= 0 ? 100f : Math.Clamp(((float)restoredTotalBytes / (float)TotalSize) * 100f, 0f, 100f);
+                        Progress.SetProgress(percent);
 
-                _configManager.Logger.Log(
-                    NewLogInfo(DateTime.Now, job.SourceFile, job.DestinationFile, job.FileSize, (endTime - beginTime).Milliseconds, cryptoTime)
-                        .Format(_configManager.GetLogFormatConfig())
-                );
-                _configManager.State.Save(
-                    NewStateInfo(
-                        endTime,
-                        Status.Active,
-                        NewActiveStateInfo(Jobs.Count - i, this.TotalSize - restoredTotalBytes, job.SourceFile, job.DestinationFile)
-                    )
-                );
+                        _configManager.Logger.Log(
+                            NewLogInfo(DateTime.Now, job.SourceFile, job.DestinationFile, job.FileSize, (endTime - beginTime).Milliseconds, cryptoTime)
+                                .Format(_configManager.GetLogFormatConfig())
+                        );
+                        _configManager.State.Save(
+                            NewStateInfo(
+                                endTime,
+                                Status.Active,
+                                NewActiveStateInfo(Jobs.Count - i, this.TotalSize - restoredTotalBytes, job.SourceFile, job.DestinationFile)
+                            )
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _configManager.Logger.Log($"[RESTORE ERROR - File] {job.SourceFile}: {ex.Message}");
+                        endTime = DateTime.Now;
+                    }
+                }
             }
-            _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+            catch (Exception ex)
+            {
+                _configManager.Logger.Log($"[RESTORE ERROR - General] {ex.Message}");
+            }
+            finally
+            {
+                _configManager.State.Save(NewStateInfo(endTime, Status.Inactive, null));
+            }
         }
 
         private int TryDecrypt(string restoredFile)

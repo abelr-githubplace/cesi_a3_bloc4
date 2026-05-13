@@ -381,6 +381,18 @@
   <data name="Close" xml:space="preserve">
     <value>Fermer</value>
   </data>
+  <data name="ApplyChanges" xml:space="preserve">
+    <value>Appliquer les changements</value>
+  </data>
+  <data name="ApplySuccess" xml:space="preserve">
+    <value>Changements appliqués</value>
+  </data>
+  <data name="RemoteLogEnabled" xml:space="preserve">
+    <value>Logs distants activés (Docker doit tourner)</value>
+  </data>
+  <data name="RemoteLogDisabled" xml:space="preserve">
+    <value>Logs distants désactivés</value>
+  </data>
   <data name="LogMode" xml:space="preserve">
     <value>Mode de log :</value>
   </data>

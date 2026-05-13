@@ -121,11 +121,66 @@ namespace EasySave.GUI.ViewModels
         {
             try
             {
-                if (File.Exists("./gui_config.json"))
+                string configPath = Path.Combine(AppContext.BaseDirectory, "gui_config.json");
+                if (File.Exists(configPath))
                 {
-                    string json = File.ReadAllText("./gui_config.json");
-                    var doc = JsonDocument.Parse(json);
+                    string json = File.ReadAllText(configPath);
+                    using var doc = JsonDocument.Parse(json);
                     var root = doc.RootElement;
+
+                    List<string> ReadStringList(string property, string? fallbackCsv = null)
+                    {
+                        if (root.TryGetProperty(property, out var prop))
+                        {
+                            if (prop.ValueKind == JsonValueKind.Array)
+                            {
+                                var list = new List<string>();
+                                foreach (var item in prop.EnumerateArray())
+                                {
+                                    var value = item.GetString();
+                                    if (!string.IsNullOrWhiteSpace(value)) list.Add(value);
+                                }
+                                return list;
+                            }
+                            if (prop.ValueKind == JsonValueKind.String)
+                            {
+                                return ParseCsv(prop.GetString());
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(fallbackCsv)
+                            && root.TryGetProperty(fallbackCsv, out var fallback)
+                            && fallback.ValueKind == JsonValueKind.String)
+                        {
+                            return ParseCsv(fallback.GetString());
+                        }
+
+                        return new List<string>();
+                    }
+
+                    static List<string> ParseCsv(string? raw)
+                    {
+                        if (string.IsNullOrWhiteSpace(raw)) return new List<string>();
+                        return raw.Split(',')
+                                  .Select(e => e.Trim())
+                                  .Where(e => !string.IsNullOrEmpty(e))
+                                  .ToList();
+                    }
+
+                    static string NormalizePath(string raw)
+                    {
+                        if (Path.IsPathRooted(raw)) return raw;
+                        return Path.Combine(AppContext.BaseDirectory, raw);
+                    }
+
+                    static string? ReadString(JsonElement root, string property)
+                    {
+                        if (root.TryGetProperty(property, out var prop) && prop.ValueKind == JsonValueKind.String)
+                        {
+                            return prop.GetString();
+                        }
+                        return null;
+                    }
 
                     if (root.TryGetProperty("LogFormat", out var formatProp))
                     {
@@ -136,18 +191,35 @@ namespace EasySave.GUI.ViewModels
                         }
                     }
 
+                    if (root.TryGetProperty("LogOutput", out _))
+                    {
+                        var logOutput = ReadString(root, "LogOutput");
+                        if (!string.IsNullOrWhiteSpace(logOutput))
+                        {
+                            _appConfig.ModifyLogOutput(NormalizePath(logOutput));
+                        }
+                    }
+
+                    if (root.TryGetProperty("StateOutput", out _))
+                    {
+                        var stateOutput = ReadString(root, "StateOutput");
+                        if (!string.IsNullOrWhiteSpace(stateOutput))
+                        {
+                            _appConfig.ModifyStateOutput(NormalizePath(stateOutput));
+                        }
+                    }
+
                     // The Options window writes BusinessSoftwares as a JSON array
                     // of full paths. ConfigManager wants bare process names (no
                     // ".exe", no directory), since Process.GetProcessesByName
                     // matches on that. We wipe the existing list each pass so a
                     // remove in Options propagates without leaving stale entries.
-                    if (root.TryGetProperty("BusinessSoftwares", out var swArray)
-                        && swArray.ValueKind == JsonValueKind.Array)
+                    if (root.TryGetProperty("BusinessSoftwares", out _))
                     {
+                        var softwarePaths = ReadStringList("BusinessSoftwares");
                         var names = new List<string>();
-                        foreach (var item in swArray.EnumerateArray())
+                        foreach (var path in softwarePaths)
                         {
-                            var path = item.GetString();
                             if (string.IsNullOrWhiteSpace(path)) continue;
                             names.Add(Path.GetFileNameWithoutExtension(path));
                         }
@@ -156,29 +228,20 @@ namespace EasySave.GUI.ViewModels
                         if (names.Count > 0) _appConfig.AddBusinessSoftwares(names);
                     }
 
-                    if (root.TryGetProperty("ExtensionsToEncrypt", out var extProp))
+                    if (root.TryGetProperty("EncryptionExtensions", out _) || root.TryGetProperty("ExtensionsToEncrypt", out _))
                     {
-                        string extensions = extProp.GetString() ?? "";
-                        var extensionList = extensions.Split(',')
-                                                      .Select(e => e.Trim())
-                                                      .Where(e => !string.IsNullOrEmpty(e))
-                                                      .ToList();
-
+                        var encryptionExtensions = ReadStringList("EncryptionExtensions", "ExtensionsToEncrypt");
                         _appConfig.RemoveEncryptionExtensions(_appConfig.GetEncryptionExtensions().ToList());
-                        if (extensionList.Count > 0) _appConfig.AddEncryptionExtensions(extensionList);
+                        if (encryptionExtensions.Count > 0) _appConfig.AddEncryptionExtensions(encryptionExtensions);
                     }
 
                     // Same flow as ExtensionsToEncrypt: parse a CSV string,
                     // normalize, replace the persisted list.
-                    if (root.TryGetProperty("PriorityExtensions", out var prioProp))
+                    if (root.TryGetProperty("PriorityExtensions", out _))
                     {
-                        string raw = prioProp.GetString() ?? "";
-                        var list = raw.Split(',')
-                                      .Select(e => e.Trim())
-                                      .Where(e => !string.IsNullOrEmpty(e))
-                                      .ToList();
+                        var priorityExtensions = ReadStringList("PriorityExtensions");
                         _appConfig.RemovePriorityExtensions(_appConfig.GetPriorityExtensions().ToList());
-                        if (list.Count > 0) _appConfig.AddPriorityExtensions(list);
+                        if (priorityExtensions.Count > 0) _appConfig.AddPriorityExtensions(priorityExtensions);
                     }
 
                     // LargeFileLimit comes in as a plain string from the GUI
@@ -207,8 +270,15 @@ namespace EasySave.GUI.ViewModels
                                 host = hostProp.GetString() ?? "localhost";
                             if (root.TryGetProperty("RemoteLogPort", out var portProp))
                             {
-                                string rawPort = portProp.GetString() ?? "9000";
-                                if (int.TryParse(rawPort, out int p) && p > 0) port = p;
+                                if (portProp.ValueKind == JsonValueKind.Number && portProp.TryGetInt32(out int pNum))
+                                {
+                                    if (pNum > 0) port = pNum;
+                                }
+                                else if (portProp.ValueKind == JsonValueKind.String)
+                                {
+                                    string rawPort = portProp.GetString() ?? "9000";
+                                    if (int.TryParse(rawPort, out int p) && p > 0) port = p;
+                                }
                             }
                             _appConfig.SetLogMode(logMode);
                             _appConfig.SetRemoteLogEndpoint(host, port);
@@ -324,8 +394,16 @@ namespace EasySave.GUI.ViewModels
         private void OpenOptions()
         {
             var optionsVM = new Options();
+            optionsVM.Applied += ApplySettingsFromOptions;
             var window = new OptionsWindow { DataContext = optionsVM };
-            window.ShowDialog();
+            try
+            {
+                window.ShowDialog();
+            }
+            finally
+            {
+                optionsVM.Applied -= ApplySettingsFromOptions;
+            }
 
             ApplySettingsFromOptions();
         }
@@ -365,6 +443,11 @@ namespace EasySave.GUI.ViewModels
                     if (_activeSavers.TryGetValue(job, out var saver))
                     {
                         saver.Pause();
+                        job.State = TranslationSource.Instance["Break"];
+                    }
+                    else
+                    {
+                        // Job not running, try to update state anyway
                         job.State = TranslationSource.Instance["Break"];
                     }
                 }
@@ -478,14 +561,23 @@ namespace EasySave.GUI.ViewModels
 
             await Task.Run(() =>
             {
-                var progress = new Progress.Progress();
-                var updater = new GuiProgressBar(job, progress);
+                try
+                {
+                    var progress = new Progress.Progress();
+                    var updater = new GuiProgressBar(job, progress);
 
-                var restorer = new Restore.Restorer(job.Model, SaveManager.Action.Restore, progress, _appConfig);
-                restorer.Start();
+                    var restorer = new Restore.Restorer(job.Model, SaveManager.Action.Restore, progress, _appConfig);
+                    restorer.Start();
 
-                job.State = TranslationSource.Instance["Finish"];
-                job.Progress = 100f;
+                    job.State = TranslationSource.Instance["Finish"];
+                    job.Progress = 100f;
+                }
+                catch (Exception ex)
+                {
+                    job.State = TranslationSource.Instance["Error"] ?? "Error";
+                    job.Progress = 0f;
+                    _appConfig.Logger.Log($"[RESTORE ERROR] {job.Name}: {ex.Message}");
+                }
             });
         }
     }

@@ -8,18 +8,53 @@ using System.Text.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Options : ViewModel
     {
-        private readonly string _configFilePath = "./gui_config.json";
+        private readonly string _configFilePath = Path.Combine(AppContext.BaseDirectory, "gui_config.json");
+
+        private bool _isDirty;
+        private bool _isLoading;
+        private DispatcherTimer? _applyToastTimer;
+
+        public event Action? Applied;
+
+        public bool IsDirty
+        {
+            get => _isDirty;
+            private set { _isDirty = value; OnPropertyChanged(); }
+        }
+
+        private string _applyToastText = string.Empty;
+        public string ApplyToastText
+        {
+            get => _applyToastText;
+            private set { _applyToastText = value; OnPropertyChanged(); }
+        }
+
+        private Visibility _applyToastVisibility = Visibility.Collapsed;
+        public Visibility ApplyToastVisibility
+        {
+            get => _applyToastVisibility;
+            private set { _applyToastVisibility = value; OnPropertyChanged(); }
+        }
 
         private string _logFormat = "JSON";
         public string LogFormat
         {
             get => _logFormat;
-            set { _logFormat = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_logFormat == value) return;
+                _logFormat = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
         }
 
         private string _language = "EN";
@@ -28,15 +63,38 @@ namespace EasySave.GUI.ViewModels
             get => _language;
             set
             {
+                if (_language == value) return;
                 _language = value;
                 OnPropertyChanged();
 
-                if (value == "FR")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
-                else if (value == "EN")
-                    TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
+                ApplyLanguage(value);
+                MarkDirty();
+            }
+        }
 
-                SaveSettings();
+        private string _logOutput = Path.Combine(AppContext.BaseDirectory, "save.log");
+        public string LogOutput
+        {
+            get => _logOutput;
+            set
+            {
+                if (_logOutput == value) return;
+                _logOutput = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        private string _stateOutput = Path.Combine(AppContext.BaseDirectory, "state.json");
+        public string StateOutput
+        {
+            get => _stateOutput;
+            set
+            {
+                if (_stateOutput == value) return;
+                _stateOutput = value;
+                OnPropertyChanged();
+                MarkDirty();
             }
         }
 
@@ -45,29 +103,63 @@ namespace EasySave.GUI.ViewModels
         public ObservableCollection<string> BusinessSoftwares
         {
             get => _businessSoftwares;
-            set { _businessSoftwares = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                _businessSoftwares = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
         }
 
-        private string _extensionsToEncrypt = string.Empty;
-        public string ExtensionsToEncrypt
+        private ObservableCollection<string> _encryptionExtensions = new ObservableCollection<string>();
+        public ObservableCollection<string> EncryptionExtensions
         {
-            get => _extensionsToEncrypt;
-            set { _extensionsToEncrypt = value; OnPropertyChanged(); SaveSettings(); }
+            get => _encryptionExtensions;
+            set
+            {
+                _encryptionExtensions = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
         }
 
-        // Ajout des propriétés manquantes du XAML
-        private string _priorityExtensions = string.Empty;
-        public string PriorityExtensions
+        private ObservableCollection<string> _priorityExtensions = new ObservableCollection<string>();
+        public ObservableCollection<string> PriorityExtensions
         {
             get => _priorityExtensions;
-            set { _priorityExtensions = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                _priorityExtensions = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        private string _newEncryptionExtension = string.Empty;
+        public string NewEncryptionExtension
+        {
+            get => _newEncryptionExtension;
+            set { _newEncryptionExtension = value; OnPropertyChanged(); }
+        }
+
+        private string _newPriorityExtension = string.Empty;
+        public string NewPriorityExtension
+        {
+            get => _newPriorityExtension;
+            set { _newPriorityExtension = value; OnPropertyChanged(); }
         }
 
         private string _largeFileLimit = string.Empty;
         public string LargeFileLimit
         {
             get => _largeFileLimit;
-            set { _largeFileLimit = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_largeFileLimit == value) return;
+                _largeFileLimit = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
         }
 
         // Remote log settings
@@ -75,30 +167,78 @@ namespace EasySave.GUI.ViewModels
         public string LogMode
         {
             get => _logMode;
-            set { _logMode = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_logMode == value) return;
+                _logMode = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(IsRemoteLoggingEnabled));
+                OnPropertyChanged(nameof(RemoteLogHint));
+                MarkDirty();
+            }
         }
 
         private string _remoteLogHost = "localhost";
         public string RemoteLogHost
         {
             get => _remoteLogHost;
-            set { _remoteLogHost = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_remoteLogHost == value) return;
+                _remoteLogHost = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
         }
 
         private string _remoteLogPort = "9000";
         public string RemoteLogPort
         {
             get => _remoteLogPort;
-            set { _remoteLogPort = value; OnPropertyChanged(); SaveSettings(); }
+            set
+            {
+                if (_remoteLogPort == value) return;
+                _remoteLogPort = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
+        public bool IsRemoteLoggingEnabled =>
+            string.Equals(_logMode, "Remote", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(_logMode, "Both", StringComparison.OrdinalIgnoreCase);
+
+        public string RemoteLogHint
+        {
+            get
+            {
+                if (IsRemoteLoggingEnabled)
+                    return TranslationSource.Instance["RemoteLogEnabled"] ?? "Remote logging enabled";
+                return TranslationSource.Instance["RemoteLogDisabled"] ?? "Remote logging is OFF";
+            }
         }
 
         public ICommand BrowseSoftwareCommand { get; }
-        public ICommand RemoveSoftwareCommand { get; } // Nouvelle commande
+        public ICommand RemoveSoftwareCommand { get; }
+        public ICommand BrowseLogOutputCommand { get; }
+        public ICommand BrowseStateOutputCommand { get; }
+        public ICommand AddEncryptionExtensionCommand { get; }
+        public ICommand RemoveEncryptionExtensionCommand { get; }
+        public ICommand AddPriorityExtensionCommand { get; }
+        public ICommand RemovePriorityExtensionCommand { get; }
+        public ICommand ApplyCommand { get; }
 
         public Options()
         {
             BrowseSoftwareCommand = new RelayCommand(o => BrowseSoftwareFile());
-            RemoveSoftwareCommand = new RelayCommand(RemoveSoftware); // Initialisation de la commande
+            RemoveSoftwareCommand = new RelayCommand(RemoveSoftware);
+            BrowseLogOutputCommand = new RelayCommand(o => BrowseLogOutput());
+            BrowseStateOutputCommand = new RelayCommand(o => BrowseStateOutput());
+            AddEncryptionExtensionCommand = new RelayCommand(o => AddEncryptionExtension());
+            RemoveEncryptionExtensionCommand = new RelayCommand(RemoveEncryptionExtension);
+            AddPriorityExtensionCommand = new RelayCommand(o => AddPriorityExtension());
+            RemovePriorityExtensionCommand = new RelayCommand(RemovePriorityExtension);
+            ApplyCommand = new RelayCommand(o => ApplyChanges());
             LoadSettings();
         }
 
@@ -116,7 +256,7 @@ namespace EasySave.GUI.ViewModels
                 if (!BusinessSoftwares.Contains(dialog.FileName))
                 {
                     BusinessSoftwares.Add(dialog.FileName);
-                    SaveSettings(); // Force la sauvegarde car l'ajout ne déclenche pas le 'set'
+                    MarkDirty();
                 }
             }
         }
@@ -126,8 +266,137 @@ namespace EasySave.GUI.ViewModels
             if (parameter is string softwareToRemove && BusinessSoftwares.Contains(softwareToRemove))
             {
                 BusinessSoftwares.Remove(softwareToRemove);
-                SaveSettings(); // Force la sauvegarde
+                MarkDirty();
             }
+        }
+
+        private void BrowseLogOutput()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "Select log output file",
+                Filter = "Log files (*.log)|*.log|All files (*.*)|*.*",
+                FileName = Path.GetFileName(LogOutput)
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                LogOutput = dialog.FileName;
+            }
+        }
+
+        private void BrowseStateOutput()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "Select state output file",
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                FileName = Path.GetFileName(StateOutput)
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                StateOutput = dialog.FileName;
+            }
+        }
+
+        private void AddEncryptionExtension()
+        {
+            var normalized = NormalizeExtension(NewEncryptionExtension);
+            if (normalized == null) return;
+            if (!_encryptionExtensions.Any(e => string.Equals(e, normalized, StringComparison.OrdinalIgnoreCase)))
+            {
+                _encryptionExtensions.Add(normalized);
+                OnPropertyChanged(nameof(EncryptionExtensions));
+                MarkDirty();
+            }
+            NewEncryptionExtension = string.Empty;
+        }
+
+        private void RemoveEncryptionExtension(object parameter)
+        {
+            if (parameter is string ext && _encryptionExtensions.Contains(ext))
+            {
+                _encryptionExtensions.Remove(ext);
+                OnPropertyChanged(nameof(EncryptionExtensions));
+                MarkDirty();
+            }
+        }
+
+        private void AddPriorityExtension()
+        {
+            var normalized = NormalizeExtension(NewPriorityExtension);
+            if (normalized == null) return;
+            if (!_priorityExtensions.Any(e => string.Equals(e, normalized, StringComparison.OrdinalIgnoreCase)))
+            {
+                _priorityExtensions.Add(normalized);
+                OnPropertyChanged(nameof(PriorityExtensions));
+                MarkDirty();
+            }
+            NewPriorityExtension = string.Empty;
+        }
+
+        private void RemovePriorityExtension(object parameter)
+        {
+            if (parameter is string ext && _priorityExtensions.Contains(ext))
+            {
+                _priorityExtensions.Remove(ext);
+                OnPropertyChanged(nameof(PriorityExtensions));
+                MarkDirty();
+            }
+        }
+
+        private void ApplyChanges()
+        {
+            if (!IsDirty) return;
+            SaveSettings();
+            IsDirty = false;
+            Applied?.Invoke();
+            ShowApplyToast();
+        }
+
+        private void ShowApplyToast()
+        {
+            string message = TranslationSource.Instance["ApplySuccess"] ?? "Changes applied";
+            ApplyToastText = message;
+            ApplyToastVisibility = Visibility.Visible;
+
+            _applyToastTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _applyToastTimer.Stop();
+            _applyToastTimer.Tick -= ApplyToastTimerTick;
+            _applyToastTimer.Tick += ApplyToastTimerTick;
+            _applyToastTimer.Start();
+        }
+
+        private void ApplyToastTimerTick(object? sender, EventArgs e)
+        {
+            _applyToastTimer?.Stop();
+            ApplyToastText = string.Empty;
+            ApplyToastVisibility = Visibility.Collapsed;
+        }
+
+        private void MarkDirty()
+        {
+            if (_isLoading) return;
+            if (!IsDirty) IsDirty = true;
+        }
+
+        private static string? NormalizeExtension(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var trimmed = raw.Trim().ToLowerInvariant();
+            if (!trimmed.StartsWith('.')) trimmed = "." + trimmed;
+            if (trimmed.Length <= 1) return null;
+            return trimmed;
+        }
+
+        private void ApplyLanguage(string value)
+        {
+            if (value == "FR")
+                TranslationSource.Instance.CurrentCulture = new CultureInfo("fr-FR");
+            else if (value == "EN")
+                TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
+            OnPropertyChanged(nameof(RemoteLogHint));
         }
 
         private class OptionsData
@@ -135,12 +404,14 @@ namespace EasySave.GUI.ViewModels
             public string Language { get; set; } = "FR";
             public string LogFormat { get; set; } = "JSON";
             public List<string> BusinessSoftwares { get; set; } = new List<string>();
-            public string ExtensionsToEncrypt { get; set; } = string.Empty;
-            public string PriorityExtensions { get; set; } = string.Empty;
+            public List<string> EncryptionExtensions { get; set; } = new List<string>();
+            public List<string> PriorityExtensions { get; set; } = new List<string>();
             public string LargeFileLimit { get; set; } = string.Empty;
             public string LogMode { get; set; } = "Local";
             public string RemoteLogHost { get; set; } = "localhost";
             public string RemoteLogPort { get; set; } = "9000";
+            public string LogOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "save.log");
+            public string StateOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "state.json");
         }
 
         private void SaveSettings()
@@ -152,12 +423,14 @@ namespace EasySave.GUI.ViewModels
                     Language = this.language,
                     LogFormat = this.LogFormat,
                     BusinessSoftwares = new List<string>(this.BusinessSoftwares),
-                    ExtensionsToEncrypt = this.ExtensionsToEncrypt,
-                    PriorityExtensions = this.PriorityExtensions,
+                    EncryptionExtensions = new List<string>(this.EncryptionExtensions),
+                    PriorityExtensions = new List<string>(this.PriorityExtensions),
                     LargeFileLimit = this.LargeFileLimit,
                     LogMode = this.LogMode,
                     RemoteLogHost = this.RemoteLogHost,
-                    RemoteLogPort = this.RemoteLogPort
+                    RemoteLogPort = this.RemoteLogPort,
+                    LogOutput = this.LogOutput,
+                    StateOutput = this.StateOutput
                 };
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -170,45 +443,108 @@ namespace EasySave.GUI.ViewModels
         {
             try
             {
+                _isLoading = true;
                 if (File.Exists(_configFilePath))
                 {
                     string json = File.ReadAllText(_configFilePath);
-                    var data = JsonSerializer.Deserialize<OptionsData>(json);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
 
-                    if (data != null)
-                    {
-                        _logFormat = data.LogFormat ?? "JSON";
-                        _extensionsToEncrypt = data.ExtensionsToEncrypt ?? string.Empty;
-                        _priorityExtensions = data.PriorityExtensions ?? string.Empty;
-                        _largeFileLimit = data.LargeFileLimit ?? string.Empty;
-                        _logMode = data.LogMode ?? "Local";
-                        _remoteLogHost = data.RemoteLogHost ?? "localhost";
-                        _remoteLogPort = data.RemoteLogPort ?? "9000";
+                    _logFormat = ReadString(root, "LogFormat", "JSON");
+                    _language = ReadString(root, "Language", "FR");
+                    _largeFileLimit = ReadString(root, "LargeFileLimit", string.Empty);
+                    _logMode = ReadString(root, "LogMode", "Local");
+                    _remoteLogHost = ReadString(root, "RemoteLogHost", "localhost");
+                    _remoteLogPort = ReadString(root, "RemoteLogPort", "9000");
+                    _logOutput = ReadString(root, "LogOutput", _logOutput);
+                    _stateOutput = ReadString(root, "StateOutput", _stateOutput);
 
-                        // Chargement de la liste
-                        if (data.BusinessSoftwares != null)
-                        {
-                            _businessSoftwares = new ObservableCollection<string>(data.BusinessSoftwares);
-                        }
-                        else
-                        {
-                            _businessSoftwares = new ObservableCollection<string>();
-                        }
+                    _businessSoftwares = new ObservableCollection<string>(ReadStringList(root, "BusinessSoftwares"));
+                    _encryptionExtensions = new ObservableCollection<string>(NormalizeExtensions(ReadStringList(root, "EncryptionExtensions", "ExtensionsToEncrypt")));
+                    _priorityExtensions = new ObservableCollection<string>(NormalizeExtensions(ReadStringList(root, "PriorityExtensions")));
 
-                        OnPropertyChanged(nameof(LogFormat));
-                        OnPropertyChanged(nameof(ExtensionsToEncrypt));
-                        OnPropertyChanged(nameof(PriorityExtensions));
-                        OnPropertyChanged(nameof(LargeFileLimit));
-                        OnPropertyChanged(nameof(LogMode));
-                        OnPropertyChanged(nameof(RemoteLogHost));
-                        OnPropertyChanged(nameof(RemoteLogPort));
-                        OnPropertyChanged(nameof(BusinessSoftwares)); // Important pour rafraîchir l'UI
+                    ApplyLanguage(_language);
 
-                        this.language = data.Language ?? "FR";
-                    }
+                    OnPropertyChanged(nameof(LogFormat));
+                    OnPropertyChanged(nameof(language));
+                    OnPropertyChanged(nameof(LargeFileLimit));
+                    OnPropertyChanged(nameof(LogMode));
+                    OnPropertyChanged(nameof(RemoteLogHost));
+                    OnPropertyChanged(nameof(RemoteLogPort));
+                    OnPropertyChanged(nameof(IsRemoteLoggingEnabled));
+                    OnPropertyChanged(nameof(RemoteLogHint));
+                    OnPropertyChanged(nameof(LogOutput));
+                    OnPropertyChanged(nameof(StateOutput));
+                    OnPropertyChanged(nameof(BusinessSoftwares));
+                    OnPropertyChanged(nameof(EncryptionExtensions));
+                    OnPropertyChanged(nameof(PriorityExtensions));
+                    IsDirty = false;
                 }
             }
             catch (Exception) { }
+            finally { _isLoading = false; }
+        }
+
+        private static string ReadString(JsonElement root, string property, string fallback)
+        {
+            if (root.TryGetProperty(property, out var prop) && prop.ValueKind == JsonValueKind.String)
+            {
+                var value = prop.GetString();
+                if (!string.IsNullOrWhiteSpace(value)) return value;
+            }
+            return fallback;
+        }
+
+        private static List<string> ReadStringList(JsonElement root, string property, string? fallbackCsvProperty = null)
+        {
+            if (root.TryGetProperty(property, out var prop))
+            {
+                if (prop.ValueKind == JsonValueKind.Array)
+                {
+                    var list = new List<string>();
+                    foreach (var item in prop.EnumerateArray())
+                    {
+                        var value = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(value)) list.Add(value);
+                    }
+                    return list;
+                }
+                if (prop.ValueKind == JsonValueKind.String)
+                {
+                    return ParseCsv(prop.GetString());
+                }
+            }
+
+            if (!string.IsNullOrEmpty(fallbackCsvProperty)
+                && root.TryGetProperty(fallbackCsvProperty, out var fallback)
+                && fallback.ValueKind == JsonValueKind.String)
+            {
+                return ParseCsv(fallback.GetString());
+            }
+
+            return new List<string>();
+        }
+
+        private static List<string> ParseCsv(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return new List<string>();
+            return raw.Split(',')
+                      .Select(e => e.Trim())
+                      .Where(e => !string.IsNullOrEmpty(e))
+                      .ToList();
+        }
+
+        private static List<string> NormalizeExtensions(IEnumerable<string> items)
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var list = new List<string>();
+            foreach (var item in items)
+            {
+                var normalized = NormalizeExtension(item);
+                if (normalized == null) continue;
+                if (set.Add(normalized)) list.Add(normalized);
+            }
+            return list;
         }
     }
 }

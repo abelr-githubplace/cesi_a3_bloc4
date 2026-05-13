@@ -49,7 +49,18 @@ namespace CryptoSoftRunner
                 string baseDir = AppContext.BaseDirectory;
                 string candidate = Path.Combine(baseDir, "CryptoSoft.exe");
                 if (File.Exists(candidate)) resolved = candidate;
-                else return -3;
+                else
+                {
+                    // Try alternate location: same folder as executable but with different name
+                    var exeDir = Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "");
+                    if (!string.IsNullOrEmpty(exeDir))
+                    {
+                        candidate = Path.Combine(exeDir, "CryptoSoft.exe");
+                        if (File.Exists(candidate)) resolved = candidate;
+                        else return -3;
+                    }
+                    else return -3;
+                }
             }
 
             try
@@ -70,8 +81,9 @@ namespace CryptoSoftRunner
                 proc.WaitForExit();
                 return proc.ExitCode;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Crypto error: {ex.Message}");
                 return -97;
             }
         }

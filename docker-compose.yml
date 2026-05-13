@@ -10,7 +10,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - server-logs:/app/logs
+      - ./server/logs:/app/logs
     restart: unless-stopped
 
   # ── Unit tests ──────────────────────────────────────────────────────────────
@@ -25,5 +25,4 @@ services:
     profiles:
       - test
 
-volumes:
-  server-logs:
+volumes: {}
