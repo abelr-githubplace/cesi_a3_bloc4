@@ -26,7 +26,7 @@
   <!-- Publish CryptoSoft as a single-file self-contained exe, then copy it
        next to the GUI so AppContext.BaseDirectory + "CryptoSoft.exe" resolves.
        The publish step bundles the runtime into one file with no extra DLLs. -->
-  <Target Name="CopyCryptoSoft" AfterTargets="Build">
+  <Target Name="CopyCryptoSoft" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
     <MSBuild Projects="..\CryptoSoft\CryptoSoft.csproj"
              Targets="Publish"
              Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;PublishTrimmed=true" />

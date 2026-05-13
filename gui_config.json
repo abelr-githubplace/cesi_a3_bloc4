@@ -1,10 +1,11 @@
 {
-  "Language": "EN",
+  "Language": "FR",
   "LogFormat": "JSON",
-  "BusinessSoftwares": [
-    "C:\\Program Files\\Electronic Arts\\EA Desktop\\EA Desktop\\EALauncher.exe"
-  ],
+  "BusinessSoftwares": [],
   "ExtensionsToEncrypt": "",
   "PriorityExtensions": "",
-  "LargeFileLimit": ""
+  "LargeFileLimit": "",
+  "LogMode": "Local",
+  "RemoteLogHost": "localhost",
+  "RemoteLogPort": "9000"
 }

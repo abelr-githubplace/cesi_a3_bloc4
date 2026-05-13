@@ -80,6 +80,8 @@ namespace EasySaveServer
                 using var w = new StreamWriter(path, append: true, System.Text.Encoding.UTF8);
                 w.WriteLine(line);
             }
+
+            try { Console.WriteLine(line); } catch { }
         }
     }
 
