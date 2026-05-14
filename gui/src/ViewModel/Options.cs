@@ -240,6 +240,19 @@ namespace EasySave.GUI.ViewModels
             }
         }
 
+        private string _cryptoSoftPath = string.Empty;
+        public string CryptoSoftPath
+        {
+            get => _cryptoSoftPath;
+            set
+            {
+                if (_cryptoSoftPath == value) return;
+                _cryptoSoftPath = value;
+                OnPropertyChanged();
+                MarkDirty();
+            }
+        }
+
         public bool IsRemoteLoggingEnabled =>
             string.Equals(_logMode, "Remote", StringComparison.OrdinalIgnoreCase)
             || string.Equals(_logMode, "Both", StringComparison.OrdinalIgnoreCase);
@@ -260,6 +273,7 @@ namespace EasySave.GUI.ViewModels
         public ICommand BrowseStateOutputCommand { get; }
         public ICommand OpenLogFolderCommand { get; }
         public ICommand OpenStateFolderCommand { get; }
+        public ICommand BrowseCryptoSoftCommand { get; }
         public ICommand AddEncryptionExtensionCommand { get; }
         public ICommand RemoveEncryptionExtensionCommand { get; }
         public ICommand AddPriorityExtensionCommand { get; }
@@ -274,6 +288,7 @@ namespace EasySave.GUI.ViewModels
             BrowseStateOutputCommand = new RelayCommand(o => BrowseStateOutput());
             OpenLogFolderCommand = new RelayCommand(o => OpenFolderForFile(LogOutput));
             OpenStateFolderCommand = new RelayCommand(o => OpenFolderForFile(StateOutput));
+            BrowseCryptoSoftCommand = new RelayCommand(o => BrowseCryptoSoft());
             AddEncryptionExtensionCommand = new RelayCommand(o => AddEncryptionExtension());
             RemoveEncryptionExtensionCommand = new RelayCommand(RemoveEncryptionExtension);
             AddPriorityExtensionCommand = new RelayCommand(o => AddPriorityExtension());
@@ -337,6 +352,21 @@ namespace EasySave.GUI.ViewModels
             if (dialog.ShowDialog() == true)
             {
                 StateOutput = dialog.FileName;
+            }
+        }
+
+        private void BrowseCryptoSoft()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select CryptoSoft.exe",
+                Filter = "Executables (*.exe)|*.exe|All files (*.*)|*.*",
+                FileName = Path.GetFileName(CryptoSoftPath)
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                CryptoSoftPath = dialog.FileName;
             }
         }
 
@@ -481,6 +511,7 @@ namespace EasySave.GUI.ViewModels
             public string RemoteLogPort { get; set; } = "9000";
             public string LogOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "save.log");
             public string StateOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "state.json");
+            public string CryptoSoftPath { get; set; } = string.Empty;
         }
 
         private void SaveSettings()
@@ -501,7 +532,8 @@ namespace EasySave.GUI.ViewModels
                     RemoteLogHost = this.RemoteLogHost,
                     RemoteLogPort = this.RemoteLogPort,
                     LogOutput = this.LogOutput,
-                    StateOutput = this.StateOutput
+                    StateOutput = this.StateOutput,
+                    CryptoSoftPath = this.CryptoSoftPath
                 };
 
                 string json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -530,6 +562,7 @@ namespace EasySave.GUI.ViewModels
                         _largeFileThresholdMB = kbFallback > 0 ? Math.Max(0, kbFallback / 1024) : 0;
                     }
                     _maxWorkersPerJob = Math.Clamp(ReadInt(root, "MaxWorkersPerJob", 4), 1, 8);
+                    _cryptoSoftPath = ReadString(root, "CryptoSoftPath", string.Empty);
                     _logMode = ReadString(root, "LogMode", "Local");
                     _remoteLogHost = ReadString(root, "RemoteLogHost", "localhost");
                     _remoteLogPort = ReadString(root, "RemoteLogPort", "9000");
@@ -546,6 +579,7 @@ namespace EasySave.GUI.ViewModels
                     OnPropertyChanged(nameof(language));
                     OnPropertyChanged(nameof(LargeFileThresholdMB));
                     OnPropertyChanged(nameof(MaxWorkersPerJob));
+                    OnPropertyChanged(nameof(CryptoSoftPath));
                     OnPropertyChanged(nameof(LogMode));
                     OnPropertyChanged(nameof(RemoteLogHost));
                     OnPropertyChanged(nameof(RemoteLogPort));

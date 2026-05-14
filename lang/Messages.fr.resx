@@ -414,4 +414,7 @@
   <data name="RemoteLogPort" xml:space="preserve">
     <value>Port du serveur de logs :</value>
   </data>
+  <data name="CryptoSoftPath" xml:space="preserve">
+    <value>Chemin CryptoSoft</value>
+  </data>
 </root>

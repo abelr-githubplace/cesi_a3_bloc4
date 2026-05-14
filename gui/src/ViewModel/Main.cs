@@ -287,6 +287,15 @@ namespace EasySave.GUI.ViewModels
                         }
                     }
 
+                    if (root.TryGetProperty("CryptoSoftPath", out _))
+                    {
+                        var cryptoPath = ReadString(root, "CryptoSoftPath");
+                        if (!string.IsNullOrWhiteSpace(cryptoPath))
+                        {
+                            _appConfig.SetCryptoSoftPath(NormalizePath(cryptoPath));
+                        }
+                    }
+
                     // Centralized log settings. LogMode must be one of the
                     // enum values; ignore unrecognised strings so a typo in
                     // gui_config.json doesn't crash the app.

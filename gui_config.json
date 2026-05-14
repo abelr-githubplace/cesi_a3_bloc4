@@ -5,7 +5,12 @@
   "ExtensionsToEncrypt": "",
   "PriorityExtensions": "",
   "LargeFileLimit": "",
+  "LargeFileThresholdMB": 512,
+  "MaxWorkersPerJob": 4,
   "LogMode": "Local",
   "RemoteLogHost": "localhost",
-  "RemoteLogPort": "9000"
+  "RemoteLogPort": "9000",
+  "LogOutput": "",
+  "StateOutput": "",
+  "CryptoSoftPath": ""
 }
