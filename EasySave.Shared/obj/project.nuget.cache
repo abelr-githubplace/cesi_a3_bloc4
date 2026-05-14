@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "tEaZwDFFHHg=",
+  "success": true,
+  "projectFilePath": "/mnt/c/Users/ba733/source/repos/cesi_a3_bloc4/EasySave.Shared/EasySave.Shared.csproj",
+  "expectedPackageFiles": [
+    "/home/alexis/.nuget/packages/microsoft.netcore.app.ref/8.0.26/microsoft.netcore.app.ref.8.0.26.nupkg.sha512",
+    "/home/alexis/.nuget/packages/microsoft.aspnetcore.app.ref/8.0.26/microsoft.aspnetcore.app.ref.8.0.26.nupkg.sha512"
+  ],
+  "logs": []
+}

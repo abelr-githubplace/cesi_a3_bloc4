@@ -1,0 +1,28 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "EasySave.Shared/1.0.0": {
+        "runtime": {
+          "EasySave.Shared.dll": {}
+        },
+        "resources": {
+          "fr/EasySave.Shared.resources.dll": {
+            "locale": "fr"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "EasySave.Shared/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
