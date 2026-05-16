@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EasySave.Shared\EasySave.Shared.csproj" />
     <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
     <ProjectReference Include="..\logger\EasyLog.csproj" />
     <!-- Build CryptoSoft before the GUI but don't link against it: it's an
@@ -27,33 +28,11 @@
        next to the GUI so AppContext.BaseDirectory + "CryptoSoft.exe" resolves.
        The publish step bundles the runtime into one file with no extra DLLs. -->
   <Target Name="CopyCryptoSoft" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
-    <MSBuild Projects="..\CryptoSoft\CryptoSoft.csproj"
-             Targets="Publish"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;PublishTrimmed=true" />
+    <MSBuild Projects="..\CryptoSoft\CryptoSoft.csproj" Targets="Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=true;PublishTrimmed=true" />
     <ItemGroup>
       <_CryptoSoftPublished Include="..\CryptoSoft\bin\$(Configuration)\net8.0\win-x64\publish\CryptoSoft.exe" />
     </ItemGroup>
     <Copy SourceFiles="@(_CryptoSoftPublished)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('@(_CryptoSoftPublished)')" />
   </Target>
-
-  <ItemGroup>
-    <Compile Include="..\lang\Messages.Designer.cs" Link="Ressources\Messages.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Messages.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="..\lang\Messages.fr.resx" Link="Ressources\Messages.fr.resx">
-      <LogicalName>EasySave.GUI.Ressources.Messages.fr.resources</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\lang\Messages.resx" Link="Ressources\Messages.resx">
-      <CustomToolNamespace>EasySave.lang</CustomToolNamespace>
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
-      <LogicalName>EasySave.GUI.Ressources.Messages.resources</LogicalName>
-    </EmbeddedResource>
-  </ItemGroup>
 
 </Project>

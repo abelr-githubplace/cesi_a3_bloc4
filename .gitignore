@@ -55,3 +55,11 @@ logger/bin
 logger/obj
 logger/tests/bin
 logger/tests/obj
+
+
+#lang
+EasySave.Shared/bin/
+EasySave.Shared/obj/
+
+#server logs
+server/logs/

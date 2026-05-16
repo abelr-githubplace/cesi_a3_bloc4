@@ -1,8 +1,0 @@
-Menu Option à changer :
-extension à encrypter : faire en sorte que séparer par "," et que le logiciel puisse les reconnaitre
-logiciel metier à voir liste à creer avec chemin de fichier à ajouter
-
-
-
-boutou pause à implementer "main.cs"
-bouton annuler à implementer "main.cs"
