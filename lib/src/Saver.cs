@@ -7,7 +7,7 @@ using Config;
 
 namespace Save
 {
-    internal enum SaveType { Complete, Differential }
+    internal enum SaveType { Raw, Complete, Differential }
 
     public class Saver : SaveActor
     {

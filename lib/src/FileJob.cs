@@ -12,9 +12,18 @@ namespace Job
         public long FileSize { get; protected set; } = fileSize;
         public Priority Priority { get; protected set; } = priority;
 
+        protected static (bool, byte[], byte[]) IsIdentical(string from, string to)
+        {
+            byte[] srcBytes = File.ReadAllBytes(from);
+            byte[] dstBytes = File.ReadAllBytes(to);
+            string srcHash = XDelta.XDelta.ComputeSha256(srcBytes);
+            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes);
+            return (srcHash == dstHash, srcBytes, dstBytes);
+        }
+
         protected static long Copy(string from, string to)
         {
-            if (!File.Exists(from)) return 0; // FIXME: Remove "to" instead
+            if (!File.Exists(from)) return 0;
             
             string? toDir = Path.GetDirectoryName(to);
             if (string.IsNullOrEmpty(toDir)) return 0;
@@ -27,10 +36,21 @@ namespace Job
         public abstract long Execute();
     }
 
-    public class CompleteSaveFileJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
+    public class RawSaveFileJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
         : FileJob(sourceFile, destinationFile, fileSize, priority)
     {
         public override long Execute() => Copy(SourceFile, DestinationFile);
+    }
+
+    public class CompleteSaveFileJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
+        : FileJob(sourceFile, destinationFile, fileSize, priority)
+    {
+        public override long Execute()
+        {
+            (bool identical, _, _) = IsIdentical(SourceFile, DestinationFile);
+            if (identical) return FileSize;
+            return Copy(SourceFile, DestinationFile);
+        }
     }
 
     public class DifferentialSaveFileJob(string sourceFile, string destinationFile, string diffFile, long fileSize, Priority priority)
@@ -38,15 +58,10 @@ namespace Job
     {
         public override long Execute()
         {
-            if (!File.Exists(SourceFile)) return Copy(SourceFile, DestinationFile); // Remove destination
+            if (!File.Exists(SourceFile)) return Copy(SourceFile, DestinationFile);
             if (!File.Exists(DestinationFile)) return Copy(SourceFile, DestinationFile);
-
-            byte[] srcBytes = File.ReadAllBytes(SourceFile);
-            byte[] dstBytes = File.ReadAllBytes(DestinationFile);
-            string srcHash = XDelta.XDelta.ComputeSha256(srcBytes);
-            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes); // FIXME: should be stored instead
-
-            if (srcHash == dstHash) return FileSize;
+            (bool identical, byte[] srcBytes, byte[] dstBytes) = IsIdentical(SourceFile, DestinationFile);
+            if (identical) return FileSize;
 
             byte[] diffBytes = XDelta.XDelta.Encode(srcBytes, dstBytes);
             File.WriteAllBytes(diffFile, diffBytes);
@@ -57,7 +72,12 @@ namespace Job
     public class CompleteRestoreFileJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
         : FileJob(sourceFile, destinationFile, fileSize, priority)
     {
-        public override long Execute() => Copy(DestinationFile, SourceFile);
+        public override long Execute()
+        {
+            (bool identical, _, _) = IsIdentical(SourceFile, DestinationFile);
+            if (identical) return FileSize;
+            return Copy(DestinationFile, SourceFile);
+        }
     }
 
     public class DifferentialRestoreFileJob(string sourceFile, string destinationFile, string diffFile, long fileSize, Priority priority)
@@ -65,18 +85,13 @@ namespace Job
     {
         public override long Execute()
         {
-            if (!File.Exists(DestinationFile)) return Copy(DestinationFile, SourceFile); // Remove source
+            if (!File.Exists(DestinationFile)) return Copy(DestinationFile, SourceFile);
             if (!File.Exists(SourceFile)) return Copy(DestinationFile, SourceFile);
-
-            byte[] srcBytes = File.ReadAllBytes(SourceFile);
-            byte[] dstBytes = File.ReadAllBytes(DestinationFile); 
-            string srcHash = XDelta.XDelta.ComputeSha256(srcBytes);
-            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes); // FIXME: should be stored instead
-
-            if (srcHash == dstHash) return FileSize;
+            (bool identical, _, byte[] dstBytes) = IsIdentical(SourceFile, DestinationFile);
+            if (identical) return FileSize;
 
             byte[] diffBytes = File.ReadAllBytes(diffFile);
-            srcBytes = XDelta.XDelta.Decode(dstBytes, diffBytes);
+            byte[] srcBytes = XDelta.XDelta.Decode(dstBytes, diffBytes);
             File.WriteAllBytes(SourceFile, srcBytes);
             return FileSize;
         }

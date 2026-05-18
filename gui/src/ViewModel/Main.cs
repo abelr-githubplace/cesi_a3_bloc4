@@ -5,7 +5,6 @@ using SaveManager;
 using EasySave.GUI.Views;
 using EasySave.GUI.Helpers;
 using EasySave.GUI.ViewModels.Base;
-using BusinessSoftware;
 
 namespace EasySave.GUI.ViewModels
 {
@@ -33,8 +32,6 @@ namespace EasySave.GUI.ViewModels
             _selectedJob = null;
             SaveJobs = [];
             LoadJobs();
-
-            var BSMonitor = BusinessSoftwareMonitor.Get();
 
             AddJobCommand = new RelayCommand(o => AddJob());
             EditJobCommand = new RelayCommand(EditJob, o => SelectedJob != null);
@@ -111,7 +108,7 @@ namespace EasySave.GUI.ViewModels
                     Saves = [job.Model],
                 };
                 var res = SaveManager.SaveManager.Execute(command, [progress]);
-                // FIXME: Check res
+                if (res.IsErr) job.State = res.UnwrapErr().First();
             });
         }
 

@@ -5,7 +5,7 @@ using Config;
 
 namespace SaveManager
 {
-	public enum Action { CompleteSave, DifferentialSave, Delete, Restore }
+	public enum Action { RawSave, CompleteSave, DifferentialSave, Delete, Restore }
 
 	public record Command
 	{
@@ -27,7 +27,7 @@ namespace SaveManager
 		{
 			return command.SaveAction switch
 			{
-				Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses),
+				Action.RawSave or Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses),
 				Action.Restore => Restore(command.Saves, command.SaveAction, progresses),
                 Action.Delete => Delete(command.Saves),
                 _ => new Err<Empty, IEnumerable<string>>(["Unsupported command, failed to execute"])
@@ -39,7 +39,11 @@ namespace SaveManager
             if (saves.Length != progresses.Length) return new Err<Empty, IEnumerable<string>>(["Number of progress instances do not match the number of saves"]);
 			List<Saver> savers = [];
 			for (int i = 0; i < saves.Length; i++) savers.Add(new Saver(saves[i], saveAction, progresses[i]));
-			foreach (var saver in savers) saver.Start();
+			foreach (var saver in savers)
+			{
+				if (BusinessSoftware.BusinessSoftwareMonitor.IsAnyRunning()) return new Err<Empty, IEnumerable<string>>(["Business software has been detected"]);
+				saver.Start();
+			}
 			return Empty.EmptyOk<IEnumerable<string>>();
 		}
 
