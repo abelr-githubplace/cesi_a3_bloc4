@@ -5,13 +5,15 @@ using SaveManager;
 using EasySave.GUI.Views;
 using EasySave.GUI.Helpers;
 using EasySave.GUI.ViewModels.Base;
+using System.ComponentModel;
 
 namespace EasySave.GUI.ViewModels
 {
     public class Main : ViewModel
     {
-        public ObservableCollection<SaveJob> SaveJobs { get; set; }
-        private SaveJob? _selectedJob;
+        public ObservableCollection<SaveJob> SaveJobs { get; set; } = [];
+
+        private SaveJob? _selectedJob = null;
         public SaveJob? SelectedJob
         {
             get => _selectedJob;
@@ -29,23 +31,20 @@ namespace EasySave.GUI.ViewModels
 
         public Main()
         {
-            _selectedJob = null;
-            SaveJobs = [];
-            LoadJobs();
-
             AddJobCommand = new RelayCommand(o => AddJob());
             EditJobCommand = new RelayCommand(EditJob, o => SelectedJob != null);
             DeleteJobCommand = new RelayCommand(DeleteJob, o => SelectedJob != null);
             OpenOptionsCommand = new RelayCommand(o => OpenOptions());
             RunSelectedJobCommand = new RelayCommand(o => RunJob(SelectedJob), o => SelectedJob != null);
             RunAllJobsCommand = new RelayCommand(o => RunAllJobs(), o => SaveJobs.Any());
-            PlayJobCommand = new RelayCommand(PlayJob, o => o is SaveJob);
+            PlayJobCommand = new RelayCommand(PlayJob, o => SelectedJob != null);
         }
-        private void LoadJobs()
+
+        private static ObservableCollection<SaveJob> LoadJobs()
         {
-            SaveJobs.Clear();
-            var saves = ConfigManager.Get().State.GetSaves();
-            foreach (var save in saves) SaveJobs.Add(new SaveJob(save));
+            ObservableCollection<SaveJob> jobs = [];
+            foreach (var save in ConfigManager.Get().State.GetSaves()) jobs.Add(new SaveJob(save));
+            return jobs;
         }
 
         private void AddJob()
@@ -58,9 +57,9 @@ namespace EasySave.GUI.ViewModels
                 var newSaveInfo = new SaveInfo
                 {
                     SaveId = Guid.NewGuid(),
-                    SaveName = editorVM.Name,
-                    SourcePath = editorVM.SourcePath,
-                    DestinationPath = editorVM.TargetPath
+                    SaveName = editorVM.Name!,
+                    SourcePath = editorVM.SourcePath!,
+                    DestinationPath = editorVM.TargetPath!,
                 };
                 SaveJobs.Add(new SaveJob(newSaveInfo));
             }

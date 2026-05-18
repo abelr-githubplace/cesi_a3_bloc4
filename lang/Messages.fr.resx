@@ -357,4 +357,7 @@
   <data name="ExtensionsToEncryptAskRemove" xml:space="preserve">
     <value>Extension à retirer (ex. exe, txt, ...):</value>
   </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
 </root>

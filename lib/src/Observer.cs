@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Observer
+﻿namespace Observer
 {
     public interface IPublisher
     {

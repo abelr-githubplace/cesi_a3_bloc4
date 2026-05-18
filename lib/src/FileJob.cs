@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using XDelta;
-
 namespace Job
 {
     public enum Priority { High, Low }

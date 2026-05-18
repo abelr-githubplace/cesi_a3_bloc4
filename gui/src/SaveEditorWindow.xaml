@@ -36,6 +36,7 @@
         <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" SelectedValue="{Binding Type}" SelectedValuePath="Content" Margin="0,0,0,10">
             <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Complete]}"/>
             <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Differential]}"/>
+            <ComboBoxItem Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delta]}"/>
         </ComboBox>
 
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
