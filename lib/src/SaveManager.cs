@@ -5,7 +5,7 @@ using Config;
 
 namespace SaveManager
 {
-	public enum Action { RawSave, CompleteSave, DifferentialSave, Delete, Restore }
+	public enum Action { CompleteSave, DifferentialSave, DeltaSave, Delete, Restore }
 
 	public record Command
 	{
@@ -27,7 +27,7 @@ namespace SaveManager
 		{
 			return command.SaveAction switch
 			{
-				Action.RawSave or Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses),
+				Action.CompleteSave or Action.DifferentialSave or Action.DeltaSave => Save(command.Saves, command.SaveAction, progresses),
 				Action.Restore => Restore(command.Saves, command.SaveAction, progresses),
                 Action.Delete => Delete(command.Saves),
                 _ => new Err<Empty, IEnumerable<string>>(["Unsupported command, failed to execute"])

@@ -295,7 +295,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Finish.
+        ///   Looks up a localized string similar to Finished.
         /// </summary>
         public static string Finish {
             get {
@@ -430,7 +430,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ➕ New Job.
+        ///   Looks up a localized string similar to New Job.
         /// </summary>
         public static string NewJob {
             get {
@@ -529,7 +529,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ⚙️ Settings.
+        ///   Looks up a localized string similar to Settings.
         /// </summary>
         public static string Options {
             get {
@@ -565,6 +565,15 @@ namespace EasySave.lang {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Ready.
+        /// </summary>
+        public static string Ready {
+            get {
+                return ResourceManager.GetString("Ready", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Return to previous menu.
         /// </summary>
         public static string ReturnToPreviousMenu {
@@ -574,7 +583,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ▶▶  Run All.
+        ///   Looks up a localized string similar to Run All.
         /// </summary>
         public static string RunAll {
             get {
@@ -592,7 +601,7 @@ namespace EasySave.lang {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to ▶  Run Selected.
+        ///   Looks up a localized string similar to Run Selected.
         /// </summary>
         public static string RunSelected {
             get {

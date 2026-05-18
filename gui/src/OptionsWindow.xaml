@@ -5,50 +5,121 @@
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         Title="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OptionMenuTitle]}" 
         Height="280" Width="450"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" WindowState="Maximized">
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Language -->
             <RowDefinition Height="Auto"/>
+            <!-- Log Format -->
             <RowDefinition Height="Auto"/>
+            <!-- Business Softwares Label -->
             <RowDefinition Height="Auto"/>
+            <!-- Business Softwares ListBox + Button -->
             <RowDefinition Height="*"/>
+            <!-- Extensions To Encrypt -->
             <RowDefinition Height="Auto"/>
+            <!-- Close Button -->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="150"/>
+            <!-- Labels -->
             <ColumnDefinition Width="*"/>
+            <!-- Content -->
         </Grid.ColumnDefinitions>
 
+        <!-- Language -->
         <Label Grid.Row="0" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ChooseLanguage]}"/>
-        <ComboBox Grid.Row="0" Grid.Column="1" SelectedValue="{Binding language}" SelectedValuePath="Content" Margin="0,0,0,10">
+        <ComboBox Grid.Row="0" Grid.Column="1"
+          SelectedValue="{Binding Language, Mode=TwoWay}"
+          SelectedValuePath="Content"
+          Margin="0,0,0,10">
             <ComboBoxItem Content="FR"/>
             <ComboBoxItem Content="EN"/>
         </ComboBox>
 
+        <!-- Log Format -->
         <Label Grid.Row="1" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LogFormat]}"/>
-        <ComboBox Grid.Row="1" Grid.Column="1" SelectedValue="{Binding LogFormat}" SelectedValuePath="Content" Margin="0,0,0,10">
+        <ComboBox Grid.Row="1" Grid.Column="1"
+          SelectedValue="{Binding LogFormat, Mode=TwoWay}"
+          SelectedValuePath="Content"
+          Margin="0,0,0,10">
             <ComboBoxItem Content="JSON"/>
             <ComboBoxItem Content="XML"/>
-            <ComboBoxItem Content="TXT"/>
+            <ComboBoxItem Content="Text"/>
         </ComboBox>
 
-        <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[BuisinessSoftware]}"/>
-        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="35"/>
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Text="{Binding BusinessSoftwareName, UpdateSourceTrigger=PropertyChanged}" 
-                     ToolTip="Ex: C:\Windows\System32\calc.exe" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <Button Grid.Column="1" Content="..." Command="{Binding BrowseSoftwareCommand}" Padding="0,-2,0,0"/>
+        <!-- Business Softwares -->
+        <Label Grid.Row="2" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[BusinessSoftwares]}" VerticalAlignment="Top" Margin="0,10,10,0"/>
+        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,15" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="120"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ListBox Grid.Row="0" ItemsSource="{Binding BusinessSoftwares}" SelectedItem="{Binding SelectedBusinessSoftware}"
+                 BorderBrush="black" BorderThickness="1" Background="white">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding}"/>
+                            <Button Grid.Column="1"
+                                Command="{Binding DataContext.RemoveSoftwareCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Background="red" Width="25" Height="25" Padding="5" Margin="5,0,0,0"
+                                ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delete]}">
+                                <Path Data="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"
+                                      Fill="black" Width="10" Height="10" Stretch="Uniform" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Button Grid.Row="1" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[AddSave]}"
+                Command="{Binding BrowseSoftwareCommand}" HorizontalAlignment="Right" Margin="0,5,0,0" Padding="15,5"/>
         </Grid>
 
-        <Label Grid.Row="3" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ExtensionsToEncrypt]}"/>
-        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ExtensionsToEncrypt}" 
-                 ToolTip="Ex: .txt, .pdf, .docx" Margin="0,0,0,10" VerticalAlignment="Center"/>
+        <!-- Extensions To Encrypt -->
+        <Label Grid.Row="4" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[ExtensionsToEncrypt]}" VerticalAlignment="Top" Margin="0,0,10,0"/>
+        <Grid Grid.Row="4" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="120"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ListBox Grid.Row="0" ItemsSource="{Binding EncryptionExtensions}"
+                 BorderBrush="black" BorderThickness="1" Background="white">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1"
+                                Command="{Binding DataContext.RemoveEncryptionExtensionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Background="red" Width="25" Height="25" Padding="5" Margin="5,0,0,0"
+                                ToolTip="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[Delete]}">
+                                <Path Data="M183.1 137.4C170.6 124.9 150.3 124.9 137.8 137.4C125.3 149.9 125.3 170.2 137.8 182.7L275.2 320L137.9 457.4C125.4 469.9 125.4 490.2 137.9 502.7C150.4 515.2 170.7 515.2 183.2 502.7L320.5 365.3L457.9 502.6C470.4 515.1 490.7 515.1 503.2 502.6C515.7 490.1 515.7 469.8 503.2 457.3L365.8 320L503.1 182.6C515.6 170.1 515.6 149.8 503.1 137.3C490.6 124.8 470.3 124.8 457.8 137.3L320.5 274.7L183.1 137.4z"
+                                          Fill="black" Width="10" Height="10" Stretch="Uniform" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,5,0,0">
+                <TextBox Width="160" Text="{Binding NewEncryptionExtension}" ToolTip="Ex: .txt" Margin="0,0,10,0"/>
+                <Button Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[AddSave]}"
+                    Command="{Binding AddEncryptionExtensionCommand}" Padding="15,5"/>
+            </StackPanel>
+        </Grid>
 
+        <!-- Close Button -->
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Fermer" Click="Close_Click" Width="75"/>
         </StackPanel>

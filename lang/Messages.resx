@@ -250,10 +250,10 @@
     <value>Business software detected: complete backup save blocked.</value>
   </data>
   <data name="NewJob" xml:space="preserve">
-    <value>➕ New Job</value>
+    <value>New Job</value>
   </data>
   <data name="Options" xml:space="preserve">
-    <value>⚙️ Settings</value>
+    <value>Settings</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Name</value>
@@ -280,10 +280,10 @@
     <value>Delete</value>
   </data>
   <data name="RunSelected" xml:space="preserve">
-    <value>▶  Run Selected</value>
+    <value>Run Selected</value>
   </data>
   <data name="RunAll" xml:space="preserve">
-    <value>▶▶  Run All</value>
+    <value>Run All</value>
   </data>
   <data name="ChooseLanguage" xml:space="preserve">
     <value>Choose App Language :</value>
@@ -321,9 +321,6 @@
   <data name="AddSave" xml:space="preserve">
     <value>Add</value>
   </data>
-  <data name="Finish" xml:space="preserve">
-    <value>Finish</value>
-  </data>
   <data name="OptionMenuLogOutput" xml:space="preserve">
     <value>Log file</value>
   </data>
@@ -359,5 +356,11 @@
   </data>
   <data name="Delta" xml:space="preserve">
     <value>Delta</value>
+  </data>
+  <data name="Finish" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Ready</value>
   </data>
 </root>

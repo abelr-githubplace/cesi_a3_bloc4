@@ -7,7 +7,7 @@ using Config;
 
 namespace Save
 {
-    internal enum SaveType { Raw, Complete, Differential }
+    internal enum SaveType { Complete, Differential, Delta }
 
     public class Saver : SaveActor
     {
@@ -27,7 +27,12 @@ namespace Save
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
                     FileJob? job = CreateJob(
-                        file, destFile, fileSize, saveAction == SaveManager.Action.DifferentialSave ? SaveType.Differential : SaveType.Complete
+                        file, destFile, fileSize, saveAction switch
+                        {
+                            SaveManager.Action.DeltaSave => SaveType.Delta,
+                            SaveManager.Action.DifferentialSave => SaveType.Differential,
+                            _ => SaveType.Complete,
+                        }
                     );
                     if (job is not null) Jobs.Add(job);
 
@@ -40,9 +45,12 @@ namespace Save
         private static FileJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
         {
             var default_priority = Priority.Low;
-            return saveType == SaveType.Differential
-                ? new DifferentialSaveFileJob(sourceFile, destFile, destFile + ".diff", fileSize, default_priority)
-                : new CompleteSaveFileJob(sourceFile, destFile, fileSize, default_priority);
+            return saveType switch
+            {
+                SaveType.Delta => new DifferentialSaveFileJob(sourceFile, destFile, destFile + ".diff", fileSize, default_priority),
+                SaveType.Differential => new CompleteSaveFileJob(sourceFile, destFile, fileSize, default_priority),
+                _ => new RawSaveFileJob(sourceFile, destFile, fileSize, default_priority),
+            };
         }
 
         public void Start()

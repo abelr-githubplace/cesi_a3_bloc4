@@ -7,7 +7,7 @@
         xmlns:helpers="clr-namespace:EasySave.GUI.Helpers"
         mc:Ignorable="d"
         Title="EasySave 2.0" Height="450" Width="800"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen" WindowState="Maximized">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -34,9 +34,6 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Button Content="Run" Command="{Binding DataContext.PlayJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
-                                <Button Content="Stop" Command="{Binding DataContext.StopJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
-                                <Button Content="Edit" Command="{Binding DataContext.EditJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
-                                <Button Content="Delete" Command="{Binding DataContext.DeleteJobCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="2" Padding="5,0"/>
                             </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>

@@ -10,16 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
-    <ProjectReference Include="..\logger\EasyLog.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Include="..\lang\Messages.Designer.cs" Link="Ressources\Messages.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Messages.resx</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\lib\EasySaveLibrary.csproj" />
+    <ProjectReference Include="..\logger\EasyLog.csproj" />
   </ItemGroup>
 
   <ItemGroup>

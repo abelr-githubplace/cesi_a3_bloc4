@@ -11,7 +11,7 @@ namespace EasySave.GUI.ViewModels
 {
     public class Main : ViewModel
     {
-        public ObservableCollection<SaveJob> SaveJobs { get; set; } = [];
+        public ObservableCollection<SaveJob> SaveJobs { get; set; } = LoadJobs();
 
         private SaveJob? _selectedJob = null;
         public SaveJob? SelectedJob
@@ -43,7 +43,7 @@ namespace EasySave.GUI.ViewModels
         private static ObservableCollection<SaveJob> LoadJobs()
         {
             ObservableCollection<SaveJob> jobs = [];
-            foreach (var save in ConfigManager.Get().State.GetSaves()) jobs.Add(new SaveJob(save));
+            foreach (var save in ConfigManager.Get().State.GetSaves()) jobs.Add(new SaveJob(save, SaveType.Complete));
             return jobs;
         }
 
@@ -61,7 +61,17 @@ namespace EasySave.GUI.ViewModels
                     SourcePath = editorVM.SourcePath!,
                     DestinationPath = editorVM.TargetPath!,
                 };
-                SaveJobs.Add(new SaveJob(newSaveInfo));
+                SaveJobs.Add(
+                    new SaveJob(
+                        newSaveInfo,
+                        editorVM.Type switch
+                        {
+                            "Delta" => SaveType.Delta,
+                            "Differential" => SaveType.Differential,
+                            _ => SaveType.Complete
+                        }
+                    )
+                );
             }
         }
 
@@ -89,7 +99,7 @@ namespace EasySave.GUI.ViewModels
 
         private void PlayJob(object? parameter)
         {
-            if (parameter is SaveJob job) { RunJob(job); }
+            if (parameter is SaveJob job) RunJob(job);
         }
 
         private async static void RunJob(SaveJob? job)
@@ -103,12 +113,19 @@ namespace EasySave.GUI.ViewModels
                 Progress.Progress progress = new();
                 Command command = new()
                 {
-                    SaveAction = job.Type == TranslationSource.Instance["Complete"] ? SaveManager.Action.CompleteSave : SaveManager.Action.DifferentialSave,
+                    SaveAction = job.Type switch
+                    {
+                        SaveType.Delta => SaveManager.Action.DeltaSave,
+                        SaveType.Differential => SaveManager.Action.DifferentialSave,
+                        _ => SaveManager.Action.CompleteSave,
+                    },
                     Saves = [job.Model],
                 };
                 var res = SaveManager.SaveManager.Execute(command, [progress]);
                 if (res.IsErr) job.State = res.UnwrapErr().First();
             });
+
+            job.State = TranslationSource.Instance["Finished"];
         }
 
         private void RunAllJobs()

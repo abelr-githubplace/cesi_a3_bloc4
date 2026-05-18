@@ -30,7 +30,7 @@ namespace EasySave.GUI.ViewModels
                 Name = existingJob.Name;
                 SourcePath = existingJob.SourcePath;
                 TargetPath = existingJob.TargetPath;
-                Type = existingJob.Type;
+                Type = existingJob.Type.ToString();
             }
 
             BrowseSourceCommand = new RelayCommand(o => BrowseSourceFile());

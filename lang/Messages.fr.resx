@@ -250,10 +250,10 @@
     <value>Logiciel métier détecté : sauvegarde complète bloquée.</value>
   </data>
   <data name="NewJob" xml:space="preserve">
-    <value>➕ Nouvelle Sauvegarde</value>
+    <value>Nouvelle Sauvegarde</value>
   </data>
   <data name="Options" xml:space="preserve">
-    <value>⚙️ Paramètre</value>
+    <value>Paramètre</value>
   </data>
   <data name="Name" xml:space="preserve">
     <value>Nom</value>
@@ -280,10 +280,10 @@
     <value>Supprimer</value>
   </data>
   <data name="RunSelected" xml:space="preserve">
-    <value>▶  Executer Sélectioner</value>
+    <value>Executer Sélectioner</value>
   </data>
   <data name="RunAll" xml:space="preserve">
-    <value>▶▶  Executer Tous</value>
+    <value>Executer Tous</value>
   </data>
   <data name="ChooseLanguage" xml:space="preserve">
     <value>Choisir la langue :</value>
@@ -321,9 +321,6 @@
   <data name="AddSave" xml:space="preserve">
     <value>Ajouter</value>
   </data>
-  <data name="Finish" xml:space="preserve">
-    <value>Terminer</value>
-  </data>
   <data name="OptionMenuLogOutput" xml:space="preserve">
     <value>Fichier du journal de log</value>
   </data>
@@ -359,5 +356,11 @@
   </data>
   <data name="Delta" xml:space="preserve">
     <value>Delta</value>
+  </data>
+  <data name="Finish" xml:space="preserve">
+    <value>Terminé</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Prêt</value>
   </data>
 </root>
