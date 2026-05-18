@@ -37,10 +37,9 @@ namespace EasySave.GUI.ViewModels
 
         private void BrowseSourceFile()
         {
-            var dialog = new OpenFileDialog
+            var dialog = new OpenFolderDialog
             {
-                Title = "Sélectionnez le fichier source à sauvegarder",
-                Filter = "Tous les fichiers (*.*)|*.*" 
+                Title = "Sélectionnez le dossier source à sauvegarder"
             };
 
             if (dialog.ShowDialog() == true)

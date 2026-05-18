@@ -542,9 +542,12 @@ namespace EasySave.GUI.ViewModels
                 var progress = new Progress.Progress();
                 var updater = new GuiProgressBar(job, progress);
 
-                var saveAction = job.Type == "Complete"
-                    ? SaveManager.Action.CompleteSave
-                    : SaveManager.Action.DifferentialSave;
+                var saveAction = job.Type switch
+                {
+                    "Differential" => SaveManager.Action.DifferentialSave,
+                    "Delta"        => SaveManager.Action.DeltaSave,
+                    _              => SaveManager.Action.CompleteSave
+                };
                 var saver = new Save.Saver(job.Model, saveAction, progress, _appConfig, cts);
 
                 lock (_activeSavers)

@@ -9,7 +9,7 @@ using BusinessSoftware;
 
 namespace Save
 {
-    internal enum SaveType { Complete, Differential }
+    internal enum SaveType { Complete, Differential, Delta }
 
     public class Saver : SaveActor
     {
@@ -51,9 +51,13 @@ namespace Save
 
                     string relativePath = File.Exists(SourcePath) ? Path.GetFileName(file) : Path.GetRelativePath(SourcePath, file);
                     string destFile = Path.Combine(DestinationPath, relativePath);
-                    FileJob? job = CreateJob(
-                        file, destFile, fileSize, saveAction == SaveManager.Action.DifferentialSave ? SaveType.Differential : SaveType.Complete
-                    );
+                    var saveType = saveAction switch
+                    {
+                        SaveManager.Action.DifferentialSave => SaveType.Differential,
+                        SaveManager.Action.DeltaSave => SaveType.Delta,
+                        _ => SaveType.Complete
+                    };
+                    FileJob? job = CreateJob(file, destFile, fileSize, saveType);
                     if (job is not null) Jobs.Add(job);
 
                     totalSize += fileSize;
@@ -64,10 +68,13 @@ namespace Save
 
         private FileJob? CreateJob(string sourceFile, string destFile, long fileSize, SaveType saveType)
         {
-            var default_priority = Priority.Low;
-            return saveType == SaveType.Differential
-                ? new DifferentialSaveFileJob(sourceFile, destFile, destFile + ".diff", fileSize, default_priority)
-                : new CompleteSaveFileJob(sourceFile, destFile, fileSize, default_priority);
+            var priority = Priority.Low;
+            return saveType switch
+            {
+                SaveType.Differential => new DifferentialSaveFileJob(sourceFile, destFile, fileSize, priority),
+                SaveType.Delta => new DeltaSaveFileJob(sourceFile, destFile, destFile + ".diff", fileSize, priority),
+                _ => new CompleteSaveFileJob(sourceFile, destFile, fileSize, priority)
+            };
         }
 
         public void Pause() => _gate.Reset();

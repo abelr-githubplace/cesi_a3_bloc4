@@ -118,9 +118,12 @@ internal sealed class JobManager
             var progress    = new Progress.Progress();
             var _broadcaster = new ProgressBroadcaster(id, entry, this, progress);
 
-            var action = saveType == "Differential"
-                ? SaveManager.Action.DifferentialSave
-                : SaveManager.Action.CompleteSave;
+            var action = saveType switch
+            {
+                "Differential" => SaveManager.Action.DifferentialSave,
+                "Delta"        => SaveManager.Action.DeltaSave,
+                _              => SaveManager.Action.CompleteSave
+            };
 
             var saver = new Saver(entry.Info, action, progress, _config, cts);
             lock (_lock) { entry.Saver = saver; }

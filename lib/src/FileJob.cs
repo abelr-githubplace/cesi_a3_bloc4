@@ -70,7 +70,7 @@ namespace Job
             => CopyChunked(SourceFile, DestinationFile, token, reportProgress);
     }
 
-    public class DifferentialSaveFileJob(string sourceFile, string destinationFile, string diffFile, long fileSize, Priority priority)
+    public class DifferentialSaveFileJob(string sourceFile, string destinationFile, long fileSize, Priority priority)
         : FileJob(sourceFile, destinationFile, fileSize, priority)
     {
         public override long Execute(CancellationToken token, Action<long> reportProgress)
@@ -83,16 +83,33 @@ namespace Job
             token.ThrowIfCancellationRequested();
             byte[] dstBytes = File.ReadAllBytes(DestinationFile);
             string srcHash = XDelta.XDelta.ComputeSha256(srcBytes);
-            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes); // FIXME: should be stored instead
+            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes);
 
-            // No diff was needed: report the FileSize so the caller's
-            // cumulative counter still moves forward.
+            if (srcHash == dstHash) { reportProgress(FileSize); return FileSize; }
+            return CopyChunked(SourceFile, DestinationFile, token, reportProgress);
+        }
+    }
+
+    public class DeltaSaveFileJob(string sourceFile, string destinationFile, string diffFile, long fileSize, Priority priority)
+        : FileJob(sourceFile, destinationFile, fileSize, priority)
+    {
+        public override long Execute(CancellationToken token, Action<long> reportProgress)
+        {
+            if (!File.Exists(SourceFile)) return CopyChunked(SourceFile, DestinationFile, token, reportProgress);
+            if (!File.Exists(DestinationFile)) return CopyChunked(SourceFile, DestinationFile, token, reportProgress);
+
+            token.ThrowIfCancellationRequested();
+            byte[] srcBytes = File.ReadAllBytes(SourceFile);
+            token.ThrowIfCancellationRequested();
+            byte[] dstBytes = File.ReadAllBytes(DestinationFile);
+            string srcHash = XDelta.XDelta.ComputeSha256(srcBytes);
+            string dstHash = XDelta.XDelta.ComputeSha256(dstBytes);
+
             if (srcHash == dstHash) { reportProgress(FileSize); return FileSize; }
 
             token.ThrowIfCancellationRequested();
             byte[] diffBytes = XDelta.XDelta.Encode(srcBytes, dstBytes);
             File.WriteAllBytes(diffFile, diffBytes);
-            // Diff path is not chunked, so report the whole file at once.
             reportProgress(FileSize);
             return FileSize;
         }

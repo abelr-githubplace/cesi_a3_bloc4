@@ -306,6 +306,9 @@
   <data name="Differential" xml:space="preserve">
     <value>Differential</value>
   </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
   <data name="SaveEditor" xml:space="preserve">
     <value>Save Editor</value>
   </data>

@@ -16,7 +16,7 @@ public sealed class SaveEditorVm : ViewModel
     public string DestPath   { get => _destPath;   set { _destPath   = value; OnPropertyChanged(); } }
     public string SaveType   { get => _saveType;   set { _saveType   = value; OnPropertyChanged(); } }
 
-    public List<string> SaveTypes { get; } = ["Complete", "Differential"];
+    public List<string> SaveTypes { get; } = ["Complete", "Differential", "Delta"];
 
     public ICommand BrowseSourceCommand { get; }
     public ICommand BrowseDestCommand   { get; }

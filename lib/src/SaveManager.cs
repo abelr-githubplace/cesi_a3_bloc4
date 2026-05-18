@@ -4,7 +4,7 @@ using Restore;
 
 namespace SaveManager
 {
-	public enum Action { CompleteSave, DifferentialSave, Delete, Restore }
+	public enum Action { CompleteSave, DifferentialSave, DeltaSave, Delete, Restore }
 
 	public record Command
 	{
@@ -18,7 +18,7 @@ namespace SaveManager
 		public required string SaveName { get; init; }
 		public required string SourcePath { get; init; }
 		public required string DestinationPath { get; init; }
-		// Canonical values: "Complete" or "Differential" (resource key names, not translated).
+		// Canonical values: "Complete", "Differential", or "Delta" (resource key names, not translated).
 		public string SaveType { get; init; } = "Complete";
 	}
 
@@ -28,7 +28,7 @@ namespace SaveManager
 		{
 			return command.SaveAction switch
 			{
-				Action.CompleteSave or Action.DifferentialSave => Save(command.Saves, command.SaveAction, progresses, configManager),
+				Action.CompleteSave or Action.DifferentialSave or Action.DeltaSave => Save(command.Saves, command.SaveAction, progresses, configManager),
 				Action.Restore => Restore(command.Saves, command.SaveAction, progresses, configManager),
                 Action.Delete => Delete(command.Saves, configManager),
                 _ => new Err<Empty, IEnumerable<string>>(["Unsupported command, failed to execute"])
