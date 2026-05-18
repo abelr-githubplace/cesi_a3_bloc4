@@ -34,6 +34,7 @@ public sealed class MainVm : ViewModel
         _client = client;
         _client.JobListReceived += OnJobList;
         _client.StateUpdated    += OnStateUpdate;
+        _client.LogReceived     += msg => Ui(() => AddLog(msg));
         _client.ErrorReceived   += msg => Ui(() => AddLog($"[Erreur] {msg}"));
         _client.Disconnected    += ()  => Ui(() => AddLog("[Serveur] Déconnexion"));
 

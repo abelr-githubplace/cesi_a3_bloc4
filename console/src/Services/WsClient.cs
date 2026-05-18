@@ -14,6 +14,7 @@ public sealed class WsClient : IDisposable
 
     public event Action<List<JobDto>>? JobListReceived;
     public event Action<ServerMsg>?    StateUpdated;
+    public event Action<string>?       LogReceived;
     public event Action<string>?       ErrorReceived;
     public event Action?               Disconnected;
 
@@ -47,9 +48,10 @@ public sealed class WsClient : IDisposable
 
                 switch (msg.Type)
                 {
-                    case "job_list":    JobListReceived?.Invoke(msg.Jobs ?? []); break;
+                    case "job_list":     JobListReceived?.Invoke(msg.Jobs ?? []); break;
                     case "state_update": StateUpdated?.Invoke(msg); break;
-                    case "error":       ErrorReceived?.Invoke(msg.Message ?? "Erreur inconnue"); break;
+                    case "log":          LogReceived?.Invoke(msg.Message ?? ""); break;
+                    case "error":        ErrorReceived?.Invoke(msg.Message ?? "Erreur inconnue"); break;
                 }
             }
             done:;

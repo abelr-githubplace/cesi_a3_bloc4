@@ -1,21 +1,21 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 namespace EasySave.Remote;
 
-// Serveur WebSocket basé sur HttpListener (.NET natif, aucune dépendance externe).
-// Maintient une liste de connexions actives et broadcast à tous en cas d'événement.
+// Serveur WebSocket sur TcpListener — pas besoin de droits administrateur,
+// fonctionne sur toutes les interfaces réseau (contrairement à HttpListener avec "+").
 internal sealed class WsServer
 {
     private readonly int        _port;
     private readonly JobManager _manager;
     private readonly ConcurrentDictionary<Guid, ClientConn> _clients = new();
 
-    // Une connexion = socket + sémaphore pour garantir des envois séquentiels
-    // (WebSocket.SendAsync n'est pas thread-safe sur la même instance).
     private sealed class ClientConn(WebSocket socket)
     {
         public WebSocket     Socket { get; } = socket;
@@ -31,49 +31,86 @@ internal sealed class WsServer
 
     public async Task RunAsync(CancellationToken ct)
     {
-        var listener = new HttpListener();
-        // Écoute uniquement sur localhost. Pour accepter des connexions réseau,
-        // remplacer "localhost" par "+" et lancer en mode administrateur (Windows).
-        listener.Prefixes.Add($"http://localhost:{_port}/ws/");
+        var listener = new TcpListener(IPAddress.Any, _port);
         listener.Start();
-        Console.WriteLine($"[EasySave.Remote] WebSocket prêt — ws://localhost:{_port}/ws/");
+        Console.WriteLine($"[EasySave.Remote] WebSocket prêt — ws://0.0.0.0:{_port}/ws/");
+        Console.WriteLine($"[EasySave.Remote] IP locale : {GetLocalIp()}:{_port}");
 
-        while (!ct.IsCancellationRequested)
+        try
         {
-            HttpListenerContext ctx;
-            try
+            while (!ct.IsCancellationRequested)
             {
-                ctx = await listener.GetContextAsync().WaitAsync(ct);
-            }
-            catch (OperationCanceledException) { break; }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[EasySave.Remote] Erreur listener : {ex.Message}");
-                break;
-            }
+                TcpClient tcp;
+                try   { tcp = await listener.AcceptTcpClientAsync(ct); }
+                catch (OperationCanceledException) { break; }
 
-            if (!ctx.Request.IsWebSocketRequest)
-            {
-                ctx.Response.StatusCode = 400;
-                ctx.Response.Close();
-                continue;
+                _ = HandleTcpAsync(tcp, ct);
             }
-
-            _ = AcceptAsync(ctx, ct);
         }
-
-        listener.Stop();
+        finally { listener.Stop(); }
     }
 
-    private async Task AcceptAsync(HttpListenerContext ctx, CancellationToken ct)
+    // ── Handshake HTTP → WebSocket ─────────────────────────────────────────
+
+    private async Task HandleTcpAsync(TcpClient tcp, CancellationToken ct)
     {
-        var wsCtx = await ctx.AcceptWebSocketAsync(null);
-        var conn  = new ClientConn(wsCtx.WebSocket);
-        var id    = Guid.NewGuid();
+        tcp.NoDelay = true;
+        var stream = tcp.GetStream();
+
+        // Lecture de la requête HTTP d'upgrade
+        var buf      = new byte[4096];
+        int bytesRead;
+        try   { bytesRead = await stream.ReadAsync(buf, ct); }
+        catch { tcp.Dispose(); return; }
+
+        var request = Encoding.UTF8.GetString(buf, 0, bytesRead);
+
+        // Extraction du Sec-WebSocket-Key
+        string? wsKey = null;
+        foreach (var line in request.Split("\r\n"))
+        {
+            if (line.StartsWith("Sec-WebSocket-Key:", StringComparison.OrdinalIgnoreCase))
+            {
+                wsKey = line[(line.IndexOf(':') + 1)..].Trim();
+                break;
+            }
+        }
+
+        if (wsKey == null) { tcp.Dispose(); return; }
+
+        // Calcul du Sec-WebSocket-Accept (RFC 6455)
+        var accept = Convert.ToBase64String(
+            SHA1.HashData(Encoding.UTF8.GetBytes(wsKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11")));
+
+        var response =
+            "HTTP/1.1 101 Switching Protocols\r\n" +
+            "Upgrade: websocket\r\n" +
+            "Connection: Upgrade\r\n" +
+           $"Sec-WebSocket-Accept: {accept}\r\n\r\n";
+
+        try   { await stream.WriteAsync(Encoding.UTF8.GetBytes(response), ct); }
+        catch { tcp.Dispose(); return; }
+
+        // Création du WebSocket côté serveur sur le flux TCP brut
+        var ws = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions
+        {
+            IsServer          = true,
+            KeepAliveInterval = TimeSpan.FromSeconds(30)
+        });
+
+        await AcceptWebSocketAsync(ws, tcp, ct);
+    }
+
+    // ── Boucle de réception WebSocket ──────────────────────────────────────
+
+    private async Task AcceptWebSocketAsync(WebSocket ws, TcpClient tcp, CancellationToken ct)
+    {
+        var conn = new ClientConn(ws);
+        var id   = Guid.NewGuid();
         _clients[id] = conn;
         Console.WriteLine($"[EasySave.Remote] Client {id} connecté");
 
-        // Envoi immédiat de la liste des jobs au nouveau client
+        // Envoi immédiat de la liste des jobs
         await SendAsync(conn, new ServerMsg { Type = "job_list", Jobs = _manager.GetJobDtos() }, ct);
 
         try
@@ -81,14 +118,13 @@ internal sealed class WsServer
             var buf     = new byte[8192];
             var running = true;
 
-            while (conn.Socket.State == WebSocketState.Open && !ct.IsCancellationRequested && running)
+            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested && running)
             {
-                // Accumulation des frames WebSocket jusqu'à EndOfMessage
                 using var ms = new MemoryStream();
                 WebSocketReceiveResult result;
                 do
                 {
-                    result = await conn.Socket.ReceiveAsync(buf, ct);
+                    result = await ws.ReceiveAsync(buf, ct);
                     if (result.MessageType == WebSocketMessageType.Close) { running = false; break; }
                     ms.Write(buf, 0, result.Count);
                 } while (!result.EndOfMessage);
@@ -105,11 +141,13 @@ internal sealed class WsServer
         finally
         {
             _clients.TryRemove(id, out _);
+            tcp.Dispose();
             Console.WriteLine($"[EasySave.Remote] Client {id} déconnecté");
         }
     }
 
-    // Broadcast fire-and-forget : ne bloque pas les workers de sauvegarde
+    // ── Broadcast ──────────────────────────────────────────────────────────
+
     public void Broadcast(ServerMsg msg) => _ = BroadcastAsync(msg);
 
     private async Task BroadcastAsync(ServerMsg msg)
@@ -117,8 +155,8 @@ internal sealed class WsServer
         foreach (var (id, conn) in _clients)
         {
             if (conn.Socket.State != WebSocketState.Open) { _clients.TryRemove(id, out _); continue; }
-            try { await SendAsync(conn, msg, CancellationToken.None); }
-            catch  { _clients.TryRemove(id, out _); }
+            try   { await SendAsync(conn, msg, CancellationToken.None); }
+            catch { _clients.TryRemove(id, out _); }
         }
     }
 
@@ -132,5 +170,18 @@ internal sealed class WsServer
                 await conn.Socket.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct);
         }
         finally { conn.Lock.Release(); }
+    }
+
+    // ── Utilitaire ─────────────────────────────────────────────────────────
+
+    private static string GetLocalIp()
+    {
+        try
+        {
+            using var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            s.Connect("8.8.8.8", 80);
+            return ((IPEndPoint)s.LocalEndPoint!).Address.ToString();
+        }
+        catch { return "?.?.?.?"; }
     }
 }

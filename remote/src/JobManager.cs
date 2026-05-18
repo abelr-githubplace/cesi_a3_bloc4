@@ -85,6 +85,13 @@ internal sealed class JobManager
             Progress = progress
         });
 
+    private void BroadcastLog(string message) =>
+        Server?.Broadcast(new ServerMsg
+        {
+            Type    = "log",
+            Message = $"[{DateTime.Now:HH:mm:ss}] {message}"
+        });
+
     // ── Commandes ──────────────────────────────────────────────────────────
 
     private void StartJob(string? jobIdStr, string saveType)
@@ -98,6 +105,7 @@ internal sealed class JobManager
             entry.Status   = "Active";
             entry.Progress = 0;
         }
+        BroadcastLog($"▶ Sauvegarde démarrée : {entry.Info.SaveName} ({saveType})");
         BroadcastJobList();
 
         // CTS créé avant le Task.Run pour que Stop() fonctionne même pendant
@@ -126,6 +134,10 @@ internal sealed class JobManager
                 entry.Status   = saver.IsStopped ? "Stopped" : "Inactive";
                 if (!saver.IsStopped) entry.Progress = 100f;
             }
+            if (saver.IsStopped)
+                BroadcastLog($"⏹ Sauvegarde arrêtée : {entry.Info.SaveName}");
+            else
+                BroadcastLog($"✔ Sauvegarde terminée : {entry.Info.SaveName}");
             BroadcastJobList();
         });
     }
@@ -149,6 +161,7 @@ internal sealed class JobManager
             if (!_jobs.TryGetValue(id, out var entry) || entry.Saver == null) return;
             entry.Saver.Pause();
             entry.Status = "Paused";
+            BroadcastLog($"⏸ Mise en pause : {entry.Info.SaveName}");
         }
         BroadcastJobList();
     }
@@ -161,6 +174,7 @@ internal sealed class JobManager
             if (!_jobs.TryGetValue(id, out var entry) || entry.Saver == null) return;
             entry.Saver.Resume();
             entry.Status = "Active";
+            BroadcastLog($"▷ Reprise : {entry.Info.SaveName}");
         }
         BroadcastJobList();
     }
@@ -192,6 +206,7 @@ internal sealed class JobManager
         });
 
         lock (_lock) { _jobs[info.SaveId] = new JobEntry(info); }
+        BroadcastLog($"＋ Job créé : {info.SaveName}");
         BroadcastJobList();
     }
 
@@ -221,6 +236,7 @@ internal sealed class JobManager
                 SaveType        = updated.SaveType
             });
             entry.Info = updated;
+            BroadcastLog($"✎ Job modifié : {updated.SaveName}");
         }
         BroadcastJobList();
     }
@@ -228,12 +244,15 @@ internal sealed class JobManager
     private void DeleteJob(string? jobIdStr)
     {
         if (!Guid.TryParse(jobIdStr, out var id)) return;
+        string? deletedName = null;
         lock (_lock)
         {
             if (!_jobs.TryGetValue(id, out var entry) || entry.Saver != null) return;
+            deletedName = entry.Info.SaveName;
             _jobs.Remove(id);
             _config.State.Delete(id);
         }
+        if (deletedName != null) BroadcastLog($"✕ Job supprimé : {deletedName}");
         BroadcastJobList();
     }
 }
