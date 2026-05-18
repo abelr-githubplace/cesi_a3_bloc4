@@ -44,16 +44,11 @@ namespace Config
 
         public static ConfigData DefaultConfig()
         {
-            // Anchor the defaults at AppContext.BaseDirectory (the folder
-            // containing the exe) rather than ".", which depends on the
-            // current working directory at launch. Without this, launching
-            // via `dotnet run` from one folder vs double-clicking the exe
-            // produces two completely different state.json locations.
             string baseDir = AppContext.BaseDirectory;
             return new()
             {
                 Lang = "en-US",
-                LogOutput = Path.Combine(baseDir, "save.log"),
+                LogOutput = Path.Combine(baseDir, "logs"),
                 StateOutput = Path.Combine(baseDir, "state.json"),
 
                 LogFormat = LogFormat.JSON,
@@ -74,8 +69,6 @@ namespace Config
 
     public sealed class ConfigManager
     {
-        // Always next to the exe — independent of the working directory used
-        // to launch the process.
         private static readonly string _output = Path.Combine(AppContext.BaseDirectory, "config.json");
         private readonly static JsonSerializerOptions s_read_serializer = new()
         {

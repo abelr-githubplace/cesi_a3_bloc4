@@ -160,7 +160,7 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Text="{Binding LogOutput}" ToolTip="Ex: .\\save.log" Margin="0,0,10,0"/>
+            <TextBox Grid.Column="0" Text="{Binding LogOutput}" ToolTip="Ex: .\\logs" Margin="0,0,10,0"/>
             <Button Grid.Column="1" Content="..." Command="{Binding BrowseLogOutputCommand}" MinWidth="35" Padding="10,5" Margin="0,0,10,0"/>
             <Button Grid.Column="2" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[OpenFolder]}"
                     Command="{Binding OpenLogFolderCommand}" MinWidth="90" Padding="10,5"/>

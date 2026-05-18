@@ -5,9 +5,6 @@ namespace State
 {
     public enum Status { Active, Inactive, Paused }
 
-    // One row per file currently being transferred. With V3 parallelism a
-    // single Saver can have multiple files in flight at once, so we publish a
-    // list rather than a single CurrentSourceFile/CurrentTargetFile pair.
     public record ActiveFileInfo
     {
         public required string Source { get; init; }
@@ -33,8 +30,6 @@ namespace State
         public required DateTime LastActionTime { get; init; }
         public required Status Status { get; init; }
         public ActiveStateInfo? ActiveStateInfo { get; init; }
-        // Canonical: "Complete" or "Differential". Defaults to Complete so
-        // existing state.json files without this field keep their behaviour.
         public string SaveType { get; init; } = "Complete";
     }
 

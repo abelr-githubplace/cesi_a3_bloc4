@@ -145,23 +145,23 @@ namespace EasyLog
         private static Logger? s_instance;
         private static readonly object s_lock = new();
 
-        private string _output;
+        private string _outputDir;
         private LogMode _mode = LogMode.Local;
         private TcpLogClient? _tcpClient;
         private static readonly object s_rwLock = new();
 
-        private Logger(string output)
+        private Logger(string outputDir)
         {
-            _output = output;
+            _outputDir = outputDir;
         }
 
-        public static Logger Get(string output)
+        public static Logger Get(string outputDir)
         {
             if (s_instance == null)
             {
                 lock (s_lock)
                 {
-                    s_instance ??= new Logger(output);
+                    s_instance ??= new Logger(outputDir);
                 }
             }
             return s_instance;
@@ -177,7 +177,9 @@ namespace EasyLog
             {
                 lock (s_rwLock)
                 {
-                    using StreamWriter writer = new(_output, true);
+                    string path = Path.Combine(_outputDir, $"{DateTime.Now:yyyy-MM-dd}.log");
+                    Directory.CreateDirectory(_outputDir);
+                    using StreamWriter writer = new(path, true);
                     writer.WriteLine(log);
                 }
             }
@@ -188,9 +190,9 @@ namespace EasyLog
             }
         }
 
-        public void ModifyOutput(string output)
+        public void ModifyOutput(string outputDir)
         {
-            lock(s_rwLock) { _output = output; }
+            lock(s_rwLock) { _outputDir = outputDir; }
         }
 
         // Called by ConfigManager when the user changes log mode/endpoint.

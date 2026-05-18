@@ -211,7 +211,10 @@ namespace EasySave.GUI.ViewModels
                         var logOutput = ReadString(root, "LogOutput");
                         if (!string.IsNullOrWhiteSpace(logOutput))
                         {
-                            _appConfig.ModifyLogOutput(NormalizePath(logOutput));
+                            string normalized = NormalizePath(logOutput);
+                            if (File.Exists(normalized) || Path.HasExtension(normalized))
+                                normalized = Path.GetDirectoryName(normalized) ?? normalized;
+                            _appConfig.ModifyLogOutput(normalized);
                         }
                     }
 

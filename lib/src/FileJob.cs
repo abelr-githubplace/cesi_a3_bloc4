@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using XDelta;
 
 namespace Job
@@ -12,20 +11,8 @@ namespace Job
         public long FileSize { get; protected set; } = fileSize;
         public Priority Priority { get; protected set; } = priority;
 
-        // V3 Stop is immediate: a 5 GB copy must react to cancellation, not
-        // wait for File.Copy to return 30 seconds later. CopyChunked reads/
-        // writes 64 KB at a time and checks the token between every chunk,
-        // so the longest a worker can "ignore" a Stop is the time of one
-        // chunk transfer (negligible on local/SMB drives).
-        //
-        // On cancellation the partial destination file is removed, so a
-        // resumed save (future feature) or the user inspecting the target
-        // doesn't find a corrupted half-copy.
         private const int CopyBufferSize = 64 * 1024;
 
-        // reportProgress is invoked with the number of bytes written by the
-        // current chunk (NOT a running total), so the caller can keep a
-        // cumulative counter via Interlocked.Add without double-counting.
         protected static long CopyChunked(string from, string to, CancellationToken token, Action<long> reportProgress)
         {
             if (!File.Exists(from)) return 0;
@@ -52,7 +39,6 @@ namespace Job
             }
             catch (OperationCanceledException)
             {
-                // Don't leave a half-copied artifact at the destination.
                 try { if (File.Exists(to)) File.Delete(to); } catch { }
                 throw;
             }

@@ -73,7 +73,7 @@ namespace EasySave.GUI.ViewModels
             }
         }
 
-        private string _logOutput = Path.Combine(AppContext.BaseDirectory, "save.log");
+        private string _logOutput = Path.Combine(AppContext.BaseDirectory, "logs");
         public string LogOutput
         {
             get => _logOutput;
@@ -323,7 +323,7 @@ namespace EasySave.GUI.ViewModels
             RemoveSoftwareCommand = new RelayCommand(RemoveSoftware);
             BrowseLogOutputCommand = new RelayCommand(o => BrowseLogOutput());
             BrowseStateOutputCommand = new RelayCommand(o => BrowseStateOutput());
-            OpenLogFolderCommand = new RelayCommand(o => OpenFolderForFile(LogOutput));
+            OpenLogFolderCommand = new RelayCommand(o => OpenFolder(LogOutput));
             OpenStateFolderCommand = new RelayCommand(o => OpenFolderForFile(StateOutput));
             BrowseCryptoSoftCommand = new RelayCommand(o => BrowseCryptoSoft());
             AddEncryptionExtensionCommand = new RelayCommand(o => AddEncryptionExtension());
@@ -364,17 +364,27 @@ namespace EasySave.GUI.ViewModels
 
         private void BrowseLogOutput()
         {
-            var dialog = new SaveFileDialog
+            var dialog = new Microsoft.Win32.OpenFolderDialog
             {
-                Title = "Select log output file",
-                Filter = "Log files (*.log)|*.log|All files (*.*)|*.*",
-                FileName = Path.GetFileName(LogOutput)
+                Title = "Select log folder"
             };
-
             if (dialog.ShowDialog() == true)
+                LogOutput = dialog.FolderName;
+        }
+
+        private void OpenFolder(string dir)
+        {
+            try
             {
-                LogOutput = dialog.FileName;
+                string resolved = ResolvePath(dir);
+                if (!Directory.Exists(resolved)) Directory.CreateDirectory(resolved);
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = resolved,
+                    UseShellExecute = true,
+                });
             }
+            catch (Exception) { }
         }
 
         private void BrowseStateOutput()
@@ -546,7 +556,7 @@ namespace EasySave.GUI.ViewModels
             public string LogMode { get; set; } = "Local";
             public string RemoteLogHost { get; set; } = "localhost";
             public string RemoteLogPort { get; set; } = "9000";
-            public string LogOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "save.log");
+            public string LogOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "logs");
             public string StateOutput { get; set; } = Path.Combine(AppContext.BaseDirectory, "state.json");
             public string CryptoSoftPath { get; set; } = string.Empty;
         }
@@ -606,6 +616,8 @@ namespace EasySave.GUI.ViewModels
                     _remoteLogHost = ReadString(root, "RemoteLogHost", "localhost");
                     _remoteLogPort = ReadString(root, "RemoteLogPort", "9000");
                     _logOutput = ReadString(root, "LogOutput", _logOutput);
+                    if (!string.IsNullOrWhiteSpace(_logOutput) && (File.Exists(_logOutput) || Path.HasExtension(_logOutput)))
+                        _logOutput = Path.GetDirectoryName(_logOutput) ?? _logOutput;
                     _stateOutput = ReadString(root, "StateOutput", _stateOutput);
 
                     _businessSoftwares = new ObservableCollection<string>(ReadStringList(root, "BusinessSoftwares"));

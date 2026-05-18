@@ -3,6 +3,7 @@ using Config;
 using SaveManager;
 using State;
 using EasyLog;
+using Sanitize;
 
 namespace Actor
 {
@@ -23,8 +24,8 @@ namespace Actor
         {
             Id = save.SaveId;
             Name = save.SaveName;
-            SourcePath = save.SourcePath;
-            DestinationPath = save.DestinationPath;
+            SourcePath = PathSanitizer.Sanitize(save.SourcePath) ?? save.SourcePath;
+            DestinationPath = PathSanitizer.Sanitize(save.DestinationPath) ?? save.DestinationPath;
             SaveAction = saveAction;
             Progress = progress;
             _configManager = configManager;
@@ -90,8 +91,6 @@ namespace Actor
             };
         }
 
-        // Convenience overload for callers that have a single in-flight file
-        // (e.g. the sequential Restorer). Wraps it in a one-element list.
         protected ActiveStateInfo NewActiveStateInfo(int jobsRemaining, long sizeRemaining, string source, string destination)
         {
             return NewActiveStateInfo(jobsRemaining, sizeRemaining,

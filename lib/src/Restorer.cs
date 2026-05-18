@@ -14,16 +14,11 @@ namespace Restore
         {
             long totalSize = 0;
 
-            // Determine which files in the backup belong to THIS save.
-            // Saver wrote: if source was a single FILE → backup is DestinationPath\filename
-            //              if source was a DIRECTORY  → backup is DestinationPath\relative\...
-            // We mirror that logic to enumerate only the relevant files.
             IEnumerable<string> backupFiles;
-            bool sourceWasFile = !Directory.Exists(SourcePath);   // dir deleted or was a file
+            bool sourceWasFile = !Directory.Exists(SourcePath);
 
             if (sourceWasFile)
             {
-                // Single-file save: only the one file whose name matches the source filename.
                 string expected = Path.Combine(DestinationPath, Path.GetFileName(SourcePath));
                 backupFiles = File.Exists(expected) ? [expected] : [];
             }
@@ -39,8 +34,6 @@ namespace Restore
                 long fileSize = new FileInfo(file).Length;
                 FilesWithSizes[file] = fileSize;
 
-                // Mirror Saver: single-file → restore to SourcePath directly;
-                // directory → restore to the relative path within SourcePath.
                 string sourceFile = sourceWasFile
                     ? SourcePath
                     : Path.Combine(SourcePath, Path.GetRelativePath(DestinationPath, file));
@@ -75,10 +68,6 @@ namespace Restore
                     try
                     {
                         var beginTime = DateTime.Now;
-                        // Restorer doesn't expose Stop yet, so no cancellation source
-                        // to plug in. Wire it up the day Restorer gets Pause/Stop.
-                        // No-op progress callback: Restorer aggregates via its own
-                        // restoredTotalBytes counter below.
                         long restored = job.Execute(CancellationToken.None, _ => { });
                         endTime = DateTime.Now;
 
