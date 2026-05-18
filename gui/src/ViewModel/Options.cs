@@ -159,8 +159,45 @@ namespace EasySave.GUI.ViewModels
                 if (_largeFileThresholdMB == value) return;
                 _largeFileThresholdMB = Math.Max(0, value);
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(LargeFileThresholdDisplay));
+                OnPropertyChanged(nameof(ThresholdDisplayValue));
                 MarkDirty();
+            }
+        }
+
+        private string _thresholdUnit = "MB";
+        public string ThresholdUnit
+        {
+            get => _thresholdUnit;
+            set
+            {
+                if (_thresholdUnit == value) return;
+                _thresholdUnit = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ThresholdDisplayValue));
+                MarkDirty();
+            }
+        }
+
+        public string ThresholdDisplayValue
+        {
+            get => _thresholdUnit switch
+            {
+                "GB" => (_largeFileThresholdMB / 1000L).ToString(),
+                "KB" => (_largeFileThresholdMB * 1000L).ToString(),
+                "B"  => (_largeFileThresholdMB * 1000L * 1000L).ToString(),
+                _    => _largeFileThresholdMB.ToString()
+            };
+            set
+            {
+                if (!long.TryParse(value, out long v) || v < 0) return;
+                int mb = _thresholdUnit switch
+                {
+                    "GB" => (int)(v * 1000),
+                    "KB" => (int)(v / 1000),
+                    "B"  => (int)(v / 1000000),
+                    _    => (int)v
+                };
+                LargeFileThresholdMB = mb;
             }
         }
 
@@ -493,7 +530,6 @@ namespace EasySave.GUI.ViewModels
                 TranslationSource.Instance.CurrentCulture = new CultureInfo("en-US");
             OnPropertyChanged(nameof(RemoteLogHint));
             OnPropertyChanged(nameof(ParallelWorkersDisplay));
-            OnPropertyChanged(nameof(LargeFileThresholdDisplay));
         }
 
         private class OptionsData
@@ -505,6 +541,7 @@ namespace EasySave.GUI.ViewModels
             public List<string> PriorityExtensions { get; set; } = new List<string>();
             public string LargeFileLimit { get; set; } = string.Empty;
             public int LargeFileThresholdMB { get; set; } = 512;
+            public string ThresholdUnit { get; set; } = "MB";
             public int MaxWorkersPerJob { get; set; } = 4;
             public string LogMode { get; set; } = "Local";
             public string RemoteLogHost { get; set; } = "localhost";
@@ -527,6 +564,7 @@ namespace EasySave.GUI.ViewModels
                     PriorityExtensions = new List<string>(this.PriorityExtensions),
                     LargeFileThresholdMB = this.LargeFileThresholdMB,
                     LargeFileLimit = (this.LargeFileThresholdMB * 1024).ToString(),
+                    ThresholdUnit = this.ThresholdUnit,
                     MaxWorkersPerJob = this.MaxWorkersPerJob,
                     LogMode = this.LogMode,
                     RemoteLogHost = this.RemoteLogHost,
@@ -561,6 +599,7 @@ namespace EasySave.GUI.ViewModels
                         int kbFallback = ReadInt(root, "LargeFileLimit", 0);
                         _largeFileThresholdMB = kbFallback > 0 ? Math.Max(0, kbFallback / 1024) : 0;
                     }
+                    _thresholdUnit = ReadString(root, "ThresholdUnit", "MB");
                     _maxWorkersPerJob = Math.Clamp(ReadInt(root, "MaxWorkersPerJob", 4), 1, 8);
                     _cryptoSoftPath = ReadString(root, "CryptoSoftPath", string.Empty);
                     _logMode = ReadString(root, "LogMode", "Local");
@@ -578,6 +617,8 @@ namespace EasySave.GUI.ViewModels
                     OnPropertyChanged(nameof(LogFormat));
                     OnPropertyChanged(nameof(language));
                     OnPropertyChanged(nameof(LargeFileThresholdMB));
+                    OnPropertyChanged(nameof(ThresholdUnit));
+                    OnPropertyChanged(nameof(ThresholdDisplayValue));
                     OnPropertyChanged(nameof(MaxWorkersPerJob));
                     OnPropertyChanged(nameof(CryptoSoftPath));
                     OnPropertyChanged(nameof(LogMode));
@@ -586,7 +627,6 @@ namespace EasySave.GUI.ViewModels
                     OnPropertyChanged(nameof(IsRemoteLoggingEnabled));
                     OnPropertyChanged(nameof(RemoteLogHint));
                     OnPropertyChanged(nameof(ParallelWorkersDisplay));
-                    OnPropertyChanged(nameof(LargeFileThresholdDisplay));
                     OnPropertyChanged(nameof(LogOutput));
                     OnPropertyChanged(nameof(StateOutput));
                     OnPropertyChanged(nameof(BusinessSoftwares));

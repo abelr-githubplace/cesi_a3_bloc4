@@ -31,11 +31,11 @@ namespace EasySave.GUI.ViewModels
                 Type = existingJob.Type;
             }
 
-            BrowseSourceCommand = new RelayCommand(o => BrowseSourceFile());
+            BrowseSourceCommand = new RelayCommand(o => BrowseSourceFolder());
             BrowseTargetCommand = new RelayCommand(o => BrowseTargetFolder());
         }
 
-        private void BrowseSourceFile()
+        private void BrowseSourceFolder()
         {
             var dialog = new OpenFolderDialog
             {
@@ -44,7 +44,7 @@ namespace EasySave.GUI.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                SourcePath = dialog.FileName;
+                SourcePath = dialog.FolderName;
             }
         }
 

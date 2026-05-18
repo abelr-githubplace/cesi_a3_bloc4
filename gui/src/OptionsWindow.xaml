@@ -333,23 +333,19 @@
         <!-- Limite de fichier volumineux -->
         <Label Grid.Row="9" Grid.Column="0" Content="{Binding Source={x:Static helpers:TranslationSource.Instance}, Path=[LargeFileThreshold]}"/>
         <Grid Grid.Row="9" Grid.Column="1" Margin="0,0,0,15">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Slider Grid.Row="0" Minimum="0" Maximum="2048" TickFrequency="128" IsSnapToTickEnabled="False"
-                    Value="{Binding LargeFileThresholdMB}" Margin="0,0,0,5"/>
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Text="{Binding LargeFileThresholdMB, UpdateSourceTrigger=PropertyChanged}"
-                         PreviewTextInput="NumberValidationTextBox" InputScope="Number" />
-                <Label Grid.Column="1" Content="MB" Margin="8,0,10,0" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="2" Text="{Binding LargeFileThresholdDisplay}" FontSize="12" Foreground="{StaticResource DarkerBlue}"/>
-            </Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" Text="{Binding ThresholdDisplayValue, UpdateSourceTrigger=PropertyChanged}"
+                     PreviewTextInput="NumberValidationTextBox" InputScope="Number" />
+            <ComboBox Grid.Column="1" SelectedValue="{Binding ThresholdUnit}" SelectedValuePath="Content"
+                      Margin="8,0,0,0" VerticalAlignment="Center">
+                <ComboBoxItem Content="GB"/>
+                <ComboBoxItem Content="MB"/>
+                <ComboBoxItem Content="KB"/>
+                <ComboBoxItem Content="B"/>
+            </ComboBox>
         </Grid>
 
         <!-- Mode de log (Local / Remote / Both) -->

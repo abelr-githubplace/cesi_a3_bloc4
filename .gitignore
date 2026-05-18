@@ -63,3 +63,17 @@ EasySave.Shared/obj/
 
 #server logs
 server/logs/
+
+# Console
+console/bin/
+console/obj/
+
+# Releases / publish / exports
+publish/
+releases/
+EasySaveV3/
+EasySaveV3.zip
+tq
+
+# Documentation files
+Documentation Utilisateur EasySave 3.0_fichiers/
