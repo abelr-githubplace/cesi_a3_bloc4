@@ -1,0 +1,22 @@
+<Application x:Class="EasySave.Console.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:EasySave.Console.ViewModels"
+             xmlns:views="clr-namespace:EasySave.Console.Views">
+    <Application.Resources>
+        <!-- Convertisseur booléen → Visibility (utilisé dans ConnectionView) -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+
+        <!--
+            DataTemplate routing : WPF résout automatiquement le bon UserControl
+            en fonction du type du ViewModel bindé sur CurrentPage.
+        -->
+        <DataTemplate DataType="{x:Type vm:ConnectionVm}">
+            <views:ConnectionView />
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:MainVm}">
+            <views:MainView />
+        </DataTemplate>
+    </Application.Resources>
+</Application>

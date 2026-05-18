@@ -1,0 +1,73 @@
+<UserControl x:Class="EasySave.Console.Views.MainView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Barre d'outils -->
+            <RowDefinition Height="*"/>      <!-- Liste des jobs -->
+            <RowDefinition Height="160"/>    <!-- Panneau de logs -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Barre d'outils ── -->
+        <ToolBar Grid.Row="0" Padding="4,2">
+            <Button Content="＋ Ajouter"    Command="{Binding AddCommand}"    Margin="0,0,4,0" Padding="8,3"/>
+            <Button Content="✎ Modifier"    Command="{Binding EditCommand}"   Margin="0,0,4,0" Padding="8,3"/>
+            <Button Content="✕ Supprimer"   Command="{Binding DeleteCommand}" Margin="0,0,8,0" Padding="8,3"/>
+            <Separator/>
+            <Button Content="▶ Démarrer"   Command="{Binding StartCommand}"  Margin="8,0,4,0" Padding="8,3"/>
+            <Button Content="⏸ Pause"       Command="{Binding PauseCommand}"  Margin="0,0,4,0" Padding="8,3"/>
+            <Button Content="▷ Reprendre"   Command="{Binding ResumeCommand}" Margin="0,0,4,0" Padding="8,3"/>
+            <Button Content="⏹ Arrêter"    Command="{Binding StopCommand}"   Padding="8,3"/>
+        </ToolBar>
+
+        <!-- ── Liste des jobs ── -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Jobs}"
+                  SelectedItem="{Binding SelectedJob}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  Margin="0,2,0,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Nom"          Binding="{Binding Name}"       Width="*"   MinWidth="100"/>
+                <DataGridTextColumn Header="Source"       Binding="{Binding SourcePath}" Width="*"   MinWidth="120"/>
+                <DataGridTextColumn Header="Destination"  Binding="{Binding DestPath}"   Width="*"   MinWidth="120"/>
+                <DataGridTextColumn Header="Type"         Binding="{Binding SaveType}"   Width="90"/>
+                <DataGridTextColumn Header="Statut"       Binding="{Binding Status}"     Width="90"/>
+                <DataGridTemplateColumn Header="Progression" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <ProgressBar Value="{Binding Progress}" Maximum="100" Height="16"/>
+                                <TextBlock Text="{Binding Progress, StringFormat={}{0:F0} %}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="10" Foreground="Black"/>
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ── Panneau de logs ── -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#F0F0F0" BorderBrush="#CCC" BorderThickness="0,1,0,0" Padding="6,3">
+                <TextBlock Text="Journaux" FontWeight="SemiBold" FontSize="12"/>
+            </Border>
+
+            <ListBox Grid.Row="1"
+                     ItemsSource="{Binding Logs}"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     FontFamily="Consolas" FontSize="11"
+                     BorderThickness="0,1,0,0" BorderBrush="#CCC"/>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>EasySave.Console</AssemblyName>
+    <RootNamespace>EasySave.Console</RootNamespace>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <!-- App.xaml est dans src/ (sous-dossier), le SDK WPF ne le détecte pas
+         automatiquement comme ApplicationDefinition : on le déclare explicitement. -->
+    <Page Remove="src\App.xaml" />
+    <ApplicationDefinition Include="src\App.xaml" />
+  </ItemGroup>
+
+</Project>

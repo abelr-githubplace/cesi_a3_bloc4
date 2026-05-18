@@ -1,0 +1,14 @@
+<Window x:Class="EasySave.Console.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="EasySave — Console Déportée"
+        Height="620" Width="1000"
+        MinHeight="480" MinWidth="700"
+        WindowStartupLocation="CenterScreen">
+    <!--
+        Shell minimaliste : un seul ContentControl dont le contenu est résolu
+        par les DataTemplates de App.xaml (ConnectionVm → ConnectionView,
+        MainVm → MainView).
+    -->
+    <ContentControl Content="{Binding CurrentPage}" />
+</Window>

@@ -1,0 +1,43 @@
+<UserControl x:Class="EasySave.Console.Views.ConnectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#F5F5F5">
+        <Border Background="White"
+                BorderBrush="#DDDDDD" BorderThickness="1"
+                CornerRadius="6" Padding="32"
+                Width="340"
+                VerticalAlignment="Center" HorizontalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="EasySave" FontSize="22" FontWeight="Bold"
+                           HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                <TextBlock Text="Console Déportée" FontSize="13" Foreground="#666"
+                           HorizontalAlignment="Center" Margin="0,0,0,28"/>
+
+                <TextBlock Text="Hôte du serveur" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="6,4" Margin="0,0,0,14"/>
+
+                <TextBlock Text="Port" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}"
+                         Padding="6,4" Margin="0,0,0,14"/>
+
+                <!-- Message d'erreur — masqué quand il n'y a pas d'erreur -->
+                <TextBlock Text="{Binding Error}" Foreground="#CC0000"
+                           FontSize="12" TextWrapping="Wrap"
+                           Margin="0,0,0,12"
+                           Visibility="{Binding HasError,
+                               Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                <Button Content="Se connecter"
+                        Command="{Binding ConnectCommand}"
+                        Padding="0,8" FontSize="13"
+                        HorizontalContentAlignment="Center"/>
+
+                <TextBlock Text="Connexion en cours…" Foreground="#888"
+                           HorizontalAlignment="Center" Margin="0,10,0,0"
+                           Visibility="{Binding IsConnecting,
+                               Converter={StaticResource BoolToVisibilityConverter}}"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

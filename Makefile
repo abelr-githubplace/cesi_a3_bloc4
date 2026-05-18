@@ -15,6 +15,7 @@ CLI_PROJ=cli/EasySave.CLI.csproj
 GUI_PROJ=gui/EasySave.GUI.csproj
 SERVER_PROJ=server/EasySave.Server.csproj
 REMOTE_PROJ=remote/EasySave.Remote.csproj
+CONSOLE_PROJ=console/EasySave.Console.csproj
 
 DEBUG_LOGGER_PATH=logger/bin/Debug/net8.0/win-x64/EasyLog.dll
 DEBUG_CRYPTO_PATH=crypto/bin/Debug/net8.0/win-x64/EasyCrypt.dll
@@ -23,6 +24,7 @@ DEBUG_CLI_PATH=cli/bin/Debug/net8.0/win-x64/EasySave.CLI.exe
 DEBUG_GUI_PATH=gui/bin/Debug/net8.0-windows/win-x64/EasySave.GUI.exe
 DEBUG_SERVER_PATH=server/bin/Debug/net8.0/win-x64/EasySave.Server.exe
 DEBUG_REMOTE_PATH=remote/bin/Debug/net8.0/win-x64/EasySave.Remote.exe
+DEBUG_CONSOLE_PATH=console/bin/Debug/net8.0-windows/win-x64/EasySave.Console.exe
 
 LOGGER_PATH=logger/bin/Release/net8.0/win-x64/EasyLog.dll
 CRYPTO_PATH=crypto/bin/Release/net8.0/win-x64/EasyCrypt.dll
@@ -31,10 +33,11 @@ CLI_PATH=cli/bin/Release/net8.0/win-x64/EasySave.CLI.exe
 GUI_PATH=gui/bin/Release/net8.0-windows/win-x64/EasySave.GUI.exe
 SERVER_PATH=server/bin/Release/net8.0/win-x64/EasySave.Server.exe
 REMOTE_PATH=remote/bin/Release/net8.0/win-x64/EasySave.Remote.exe
+CONSOLE_PATH=console/bin/Release/net8.0-windows/win-x64/EasySave.Console.exe
 
-all: ${DEBUG_CLI_PATH} ${DEBUG_GUI_PATH} ${DEBUG_SERVER_PATH} ${DEBUG_REMOTE_PATH}
+all: ${DEBUG_CLI_PATH} ${DEBUG_GUI_PATH} ${DEBUG_SERVER_PATH} ${DEBUG_REMOTE_PATH} ${DEBUG_CONSOLE_PATH}
 
-all-release: ${CLI_PATH} ${GUI_PATH} ${SERVER_PATH} ${REMOTE_PATH}
+all-release: ${CLI_PATH} ${GUI_PATH} ${SERVER_PATH} ${REMOTE_PATH} ${CONSOLE_PATH}
 
 # Logger
 
@@ -132,13 +135,28 @@ ${REMOTE_PATH}:
 run-remote: ${REMOTE_PATH}
 	@-${REMOTE_PATH}
 
+# Console (WPF client déporté)
+
+console: ${DEBUG_CONSOLE_PATH}
+
+console-release: ${CONSOLE_PATH}
+
+${DEBUG_CONSOLE_PATH}:
+	@-${BUILD} ${DEBUG} ${CONSOLE_PROJ}
+
+${CONSOLE_PATH}:
+	@-${BUILD} ${RELEASE} ${CONSOLE_PROJ}
+
+run-console: ${CONSOLE_PATH}
+	@-${CONSOLE_PATH}
+
 # !! PHONIES !!
 
 .PHONY:
 
 # Clean
 
-clean: clean-logger clean-crypto clean-lib clean-cli clean-gui clean-server clean-remote clean-test
+clean: clean-logger clean-crypto clean-lib clean-cli clean-gui clean-server clean-remote clean-console clean-test
 
 clean-logger:
 	@-${CLEAN} ${LOGGER_PROJ}
@@ -170,6 +188,10 @@ clean-server:
 clean-remote:
 	@-${CLEAN} ${REMOTE_PROJ}
 	@-${RM} -r remote/bin remote/tests/bin
+
+clean-console:
+	@-${CLEAN} ${CONSOLE_PROJ}
+	@-${RM} -r console/bin
 
 clean-test:
 	@-${RM} -r backups/* tests/*
