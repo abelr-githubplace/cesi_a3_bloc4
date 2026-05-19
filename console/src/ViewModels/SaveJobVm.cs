@@ -17,7 +17,7 @@ public sealed class SaveJobVm : ViewModel
     public string SourcePath { get => _sourcePath; set { _sourcePath = value; OnPropertyChanged(); } }
     public string DestPath   { get => _destPath;   set { _destPath   = value; OnPropertyChanged(); } }
     public string SaveType   { get => _saveType;   set { _saveType   = value; OnPropertyChanged(); } }
-    public string Status     { get => _status;     set { _status     = value; OnPropertyChanged(); } }
+    public string Status     { get => _status;     set { _status     = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsRunning)); } }
     public float  Progress   { get => _progress;   set { _progress   = value; OnPropertyChanged(); } }
     public bool   IsSelected { get => _isSelected; set { _isSelected = value; OnPropertyChanged(); } }
 

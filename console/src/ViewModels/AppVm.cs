@@ -22,5 +22,5 @@ public sealed class AppVm : ViewModel
     }
 
     private void OnConnected(WsClient client)
-        => CurrentPage = new MainVm(client);
+        => CurrentPage = new MainVm(client, new LogWriter());
 }

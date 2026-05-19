@@ -9,7 +9,8 @@ namespace EasySave.Console.ViewModels;
 // ViewModel principal : reçoit les événements WebSocket et pilote la liste de jobs.
 public sealed class MainVm : ViewModel
 {
-    private readonly WsClient _client;
+    private readonly WsClient   _client;
+    private readonly LogWriter  _logWriter;
 
     public ObservableCollection<SaveJobVm> Jobs { get; } = [];
     public ObservableCollection<string>    Logs { get; } = [];
@@ -29,9 +30,10 @@ public sealed class MainVm : ViewModel
     public ICommand PauseCommand  { get; }
     public ICommand ResumeCommand { get; }
 
-    public MainVm(WsClient client)
+    public MainVm(WsClient client, LogWriter logWriter)
     {
-        _client = client;
+        _client    = client;
+        _logWriter = logWriter;
         _client.JobListReceived += OnJobList;
         _client.StateUpdated    += OnStateUpdate;
         _client.LogReceived     += msg => Ui(() => AddLog(msg));
@@ -68,6 +70,7 @@ public sealed class MainVm : ViewModel
             var ids = dtos.Select(d => d.Id).ToHashSet();
             foreach (var orphan in Jobs.Where(j => !ids.Contains(j.Id)).ToList())
                 Jobs.Remove(orphan);
+            CommandManager.InvalidateRequerySuggested();
         });
     }
 
@@ -79,6 +82,7 @@ public sealed class MainVm : ViewModel
             if (vm == null) return;
             if (msg.Status   != null) vm.Status   = msg.Status;
             if (msg.Progress != null) vm.Progress  = msg.Progress.Value;
+            CommandManager.InvalidateRequerySuggested();
         });
     }
 
@@ -139,8 +143,10 @@ public sealed class MainVm : ViewModel
 
     private void AddLog(string msg)
     {
-        Logs.Insert(0, $"[{DateTime.Now:HH:mm:ss}] {msg}");
+        var entry = $"[{DateTime.Now:HH:mm:ss}] {msg}";
+        Logs.Insert(0, entry);
         if (Logs.Count > 200) Logs.RemoveAt(Logs.Count - 1);
+        _logWriter.Write(entry);
     }
 
     // Toutes les modifications de collections WPF doivent se faire sur le thread UI.
